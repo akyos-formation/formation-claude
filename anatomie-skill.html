@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anatomie d’un skill</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Concept : une planche de formation à quatre temps, dans l'identité des diapositives d'origine
+   (marine + citron sur fond pâle). Le temps fort est le schéma à trois colonnes :
+   origine → emplacement → contexte. */
+:root {
+  --bg: #F6F7FC; --surface: #FFFFFF; --sunk: #ECEFF9;
+  --ink: #0B1B66; --text: #20264A; --muted: #565E82; --line: #D8DCEE;
+  --lime: #E0FF4F; --on-lime: #0B1B66;
+  --wire: #C9CFE6; --wire-on: #0B1B66;
+  --seg1: #0B1B66; --seg2: #BFE32A; --seg3: #6E7FE0;
+  --warn-bg: #FFF1E3; --warn-ink: #8A3A05;
+  --font-d: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-b: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-m: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #090F30; --surface: #111A48; --sunk: #0D1539;
+    --ink: #F3F5FF; --text: #DCE0F6; --muted: #A1A9CF; --line: #2B3670;
+    --wire: #2F3A78; --wire-on: #E0FF4F;
+    --seg1: #8C9CFF; --seg2: #E0FF4F; --seg3: #5B6BD6;
+    --warn-bg: #3A2410; --warn-ink: #FFC48F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #090F30; --surface: #111A48; --sunk: #0D1539;
+  --ink: #F3F5FF; --text: #DCE0F6; --muted: #A1A9CF; --line: #2B3670;
+  --wire: #2F3A78; --wire-on: #E0FF4F;
+  --seg1: #8C9CFF; --seg2: #E0FF4F; --seg3: #5B6BD6;
+  --warn-bg: #3A2410; --warn-ink: #FFC48F;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font: 400 1rem/1.6 var(--font-b); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+.wrap { max-width: 1280px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--font-d); color: var(--ink); margin: 0; text-wrap: balance; }
+h1 { font-weight: 900; font-size: clamp(2.7rem, 6.6vw, 5.2rem); line-height: 1; letter-spacing: -.02em; }
+h2 { font-weight: 800; font-size: clamp(1.75rem, 3.4vw, 2.6rem); line-height: 1.08; letter-spacing: -.01em; }
+h3 { font-weight: 700; font-size: 1.15rem; line-height: 1.25; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-m); font-size: .86em; }
+code { background: var(--sunk); padding: .08em .32em; border-radius: 3px; overflow-wrap: anywhere; }
+a { color: var(--ink); text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--wire-on); outline-offset: 2px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.label { font: 600 .74rem/1.2 var(--font-b); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+/* Ouverture */
+.hero { position: relative; overflow: hidden; }
+.hero .wrap { position: relative; padding-block: clamp(5.4rem, 8vw, 6.5rem) clamp(2.2rem, 4vw, 3.4rem); }
+.hero-mark { position: absolute; top: -.2em; right: -.02em; font: 900 clamp(8rem, 25vw, 25rem)/1 var(--font-d); letter-spacing: -.05em; color: var(--lime); user-select: none; pointer-events: none; }
+.hero-text { position: relative; display: grid; gap: 1.1rem; max-width: 40rem; }
+.lede { font-size: clamp(1.1rem, 1.9vw, 1.32rem); line-height: 1.45; color: var(--text); }
+
+/* Navigation */
+.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: var(--bg); border-block: 1px solid var(--line); }
+.tabs ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 clamp(.9rem, 3vw, 2.2rem); }
+.tabs a { display: block; padding-block: .68rem; font: 600 .95rem/1.2 var(--font-b); text-decoration: none; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.tabs a[aria-current="true"] { color: var(--ink); border-bottom-color: var(--wire-on); }
+
+section { padding-block: clamp(2.6rem, 5vw, 4.4rem); scroll-margin-top: 44px; border-bottom: 1px solid var(--line); }
+.sec-head { display: grid; gap: .7rem; max-width: 46rem; margin-bottom: clamp(1.5rem, 3vw, 2.4rem); }
+.prose { max-width: 42rem; }
+
+/* 1. Définition */
+.def-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.4rem; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 660px; }
+th { text-align: left; font: 600 .74rem/1.2 var(--font-b); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); padding: .6rem .9rem; border-bottom: 2px solid var(--ink); }
+td { padding: .78rem .9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+td:first-child { font-weight: 700; color: var(--ink); white-space: nowrap; }
+tr.hit td { background: var(--lime); color: var(--on-lime); border-bottom-color: transparent; }
+.rule { font-size: 1.08rem; max-width: 42rem; }
+.rule b { font-weight: 700; color: var(--ink); }
+
+/* 2. Structure */
+.explorer { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(1rem, 3vw, 2.4rem); align-items: start; }
+.left-stack { display: grid; gap: 1.1rem; min-width: 0; }
+.tree { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-family: var(--font-m); font-size: .88rem; }
+.tree button { width: 100%; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .1rem .8rem; text-align: left; background: transparent; border: 0; border-radius: 3px; padding: .42rem .6rem; overflow-wrap: anywhere; }
+.tree button:hover { background: var(--sunk); }
+.tree button[aria-pressed="true"] { background: var(--lime); color: var(--on-lime); }
+.tree .d1 button { padding-left: 1.5rem; } .tree .d2 button { padding-left: 2.8rem; }
+.tag { font: 600 .68rem/1.5 var(--font-b); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.tree button[aria-pressed="true"] .tag { color: var(--on-lime); }
+.note { border-left: 3px solid var(--ink); padding: .1rem 0 .1rem .9rem; display: grid; gap: .3rem; min-height: 8.4rem; align-content: start; }
+.note h3 { font-size: 1.05rem; }
+.file { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; min-width: 0; overflow: hidden; }
+.file-head { padding: .55rem .9rem; border-bottom: 1px solid var(--line); font: 500 .8rem/1.3 var(--font-m); color: var(--muted); overflow-wrap: anywhere; }
+.file-body { padding: .7rem; font: 400 .84rem/1.55 var(--font-m); white-space: pre-wrap; overflow-wrap: anywhere; display: grid; gap: 2px; color: var(--text); }
+.fence { color: var(--muted); padding-inline: .4rem; }
+.zone { display: block; width: 100%; text-align: left; background: var(--sunk); border: 0; border-radius: 3px; padding: .32rem .4rem; font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+.zone:hover { outline: 1px solid var(--muted); }
+.zone[aria-pressed="true"] { background: var(--lime); color: var(--on-lime); }
+.plain { padding: .32rem .4rem; }
+.hint { font-size: .9rem; color: var(--muted); }
+
+.sub-block { margin-top: clamp(2rem, 4vw, 3.2rem); display: grid; gap: 1rem; }
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; list-style: none; padding: 0; margin: 0; }
+.steps button { width: 100%; height: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: .6rem .75rem; display: grid; gap: .1rem; }
+.steps b { font: 800 1.2rem/1 var(--font-d); color: var(--ink); }
+.steps span { font-weight: 600; font-size: .93rem; }
+.steps button:hover { border-color: var(--ink); }
+.steps button[aria-pressed="true"] { background: var(--lime); border-color: var(--lime); color: var(--on-lime); }
+.steps button[aria-pressed="true"] b { color: var(--on-lime); }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(1rem, 3vw, 2.4rem); align-items: start; min-height: 10.5rem; }
+.stage-text { display: grid; gap: .4rem; }
+.states { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.states li { display: flex; justify-content: space-between; gap: .8rem; padding: .34rem .7rem; background: var(--surface); font: 400 .82rem/1.4 var(--font-m); overflow-wrap: anywhere; min-width: 0; }
+.states em { font: 600 .74rem/1.5 var(--font-b); font-style: normal; color: var(--muted); white-space: nowrap; }
+.states li.on { background: var(--lime); color: var(--on-lime); }
+.states li.on em { color: var(--on-lime); }
+.gauge { display: grid; gap: .35rem; }
+.gauge-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .2rem 1rem; font-size: .9rem; }
+.gauge-top b { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 700; }
+.bar { position: relative; height: 26px; background: var(--sunk); border-radius: 3px; overflow: hidden; }
+.bar i { position: absolute; top: 0; bottom: 0; left: 0; width: 0; }
+@media (prefers-reduced-motion: no-preference) { .bar i { transition: left .35s ease, width .35s ease; } }
+.ticks { position: relative; height: 1.3rem; font: 400 .74rem/1.3 var(--font-m); color: var(--muted); font-variant-numeric: tabular-nums; }
+.ticks span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.ticks span:first-child { transform: none; } .ticks span:last-child { transform: translateX(-100%); }
+.key { display: flex; flex-wrap: wrap; gap: .25rem 1.1rem; font-size: .86rem; color: var(--muted); }
+.key i { display: inline-block; width: .8em; height: .8em; margin-right: .35em; border-radius: 2px; vertical-align: -.03em; }
+.step-nav { display: flex; gap: .5rem; }
+.btn { background: var(--surface); border: 1px solid var(--ink); color: var(--ink); border-radius: 4px; padding: .36rem .85rem; font-weight: 600; font-size: .92rem; }
+.btn:hover { background: var(--ink); color: var(--bg); }
+.btn:disabled { opacity: .4; cursor: default; background: var(--surface); color: var(--ink); }
+
+/* 3. Utilisation */
+.modes { display: grid; }
+.mode { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 5fr) minmax(0, 4fr); gap: .3rem 1.6rem; padding: .95rem 0; border-top: 1px solid var(--line); align-items: start; }
+.mode:last-child { border-bottom: 1px solid var(--line); }
+.mode h3 { font-size: 1.1rem; }
+.mode .say { font: 400 .88rem/1.5 var(--font-m); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: .5rem .7rem; overflow-wrap: anywhere; min-width: 0; }
+.mode .where { font-size: .94rem; color: var(--text); }
+.two { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(1.4rem, 4vw, 3rem); align-items: start; margin-top: clamp(2rem, 4vw, 3rem); }
+.who { display: grid; gap: .9rem; min-width: 0; }
+.seg { display: flex; flex-wrap: wrap; gap: .4rem; }
+.seg button { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: .38rem .8rem; font-weight: 600; font-size: .94rem; }
+.seg button:hover { border-color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--lime); border-color: var(--lime); color: var(--on-lime); }
+.lights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.light { border: 1px solid var(--line); border-radius: 4px; padding: .55rem .75rem; background: var(--surface); }
+.light b { display: block; font: 800 1.05rem/1.2 var(--font-d); color: var(--ink); }
+.light.off { background: transparent; border-style: dashed; }
+.light.off b { color: var(--muted); text-decoration: line-through; }
+.light span { font-size: .88rem; color: var(--muted); }
+.check { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; gap: .55rem; }
+.check li { padding-left: 1.3rem; position: relative; }
+.check li::before { content: ""; position: absolute; left: 0; top: .42em; width: .72em; height: .72em; border: 2px solid var(--ink); border-radius: 2px; }
+.warn { background: var(--warn-bg); color: var(--warn-ink); padding: .55rem .75rem; border-radius: 4px; font-size: .93rem; }
+
+/* 4. Chemins */
+.scen { display: grid; gap: .55rem; margin-bottom: 1.5rem; }
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chips button { background: var(--surface); border: 1px solid var(--line); border-radius: 99px; padding: .36rem .85rem; font-weight: 600; font-size: .92rem; line-height: 1.3; text-align: left; }
+.chips button:hover { border-color: var(--ink); }
+.chips button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.atlas { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
+.map { position: relative; display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 10fr) minmax(0, 10fr); column-gap: clamp(52px, 8.4vw, 112px); min-width: 0; }
+.wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.wires path.e { fill: none; stroke: var(--wire); stroke-width: 1.2; }
+.wires path.e.cond { stroke-dasharray: 5 4; }
+.wires path.e.on { stroke: var(--wire-on); stroke-width: 2.2; marker-end: url(#arrow); }
+.wires .arrowhead { fill: var(--wire-on); }
+.wires text { font: 600 11px var(--font-b); fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; text-anchor: middle; dominant-baseline: middle; }
+.col { display: flex; flex-direction: column; gap: 8px; min-width: 0; position: relative; }
+.col-head { display: grid; gap: .1rem; min-height: 3.2rem; align-content: start; margin-bottom: .2rem; }
+.col-head h3 { font-size: 1.05rem; }
+.group { font: 600 .72rem/1.2 var(--font-b); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: .5rem; }
+.group:first-of-type { margin-top: 0; }
+.col.spread { justify-content: flex-start; }
+.col.spread .node { flex: 0 0 auto; }
+.node { position: relative; text-align: left; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: .46rem .65rem; display: grid; gap: .08rem; min-width: 0; }
+.node b { font: 700 .96rem/1.2 var(--font-b); color: var(--ink); }
+.node span { font-size: .8rem; line-height: 1.3; color: var(--muted); overflow-wrap: anywhere; }
+.node span.mono { font-size: .72rem; }
+.node:hover { border-color: var(--ink); }
+.map.has-sel .node:not(.lit) { opacity: .56; }
+.node.lit { border-color: var(--ink); }
+.node.lit.sel, .node.lit.path { background: var(--lime); border-color: var(--lime); }
+.node.lit.sel b, .node.lit.sel span, .node.lit.path b, .node.lit.path span { color: var(--on-lime); }
+.node.lit.partial { border-style: dashed; }
+.legend { display: flex; flex-wrap: wrap; gap: .3rem 1.4rem; margin-top: 1rem; font-size: .87rem; color: var(--muted); }
+.legend svg { width: 34px; height: 8px; vertical-align: 1px; margin-right: .4rem; color: var(--wire-on); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 1rem; display: grid; gap: .75rem; min-width: 0; }
+.aside { position: sticky; top: 58px; min-width: 0; }
+.panel h3 { font-size: 1.25rem; font-weight: 800; }
+.panel ol, .panel ul { margin: 0; padding: 0 0 0 1.1rem; display: grid; gap: .22rem; }
+.panel ul.reach { list-style: none; padding: 0; }
+.reach li { display: grid; gap: 0; padding-left: 1.15rem; position: relative; font-size: .94rem; }
+.reach li::before { content: ""; position: absolute; left: 0; top: .42em; width: .62em; height: .62em; border-radius: 50%; background: var(--wire-on); }
+.reach li.c::before { background: transparent; border: 2px dashed var(--wire-on); }
+.reach li small { color: var(--muted); font-size: .84rem; line-height: 1.35; }
+.reach-no { font-size: .9rem; color: var(--muted); }
+.panel-block { display: grid; gap: .3rem; }
+.path-row { display: flex; gap: .4rem; align-items: stretch; min-width: 0; }
+.path-row code { flex: 1 1 auto; min-width: 0; display: block; padding: .38rem .5rem; font-size: .76rem; line-height: 1.4; }
+.copy { flex: none; background: transparent; border: 1px solid var(--line); border-radius: 3px; padding: 0 .55rem; font-size: .8rem; font-weight: 600; }
+.copy:hover { border-color: var(--ink); }
+.traps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.3rem clamp(1.4rem, 4vw, 3rem); margin-top: clamp(2rem, 4vw, 3rem); }
+.trap { display: grid; gap: .25rem; align-content: start; min-width: 0; }
+.api { margin-top: 1.8rem; max-width: 46rem; color: var(--muted); font-size: .95rem; }
+
+footer { padding-block: 2.2rem 3rem; font-size: .92rem; color: var(--muted); }
+footer ul { margin: .5rem 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .3rem 1.6rem; }
+
+@media (max-width: 1199px) { .atlas { grid-template-columns: minmax(0, 1fr); } .aside { position: static; } }
+@media (max-width: 860px) {
+  .explorer, .stage, .two, .traps { grid-template-columns: minmax(0, 1fr); }
+  .mode { grid-template-columns: minmax(0, 1fr); }
+  .map { grid-template-columns: minmax(0, 1fr); row-gap: 1.6rem; }
+  .wires { display: none; }
+  .col-head { min-height: 0; }
+  .note, .stage { min-height: 0; }
+  .col .panel { margin-block: .1rem .4rem; }
+}
+@media (max-width: 640px) {
+  table { min-width: 0; }
+  thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  tr { display: grid; gap: .12rem; padding: .7rem 0; border-bottom: 1px solid var(--line); }
+  tr.hit { background: var(--lime); color: var(--on-lime); padding-inline: .6rem; border-bottom: 0; }
+  td, tr.hit td { display: block; padding: 0; border: 0; background: transparent; }
+  td:first-child { white-space: normal; font-size: 1.05rem; }
+  td[data-l]::before { content: attr(data-l) "\00a0: "; color: var(--muted); font-size: .86rem; }
+  tr.hit td[data-l]::before { color: var(--on-lime); }
+}
+@media (max-width: 560px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+
+<header class="hero">
+  <div class="hero-mark" aria-hidden="true">sk</div>
+  <div class="wrap">
+    <div class="hero-text">
+      <h1>Anatomie d’un skill</h1>
+      <p class="lede">Un skill est un dossier qui contient une méthode de travail. Claude l’ouvre quand votre demande y correspond. L’endroit où vous le rangez décide où il fonctionne.</p>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Parties du schéma">
+  <div class="wrap">
+    <ol>
+      <li><a href="#definition">Définition</a></li>
+      <li><a href="#structure">Structure</a></li>
+      <li><a href="#utilisation">Utilisation</a></li>
+      <li><a href="#chemins">Chemins d’accès</a></li>
+    </ol>
+  </div>
+</nav>
+
+<main>
+<section id="definition">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Ce qu’est un skill</h2>
+      <p class="prose">Un skill réunit des instructions et, si besoin, des modèles, des exemples ou des scripts. Claude connaît en permanence son nom et sa description, et n’ouvre le reste que lorsque la tâche le demande. Il fonctionne comme une fiche de procédure dans un classeur : Claude lit les étiquettes et ne sort que la fiche utile.</p>
+    </div>
+    <div class="def-grid">
+      <div class="scroll">
+        <table>
+          <thead><tr><th scope="col">À ne pas confondre</th><th scope="col">Ce que cela apporte</th><th scope="col">Quand cela agit</th><th scope="col">Exemple</th></tr></thead>
+          <tbody>
+            <tr><td>Prompt</td><td>Une demande</td><td>Une fois, dans le message</td><td>« Résume ce compte rendu »</td></tr>
+            <tr><td>Instructions, CLAUDE.md</td><td>Des faits et du contexte</td><td>En permanence</td><td>« Nous vouvoyons nos clients »</td></tr>
+            <tr class="hit"><td>Skill</td><td>Une méthode réutilisable</td><td>Quand la tâche correspond</td><td>« Rédiger un post selon notre charte »</td></tr>
+            <tr><td>Connecteur</td><td>Un accès à une application</td><td>Quand Claude doit lire ou agir dans l’outil</td><td>« Lire un dossier Google Drive »</td></tr>
+            <tr><td>Plugin</td><td>Un ensemble à installer : skills, commandes, connecteurs</td><td>Une fois installé</td><td>« Un pack pour l’équipe marketing »</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="rule"><b>Quand en créer un ?</b> Dès que vous recollez les mêmes consignes, la même checklist ou la même procédure d’un échange à l’autre.</p>
+    </div>
+  </div>
+</section>
+
+<section id="structure">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Ce qu’il y a dans le dossier</h2>
+      <p class="prose">Seul <code>SKILL.md</code> est obligatoire. Cliquez sur un fichier, puis sur une partie de <code>SKILL.md</code>. L’exemple est fictif.</p>
+    </div>
+    <div class="explorer">
+      <div class="left-stack">
+        <ul class="tree" id="tree"></ul>
+        <div class="note" id="note" aria-live="polite"></div>
+      </div>
+      <div class="file">
+        <div class="file-head" id="fileHead"></div>
+        <div class="file-body" id="fileBody"></div>
+      </div>
+    </div>
+
+    <div class="sub-block">
+      <h3>Ce que Claude lit, et quand</h3>
+      <ol class="steps" id="steps"></ol>
+      <div class="stage">
+        <div class="stage-text" aria-live="polite">
+          <h3 id="stageTitle"></h3>
+          <p id="stageText"></p>
+        </div>
+        <ul class="states" id="states"></ul>
+      </div>
+      <div class="gauge">
+        <div class="gauge-top"><span>Contexte occupé dans cet exemple</span><b id="total"></b></div>
+        <div class="bar" role="img" id="bar" aria-label="">
+          <i id="s1" style="background:var(--seg1)"></i><i id="s2" style="background:var(--seg2)"></i><i id="s3" style="background:var(--seg3)"></i>
+        </div>
+        <div class="ticks" aria-hidden="true">
+          <span style="left:0">0</span><span style="left:25%">2&nbsp;000</span><span style="left:50%">4&nbsp;000</span><span style="left:75%">6&nbsp;000</span><span style="left:100%">8&nbsp;000 tokens</span>
+        </div>
+        <div class="key">
+          <span><i style="background:var(--seg1)"></i>Descriptions de 20 skills, environ 100 tokens chacune</span>
+          <span><i style="background:var(--seg2)"></i>SKILL.md, moins de 5&nbsp;000 tokens</span>
+          <span><i style="background:var(--seg3)"></i>Fichier de référence, exemple à 1&nbsp;500 tokens</span>
+        </div>
+      </div>
+      <div class="step-nav">
+        <button class="btn" id="prev" type="button">Étape précédente</button>
+        <button class="btn" id="next" type="button">Étape suivante</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="utilisation">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Comment le déclencher</h2>
+      <p class="prose">Le même skill s’appelle de quatre façons. La description décide du déclenchement automatique, les autres modes vous laissent la main.</p>
+    </div>
+    <div class="modes">
+      <article class="mode"><h3>Laisser faire Claude</h3><div class="say">Rédige un post LinkedIn sur notre session de novembre.</div><p class="where">Partout où le skill est disponible. C’est le mode par défaut.</p></article>
+      <article class="mode"><h3>Le nommer</h3><div class="say">Utilise mon skill post-linkedin-marque pour ce brief.</div><p class="where">Partout. Utile si Claude ne le prend pas de lui-même.</p></article>
+      <article class="mode"><h3>Taper la commande</h3><div class="say">/post-linkedin-marque session de novembre</div><p class="where">Claude Code, add-ins Microsoft 365, tâches planifiées Cowork, et skills de plugin dans le chat et Cowork.</p></article>
+      <article class="mode"><h3>Le planifier</h3><div class="say">Chaque lundi matin, fais la veille IA avec le skill veille-sectorielle.</div><p class="where">Tâche planifiée ou routine. Le prompt de la tâche appelle le skill, sans vous.</p></article>
+    </div>
+
+    <div class="two">
+      <div class="who">
+        <div class="panel-block">
+          <h3>Qui a la main ?</h3>
+          <p class="hint">Dans Claude Code, deux champs de <code>SKILL.md</code> réservent le déclenchement.</p>
+        </div>
+        <div class="seg" id="seg"></div>
+        <div class="lights" id="lights" aria-live="polite"></div>
+        <code id="fm" style="display:block;padding:.5rem .7rem"></code>
+        <p id="whoUse"></p>
+        <p class="warn">Ces deux champs sont propres à Claude Code. Un skill qui les contient est refusé au téléversement sur Claude.</p>
+      </div>
+      <div>
+        <h3>Si Claude ne l’utilise pas</h3>
+        <ul class="check">
+          <li>Le skill est activé dans Personnaliser &gt; Compétences.</li>
+          <li>L’exécution de code et la création de fichiers sont activées.</li>
+          <li>La description dit ce que fait le skill et quand l’utiliser.</li>
+          <li>Votre demande le nomme explicitement.</li>
+          <li>Dans Claude Code, il apparaît quand vous tapez <code>/skills</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="chemins">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Où il vit, où il fonctionne</h2>
+      <p class="prose">Un skill communautaire ou personnalisé peut finir à plusieurs endroits. Suivez le chemin de gauche à droite : l’origine ne compte que pour la confiance, l’emplacement fixe les contextes atteints. Cliquez sur un élément, ou partez d’un besoin.</p>
+    </div>
+    <div class="scen" id="scen">
+      <span class="label">Je veux…</span>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="atlas">
+      <div style="min-width:0">
+        <div class="map" id="map">
+          <svg class="wires" id="wires" aria-hidden="true"></svg>
+        </div>
+        <div class="legend">
+          <span><svg viewBox="0 0 34 8" aria-hidden="true"><line x1="0" y1="4" x2="34" y2="4" stroke="currentColor" stroke-width="2.2"/></svg>Chargé dans ce contexte</span>
+          <span><svg viewBox="0 0 34 8" aria-hidden="true"><line x1="0" y1="4" x2="34" y2="4" stroke="currentColor" stroke-width="2.2" stroke-dasharray="5 4"/></svg>Chargé sous condition</span>
+        </div>
+      </div>
+      <div class="aside" id="aside"><div class="panel" id="panel" aria-live="polite"></div></div>
+    </div>
+
+    <div class="traps">
+      <div class="trap"><h3>« Skill not found » dans une routine</h3><p>Cowork et le cloud ne lisent pas <code>~/.claude/skills/</code> sur votre machine. Activez le skill sur votre compte, ou commitez-le dans le dépôt pour une session cloud.</p></div>
+      <div class="trap"><h3>Téléversement refusé</h3><p>Sur Claude, l’en-tête n’accepte que <code>name</code>, <code>description</code>, <code>license</code>, <code>compatibility</code>, <code>metadata</code> et <code>allowed-tools</code>. Tout autre champ provoque une erreur.</p></div>
+      <div class="trap"><h3>Modifications perdues</h3><p><code>~/.claude/skills/synced/</code> est une copie de votre compte, dans un seul sens. Modifiez le skill sur Claude : ce que vous changez dans ce dossier n’est pas renvoyé et peut être écrasé.</p></div>
+      <div class="trap"><h3>Deux skills du même nom</h3><p>Entreprise passe avant personnel, personnel avant projet. Un skill de plugin garde son préfixe, <code>/plugin:skill</code>, et n’entre pas en conflit.</p></div>
+    </div>
+    <p class="api">L’API Claude a son propre circuit : les skills y sont envoyés avec <code>/v1/skills</code> et partagés dans le workspace. Ils ne figurent pas sur ce schéma.</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Vérifié le 5 novembre 2026 dans la documentation officielle. Ces fonctions évoluent vite : contrôlez les chemins et les libellés avant chaque session.</p>
+    <ul>
+      <li><a href="https://code.claude.com/docs/en/skills" target="_blank" rel="noopener">Skills dans Claude Code</a></li>
+      <li><a href="https://support.claude.com/en/articles/12512180-use-skills-in-claude" target="_blank" rel="noopener">Utiliser les skills dans Claude</a></li>
+      <li><a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview" target="_blank" rel="noopener">Agent Skills, vue d’ensemble</a></li>
+      <li><a href="https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork" target="_blank" rel="noopener">Tâches planifiées Cowork</a></li>
+      <li><a href="https://support.claude.com/en/articles/13837440-use-plugins-in-claude" target="_blank" rel="noopener">Plugins dans Claude</a></li>
+      <li><a href="https://code.claude.com/docs/en/desktop-scheduled-tasks" target="_blank" rel="noopener">Tâches planifiées de bureau</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Mise en forme : `code`
+  const rich = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  // Espaces insécables de la typographie française
+  function nb(root) {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = w.nextNode())) {
+      const p = n.parentElement;
+      if (!p || p.closest("code, pre, script, style, .mono, .say, .file-body, .tree")) continue;
+      const t = n.nodeValue.replace(/ ([:;?!»])/g, " $1").replace(/« /g, "« ");
+      if (t !== n.nodeValue) n.nodeValue = t;
+    }
+  }
+
+  /* ---------- 2. Explorateur de fichiers ---------- */
+  const SKILL_ZONES = {
+    name: ["name", "L’identifiant court du skill. Dans Claude Code, il devient la commande `/post-linkedin-marque`."],
+    description: ["description", "Le champ qui compte le plus. Claude le compare à votre demande pour décider d’ouvrir le skill. Dites ce que fait le skill et quand l’utiliser."],
+    body: ["Corps du fichier", "Les instructions que Claude suit. Écrivez ce qu’il faut faire, gardez le fichier sous 500 lignes et déplacez le détail dans des fichiers à part."]
+  };
+  const FILES = [
+    { id: "dir", d: 0, name: "post-linkedin-marque/", tag: "dossier", title: "Le dossier du skill",
+      text: "Il porte le nom du skill. Pour un téléversement sur Claude, il doit correspondre au nom déclaré dans `SKILL.md`, et il s’envoie en ZIP.",
+      body: "post-linkedin-marque.zip\n└── post-linkedin-marque/\n    └── SKILL.md\n\nLe ZIP contient le dossier, pas seulement ses fichiers." },
+    { id: "skill", d: 1, name: "SKILL.md", tag: "obligatoire" },
+    { id: "refs", d: 1, name: "references/", tag: "facultatif", title: "La documentation à la demande",
+      text: "Des fichiers lus seulement si les instructions y renvoient et que la tâche en a besoin. Ils ne pèsent rien tant qu’ils restent fermés.",
+      body: "Déposez ici ce qui est long ou rarement utile :\nchartes, guides de ton, listes d’exemples, grilles." },
+    { id: "ton", d: 2, name: "ton-de-marque.md", tag: "référence", title: "Une référence",
+      text: "`SKILL.md` indique quand la lire. Ici, l’étape 2 de la méthode renvoie vers ce fichier.",
+      body: "# Ton de marque\n\nNous parlons à des responsables de communication.\nPhrases courtes. Pas de jargon sans explication.\nToujours un exemple concret." },
+    { id: "ex", d: 2, name: "exemples-posts.md", tag: "référence", title: "Une bibliothèque d’exemples",
+      text: "Montrer le résultat attendu fonctionne souvent mieux que le décrire. Si Claude n’en a pas besoin, ce fichier reste fermé.",
+      body: "## Post retour d’expérience\nAccroche : le chiffre ou la surprise.\nCorps : ce qui a changé, en trois lignes.\nFin : une question ouverte." },
+    { id: "assets", d: 1, name: "assets/", tag: "facultatif", title: "Les modèles",
+      text: "Des fichiers que Claude réutilise dans le résultat : gabarits, logos, polices.",
+      body: "gabarit-carrousel.pptx\n\nCe fichier n’est pas lu comme une consigne :\nClaude s’en sert pour produire le livrable." },
+    { id: "scripts", d: 1, name: "scripts/", tag: "facultatif", title: "Les scripts",
+      text: "Du code exécuté, pas lu. Seul son résultat entre dans le contexte, ce qui rend une tâche répétitive plus fiable et plus économe. Vérifiez qu’il fonctionne dans l’environnement visé.",
+      body: "compter-caracteres.py\n\nSortie : « Post : 1 240 caractères, accroche : 118. »" }
+  ];
+  let curFile = "skill", curZone = "description";
+  function renderFiles() {
+    $("tree").innerHTML = FILES.map((f) =>
+      `<li class="d${f.d}"><button type="button" data-f="${f.id}" aria-pressed="${f.id === curFile}"><span>${esc(f.name)}</span><span class="tag">${esc(f.tag)}</span></button></li>`).join("");
+    const f = FILES.find((x) => x.id === curFile);
+    const fileName = { dir: "structure du ZIP", skill: "post-linkedin-marque/SKILL.md", refs: "references/", ton: "references/ton-de-marque.md", ex: "references/exemples-posts.md", assets: "assets/", scripts: "scripts/" }[f.id];
+    $("fileHead").textContent = fileName;
+    if (f.id === "skill") {
+      const z = (k, t) => `<button type="button" class="zone" data-z="${k}" aria-pressed="${curZone === k}">${esc(t)}</button>`;
+      $("fileBody").innerHTML =
+        `<div class="fence">---</div>` +
+        z("name", "name: post-linkedin-marque") +
+        z("description", "description: Rédige des posts LinkedIn dans le ton de la marque. À utiliser pour un post, une accroche ou un carrousel LinkedIn.") +
+        `<div class="fence">---</div>` +
+        z("body", "# Post LinkedIn de marque\n\n## Méthode\n1. Demande l’objectif du post et le public visé.\n2. Lis references/ton-de-marque.md.\n3. Propose trois accroches, puis rédige le post retenu.\n4. Lance scripts/compter-caracteres.py et ajuste.\n\n## Format de sortie\nAccroche, corps, appel à l’action.");
+      const n = SKILL_ZONES[curZone];
+      $("note").innerHTML = `<h3>${esc(n[0])}</h3><p>${rich(n[1])}</p>`;
+    } else {
+      $("fileBody").innerHTML = `<div class="plain">${esc(f.body)}</div>`;
+      $("note").innerHTML = `<h3>${esc(f.title)}</h3><p>${rich(f.text)}</p>`;
+    }
+    nb($("note"));
+  }
+  $("tree").addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (b) { curFile = b.dataset.f; renderFiles(); $("tree").querySelector(`[data-f="${curFile}"]`).focus(); } });
+  $("fileBody").addEventListener("click", (e) => { const b = e.target.closest("[data-z]"); if (b) { curZone = b.dataset.z; renderFiles(); $("fileBody").querySelector(`[data-z="${curZone}"]`).focus(); } });
+
+  /* ---------- 2. Chargement progressif ---------- */
+  const STEPS = [
+    { t: "Au démarrage", h: "Claude lit les étiquettes", p: "Il connaît le nom et la description de chaque skill disponible, pas leur contenu. Avoir beaucoup de skills pèse donc peu.", seg: [2000, 0, 0], st: ["lue", "fermé", "fermé", "fermé", "fermé"] },
+    { t: "Votre demande", h: "Une description correspond", p: "« Écris un post LinkedIn sur notre prochaine formation. » Claude compare cette phrase aux descriptions et retient post-linkedin-marque. Rien de plus n’est chargé.", seg: [2000, 0, 0], st: ["retenue", "fermé", "fermé", "fermé", "fermé"] },
+    { t: "Activation", h: "Claude ouvre SKILL.md", p: "Les instructions entrent dans la conversation et y restent pour la suite de l’échange.", seg: [2000, 3000, 0], st: ["lue", "lu", "fermé", "fermé", "fermé"] },
+    { t: "Au besoin", h: "Claude lit seulement le nécessaire", p: "La méthode renvoie vers ton-de-marque.md : Claude le lit. exemples-posts.md reste fermé. Le script tourne et seul son résultat entre dans le contexte.", seg: [2000, 3000, 1500], st: ["lue", "lu", "lu", "fermé", "exécuté"] }
+  ];
+  const STATE_FILES = ["name + description", "SKILL.md", "ton-de-marque.md", "exemples-posts.md", "compter-caracteres.py"];
+  const MAX = 8000;
+  let curStep = 0;
+  function renderStep() {
+    const s = STEPS[curStep];
+    $("steps").innerHTML = STEPS.map((x, i) => `<li><button type="button" data-s="${i}" aria-pressed="${i === curStep}"><b>${i + 1}</b><span>${esc(x.t)}</span></button></li>`).join("");
+    $("stageTitle").textContent = s.h;
+    $("stageText").textContent = s.p;
+    $("states").innerHTML = STATE_FILES.map((f, i) => `<li class="${s.st[i] === "fermé" ? "" : "on"}"><span>${esc(f)}</span><em>${esc(s.st[i])}</em></li>`).join("");
+    let x = 0;
+    s.seg.forEach((v, i) => { const el = $("s" + (i + 1)); el.style.left = (x / MAX * 100) + "%"; el.style.width = (v / MAX * 100) + "%"; x += v; });
+    const total = x.toLocaleString("fr-FR");
+    $("total").textContent = total + " tokens";
+    $("bar").setAttribute("aria-label", "Contexte occupé à cette étape : " + total + " tokens sur une échelle de 8 000.");
+    $("prev").disabled = curStep === 0;
+    $("next").disabled = curStep === STEPS.length - 1;
+    nb($("stageText").parentElement);
+  }
+  $("steps").addEventListener("click", (e) => { const b = e.target.closest("[data-s]"); if (b) { curStep = +b.dataset.s; renderStep(); } });
+  $("prev").addEventListener("click", () => { if (curStep > 0) { curStep--; renderStep(); } });
+  $("next").addEventListener("click", () => { if (curStep < STEPS.length - 1) { curStep++; renderStep(); } });
+
+  /* ---------- 3. Qui a la main ---------- */
+  const WHO = [
+    { label: "Vous et Claude", fm: "# aucun champ à ajouter", you: 1, cl: 1, ctx: "Description toujours en contexte", use: "Le réglage par défaut. Il convient à la plupart des skills." },
+    { label: "Vous seul", fm: "disable-model-invocation: true", you: 1, cl: 0, ctx: "Description hors du contexte", use: "Pour une action qui a des effets, comme /publier-newsletter : vous choisissez le moment." },
+    { label: "Claude seul", fm: "user-invocable: false", you: 0, cl: 1, ctx: "Description toujours en contexte", use: "Pour un savoir de fond, comme l’historique d’une marque : il n’y a pas de commande à lancer." }
+  ];
+  let curWho = 0;
+  function renderWho() {
+    const m = WHO[curWho];
+    $("seg").innerHTML = WHO.map((w, i) => `<button type="button" data-w="${i}" aria-pressed="${i === curWho}">${esc(w.label)}</button>`).join("");
+    $("lights").innerHTML =
+      `<div class="light ${m.you ? "" : "off"}"><b>Vous</b><span>${m.you ? "Commande /nom disponible" : "Absent du menu /"}</span></div>` +
+      `<div class="light ${m.cl ? "" : "off"}"><b>Claude</b><span>${esc(m.ctx)}</span></div>`;
+    $("fm").textContent = m.fm;
+    $("whoUse").textContent = m.use;
+    nb($("whoUse"));
+  }
+  $("seg").addEventListener("click", (e) => { const b = e.target.closest("[data-w]"); if (b) { curWho = +b.dataset.w; renderWho(); $("seg").querySelector(`[data-w="${curWho}"]`).focus(); } });
+
+  /* ---------- 4. Schéma ---------- */
+  const N = {
+    anthropic: { col: 0, t: "Anthropic", s: "Skills intégrés : Excel, Word, PowerPoint, PDF", what: "Créés et maintenus par Anthropic. Claude s’en sert tout seul quand l’exécution de code et la création de fichiers sont activées." },
+    vous: { col: 0, t: "Vous", s: "Skill personnalisé", what: "Votre propre méthode. Vous pouvez la ranger à plusieurs endroits : ce choix fixe où elle fonctionnera. Cliquez ensuite sur un emplacement." },
+    communaute: { col: 0, t: "Communauté", s: "Skill communautaire, souvent sur GitHub", what: "Créé et partagé par un tiers. Il fonctionne selon son format, ses dépendances et l’endroit où vous l’installez.", warn: "Lisez tous ses fichiers avant de l’activer, surtout les scripts, les dépendances et tout appel à un site externe. Même prudence pour un skill reçu d’un collègue." },
+    organisation: { col: 0, t: "Votre organisation", s: "Forfaits Team et Enterprise", what: "Un propriétaire provisionne un skill pour tous. Un membre peut aussi le partager ou le publier dans la bibliothèque, si ces options sont activées." },
+
+    compte: { col: 1, t: "Compte Claude", s: "Skill téléversé dans Claude, personnel ou d’organisation", path: "claude.ai/customize/skills",
+      what: "Le seul emplacement qui suit votre compte d’un contexte à l’autre. L’interface française dit « Personnaliser > Compétences ».",
+      how: ["Compressez le dossier du skill en ZIP.", "Ouvrez Personnaliser > Compétences.", "Cliquez sur +, puis Créer une compétence.", "Choisissez Télécharger une compétence."],
+      warn: "Le dossier doit porter le nom du skill, et l’en-tête ne doit contenir que les six champs acceptés." },
+    personnel: { col: 1, t: "Personnel local", s: "Skill personnel local", mono: "~/.claude/skills/", path: "~/.claude/skills/<nom>/SKILL.md",
+      what: "Installé dans votre environnement utilisateur, sur cette machine. Disponible dans tous vos projets.",
+      how: ["Créez le dossier à ce chemin.", "Déposez-y SKILL.md et ses fichiers.", "Claude Code le détecte sans redémarrer."] },
+    projet: { col: 1, t: "Projet", s: "Skill local de projet", mono: ".claude/skills/", path: ".claude/skills/<nom>/SKILL.md",
+      what: "Installé dans le dossier d’un projet précis, qu’il vous suffit de commiter pour le partager avec l’équipe du dépôt.",
+      how: ["Créez ce dossier à la racine du projet.", "Déposez-y SKILL.md et ses fichiers.", "Commitez-le pour que l’équipe le reçoive."],
+      warn: "Dans le fil cloud d’un projet Claude Code, ces skills ne sont pas disponibles." },
+    plugin: { col: 1, t: "Plugin", s: "Plusieurs skills livrés ensemble", mono: "<plugin>/skills/", path: "<plugin>/skills/<nom>/SKILL.md",
+      what: "Un plugin regroupe skills, commandes et connecteurs. Ses skills s’appellent avec un préfixe : `/plugin:skill`. Réservé aux offres payantes sur Claude.",
+      how: ["Sur Claude : Personnaliser > Plugins > Discover, puis Add.", "Dans Claude Code : `/plugin install nom@marketplace`."] },
+    gere: { col: 1, t: "Géré par l’entreprise", s: "Déployé par un administrateur", mono: "managed settings", path: ".claude/skills/<nom>/SKILL.md",
+      what: "Placé par un administrateur dans le répertoire des réglages gérés de Claude Code. Il s’applique à tous les utilisateurs des postes concernés et prime sur les skills personnels et de projet." },
+
+    chat: { col: 2, g: 0, t: "Chat Claude", s: "Conversation sur claude.ai", what: "Claude choisit le skill utile selon votre demande. Il faut que l’exécution de code soit activée." },
+    cowork: { col: 2, g: 0, t: "Cowork", s: "Skills de votre compte, synchronisés au démarrage", what: "Cowork charge les skills activés sur votre compte, à chaque session. Il ne lit pas `~/.claude/skills/`. Gérez-les dans Personnaliser." },
+    m365: { col: 2, g: 0, t: "Add-ins Microsoft 365", s: "Excel, PowerPoint, Word, Outlook", what: "Tapez / pour choisir un skill, ou décrivez la tâche. Claude adapte le skill à l’application ouverte." },
+    codeLocal: { col: 2, g: 0, t: "Claude Code sur votre machine", s: "Terminal, /loop pendant une session", what: "Le contexte qui voit le plus de sources. Tapez `/skills` pour lister ce qui est chargé. `/loop` répète un prompt pendant la session, et ne lance pas un skill marqué `disable-model-invocation`." },
+    codeCloud: { col: 2, g: 0, t: "Claude Code dans le cloud", s: "Session sans accès à votre machine", what: "La session démarre dans un environnement distant. Elle ne voit pas vos fichiers locaux." },
+    taskCowork: { col: 2, g: 1, t: "Tâche planifiée Cowork", s: "À distance, ordinateur en veille possible", what: "Chaque tâche a accès aux skills et aux plugins installés dans Cowork, ainsi qu’aux connecteurs et aux fichiers de votre compte.", warn: "Si vous lui donnez un dossier de travail ou une application locale, elle ne s’exécute que localement : l’ordinateur doit être allumé." },
+    taskDesktop: { col: 2, g: 1, t: "Tâche planifiée de bureau", s: "Claude Code Desktop, sur votre machine", what: "Elle tourne chez vous, a accès à vos fichiers locaux et charge `~/.claude/skills/`.", warn: "Elle ne s’exécute que si l’application est ouverte et l’ordinateur éveillé." },
+    routine: { col: 2, g: 1, t: "Routine cloud", s: "Claude Code, ordinateur éteint possible", what: "Dans la documentation, « routine » désigne ce mode de Claude Code. Cowork parle de tâche planifiée. Chaque exécution démarre une session neuve dans le cloud.", warn: "Un skill présent uniquement dans `~/.claude/skills/` provoque une erreur « skill not found »." }
+  };
+
+  // [de, vers, statut, libellé sur le fil, précision]
+  const E = [
+    ["anthropic", "compte", "y", "intégré"], ["anthropic", "plugin", "y", "marketplace"],
+    ["vous", "compte", "y", "ZIP"], ["vous", "personnel", "y", "copie"], ["vous", "projet", "y", "commit"], ["vous", "plugin", "y", "plugin"],
+    ["communaute", "compte", "y", "ZIP"], ["communaute", "personnel", "y", "copie"], ["communaute", "projet", "y", "copie"], ["communaute", "plugin", "y", "marketplace"],
+    ["organisation", "compte", "y", "publié"], ["organisation", "projet", "y", "dépôt"], ["organisation", "plugin", "y", "partagé"], ["organisation", "gere", "y", "déployé"],
+
+    ["compte", "chat", "y"], ["compte", "cowork", "y"], ["compte", "m365", "y"],
+    ["compte", "codeLocal", "c", "même compte", "Connecté avec le même compte, Claude Code v2.1.273 ou plus. Pas de synchronisation avec une clé API ni sur Bedrock."],
+    ["compte", "codeCloud", "y"], ["compte", "taskCowork", "y"],
+    ["compte", "taskDesktop", "c", "même compte", "La documentation décrit la synchronisation pour le terminal. Contrôlez avec /skills."],
+    ["compte", "routine", "y"],
+    ["personnel", "codeLocal", "y"], ["personnel", "taskDesktop", "y"],
+    ["projet", "codeLocal", "y"],
+    ["projet", "codeCloud", "c", "si commité", "Si le skill est commité dans le dépôt. Pas dans le fil cloud d’un projet."],
+    ["projet", "taskDesktop", "c", "ce dossier", "Si la tâche travaille dans ce projet."],
+    ["projet", "routine", "c", "si commité", "Si le skill est commité dans le dépôt utilisé par la routine."],
+    ["plugin", "chat", "y"], ["plugin", "cowork", "y"], ["plugin", "codeLocal", "y"], ["plugin", "taskCowork", "y"],
+    ["plugin", "taskDesktop", "c", "si activé", "Si le plugin est activé sur cette machine."],
+    ["gere", "codeLocal", "y"],
+    ["gere", "taskDesktop", "c", "ce poste", "Sur les postes où l’entreprise l’a déployé."]
+  ];
+
+  const SC = [
+    { label: "l’utiliser dans tous mes outils Claude", title: "Le ranger sur votre compte", nodes: ["vous", "compte", "chat", "cowork", "m365", "codeLocal", "codeCloud", "taskCowork", "routine"],
+      steps: ["Compressez le dossier en ZIP.", "Ouvrez Personnaliser > Compétences.", "Cliquez sur +, Créer une compétence, puis Télécharger une compétence.", "Vérifiez que le skill est activé."],
+      warn: "Retirez de l’en-tête tout champ propre à Claude Code avant de téléverser." },
+    { label: "le lier à un seul projet", title: "Le commiter dans le projet", nodes: ["vous", "projet", "codeLocal", "codeCloud"],
+      steps: ["Créez `.claude/skills/<nom>/` dans le projet.", "Déposez-y `SKILL.md`.", "Commitez pour que l’équipe le reçoive."] },
+    { label: "installer un skill trouvé sur GitHub", title: "Le lire, puis choisir où le ranger", nodes: ["communaute", "compte", "personnel", "chat", "cowork", "codeLocal"],
+      steps: ["Lisez `SKILL.md` et chaque script.", "Pour Claude et Cowork : téléversez-le en ZIP sur votre compte.", "Pour Claude Code seul : copiez-le dans `~/.claude/skills/`."],
+      warn: "Un skill peut faire exécuter du code. Installez seulement ce que vous avez lu et compris." },
+    { label: "lancer une tâche sans mon ordinateur", title: "Passer par le compte", nodes: ["vous", "compte", "taskCowork", "routine"],
+      steps: ["Téléversez le skill sur votre compte.", "Créez une tâche planifiée Cowork ou une routine cloud.", "Nommez le skill dans le prompt de la tâche."],
+      warn: "Un skill resté dans `~/.claude/skills/` ne sera pas trouvé." },
+    { label: "planifier une tâche sur mes fichiers locaux", title: "Rester sur la machine", nodes: ["vous", "personnel", "taskDesktop"],
+      steps: ["Rangez le skill dans `~/.claude/skills/`.", "Créez une tâche planifiée dans Claude Code Desktop.", "Gardez l’application ouverte et l’ordinateur éveillé."] },
+    { label: "équiper toute l’équipe", title: "Le partager depuis Claude", nodes: ["organisation", "compte", "chat", "cowork", "m365", "codeLocal"],
+      steps: ["Pour quelques personnes : menu … puis Partager.", "Pour toute l’organisation : Publier dans l’organisation.", "Un propriétaire peut aussi le provisionner pour tous."],
+      warn: "Disponible sur Team et Enterprise, selon les options activées par le propriétaire. Un skill partagé reste en lecture seule pour ses destinataires." }
+  ];
+
+  const COLS = [
+    { h: "Origine", s: "D’où il vient", ids: ["anthropic", "vous", "communaute", "organisation"] },
+    { h: "Emplacement", s: "Où il est rangé", ids: ["compte", "personnel", "projet", "plugin", "gere"] },
+    { h: "Contexte", s: "Où vous l’utilisez", groups: [["En direct", ["chat", "cowork", "m365", "codeLocal", "codeCloud"]], ["Sans vous, planifié", ["taskCowork", "taskDesktop", "routine"]]] }
+  ];
+
+  const map = $("map"), wires = $("wires"), panel = $("panel"), aside = $("aside");
+  const narrow = window.matchMedia("(max-width: 860px)");
+  const belowMap = window.matchMedia("(max-width: 1199px)");
+
+  COLS.forEach((c) => {
+    const col = document.createElement("div");
+    col.className = "col";
+    let html = `<div class="col-head"><h3>${esc(c.h)}</h3><span class="label">${esc(c.s)}</span></div>`;
+    const node = (id) => { const n = N[id]; return `<button type="button" class="node" data-n="${id}" aria-pressed="false"><b>${esc(n.t)}</b>${n.mono ? `<span class="mono">${esc(n.mono)}</span>` : ""}<span>${esc(n.s)}</span></button>`; };
+    if (c.ids) html += c.ids.map(node).join("");
+    else html += c.groups.map((g) => `<div class="group">${esc(g[0])}</div>` + g[1].map(node).join("")).join("");
+    col.innerHTML = html;
+    map.appendChild(col);
+  });
+  const btn = (id) => map.querySelector(`[data-n="${id}"]`);
+
+  $("chips").innerHTML = SC.map((s, i) => `<button type="button" data-sc="${i}" aria-pressed="false">${esc(s.label)}</button>`).join("");
+
+  let state = { kind: "sc", id: 0 };
+  let activeEdges = new Set(), selNodes = new Set(), pathNodes = new Set();
+
+  const eKey = (e) => e[0] + ">" + e[1];
+
+  function compute() {
+    activeEdges = new Set(); selNodes = new Set(); pathNodes = new Set();
+    if (state.kind === "sc") {
+      const set = new Set(SC[state.id].nodes);
+      set.forEach((n) => pathNodes.add(n));
+      E.forEach((e) => { if (set.has(e[0]) && set.has(e[1])) activeEdges.add(eKey(e)); });
+      selNodes = set;
+    } else {
+      const id = state.id, col = N[id].col;
+      selNodes.add(id); pathNodes.add(id);
+      E.forEach((e) => {
+        if (col === 0 && e[0] === id) { activeEdges.add(eKey(e)); selNodes.add(e[1]); }
+        if (col === 1 && (e[0] === id || e[1] === id)) { activeEdges.add(eKey(e)); selNodes.add(e[0] === id ? e[1] : e[0]); }
+        if (col === 2 && e[1] === id) { activeEdges.add(eKey(e)); selNodes.add(e[0]); }
+      });
+    }
+  }
+
+  function draw() {
+    const svgNS = "http://www.w3.org/2000/svg";
+    wires.innerHTML = `<defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" markerUnits="userSpaceOnUse" orient="auto"><path class="arrowhead" d="M0 0 L8 4 L0 8 z"/></marker></defs>`;
+    if (narrow.matches) return;
+    const r = map.getBoundingClientRect();
+    wires.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
+    const pts = {};
+    Object.keys(N).forEach((id) => { const b = btn(id).getBoundingClientRect(); pts[id] = { l: b.left - r.left, r: b.right - r.left, y: b.top - r.top + b.height / 2 }; });
+    const gap = pts.compte.l - pts.vous.r;
+    const showLabels = gap >= 78;
+    // fils inactifs d'abord, fils actifs par-dessus
+    const order = E.slice().sort((a, b) => activeEdges.has(eKey(a)) - activeEdges.has(eKey(b)));
+    const labels = [];
+    order.forEach((e) => {
+      const a = pts[e[0]], b = pts[e[1]], on = activeEdges.has(eKey(e));
+      const x1 = a.r, y1 = a.y, x2 = b.l - (on ? 3 : 0), y2 = b.y, mx = (x1 + x2) / 2;
+      const p = document.createElementNS(svgNS, "path");
+      p.setAttribute("d", `M${x1} ${y1} C${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`);
+      p.setAttribute("class", "e" + (e[2] === "c" ? " cond" : "") + (on ? " on" : ""));
+      wires.appendChild(p);
+      if (on && e[3] && showLabels) labels.push({ x: mx, y: (y1 + y2) / 2, t: e[3] });
+    });
+    // écarte les libellés qui se chevaucheraient
+    labels.sort((p, q) => p.y - q.y);
+    for (let i = 1; i < labels.length; i++) {
+      if (labels[i].x === labels[i - 1].x && labels[i].y - labels[i - 1].y < 15) labels[i].y = labels[i - 1].y + 15;
+    }
+    labels.forEach((l) => {
+      const t = document.createElementNS(svgNS, "text");
+      t.setAttribute("x", l.x); t.setAttribute("y", l.y); t.textContent = l.t;
+      wires.appendChild(t);
+    });
+  }
+
+  function paint() {
+    map.classList.add("has-sel");
+    map.querySelectorAll(".node").forEach((b) => {
+      const id = b.dataset.n;
+      const lit = selNodes.has(id);
+      const isPath = pathNodes.has(id);
+      b.classList.toggle("lit", lit);
+      b.classList.toggle("path", isPath);
+      b.classList.toggle("sel", state.kind === "node" && state.id === id);
+      b.setAttribute("aria-pressed", String(state.kind === "node" && state.id === id));
+    });
+    $("chips").querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-pressed", String(state.kind === "sc" && state.id === i)));
+  }
+
+  function reachList(id) {
+    const n = N[id];
+    const row = (other, e) => `<li class="${e[2] === "c" ? "c" : ""}">${esc(N[other].t)}${e[4] ? `<small>${esc(e[4])}</small>` : ""}</li>`;
+    if (n.col === 0) {
+      const out = E.filter((e) => e[0] === id);
+      return `<div class="panel-block"><span class="label">Peut être rangé</span><ul class="reach">${out.map((e) => row(e[1], e)).join("")}</ul></div>`;
+    }
+    if (n.col === 1) {
+      const out = E.filter((e) => e[0] === id);
+      const no = Object.keys(N).filter((k) => N[k].col === 2 && !out.some((e) => e[1] === k));
+      return `<div class="panel-block"><span class="label">Fonctionne dans</span><ul class="reach">${out.map((e) => row(e[1], e)).join("")}</ul></div>` +
+        (no.length ? `<p class="reach-no"><b>Pas de chemin documenté vers :</b> ${no.map((k) => esc(N[k].t)).join(", ")}.</p>` : "");
+    }
+    const inc = E.filter((e) => e[1] === id);
+    const no = Object.keys(N).filter((k) => N[k].col === 1 && !inc.some((e) => e[0] === k));
+    return `<div class="panel-block"><span class="label">Charge les skills de</span><ul class="reach">${inc.map((e) => row(e[0], e)).join("")}</ul></div>` +
+      (no.length ? `<p class="reach-no"><b>Pas de chemin documenté depuis :</b> ${no.map((k) => esc(N[k].t)).join(", ")}.</p>` : "");
+  }
+
+  function renderPanel() {
+    let html;
+    if (state.kind === "sc") {
+      const s = SC[state.id];
+      html = `<span class="label">Le chemin à suivre</span><h3>${esc(s.title)}</h3>` +
+        `<ol>${s.steps.map((x) => `<li>${rich(x)}</li>`).join("")}</ol>` +
+        (s.warn ? `<p class="warn">${rich(s.warn)}</p>` : "");
+    } else {
+      const n = N[state.id];
+      html = `<span class="label">${esc(COLS[n.col].h)}</span><h3>${esc(n.t)}</h3>` +
+        (n.path ? `<div class="path-row"><code id="pathText">${esc(n.path)}</code><button type="button" class="copy" id="copyPath">Copier</button></div>` : "") +
+        `<p>${rich(n.what)}</p>` +
+        (n.how ? `<div class="panel-block"><span class="label">L’installer</span><ol>${n.how.map((x) => `<li>${rich(x)}</li>`).join("")}</ol></div>` : "") +
+        reachList(state.id) +
+        (n.warn ? `<p class="warn">${rich(n.warn)}</p>` : "");
+    }
+    panel.innerHTML = html;
+    nb(panel);
+    const c = $("copyPath");
+    if (c) c.addEventListener("click", () => {
+      const txt = $("pathText").textContent;
+      const done = () => { c.textContent = "Copié"; setTimeout(() => { c.textContent = "Copier"; }, 1500); };
+      const fallback = () => { const r = document.createRange(); r.selectNodeContents($("pathText")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, fallback); else fallback();
+    });
+  }
+
+  function placePanel(anchor) {
+    if (narrow.matches && anchor) anchor.after(panel);
+    else if (panel.parentElement !== aside) aside.appendChild(panel);
+  }
+
+  function select(next, anchor, byUser) {
+    state = next;
+    compute(); paint(); renderPanel(); placePanel(anchor); draw();
+    if (byUser && belowMap.matches && !narrow.matches) {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      panel.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+    }
+  }
+
+  map.addEventListener("click", (e) => { const b = e.target.closest("[data-n]"); if (b) select({ kind: "node", id: b.dataset.n }, b, true); });
+  $("chips").addEventListener("click", (e) => { const b = e.target.closest("[data-sc]"); if (b) select({ kind: "sc", id: +b.dataset.sc }, $("scen"), true); });
+
+  const redraw = () => { compute(); draw(); };
+  if ("ResizeObserver" in window) new ResizeObserver(redraw).observe(map);
+  else window.addEventListener("resize", redraw);
+  narrow.addEventListener("change", () => { placePanel(narrow.matches ? $("scen") : null); redraw(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(redraw);
+
+  /* ---------- Navigation ---------- */
+  const links = Array.from(document.querySelectorAll(".tabs a"));
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((ents) => {
+      ents.forEach((en) => { if (en.isIntersecting) links.forEach((a) => a.setAttribute("aria-current", String(a.getAttribute("href") === "#" + en.target.id))); });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    document.querySelectorAll("main section").forEach((s) => io.observe(s));
+  }
+  links[0].setAttribute("aria-current", "true");
+
+  // Tableau empilé sur téléphone : chaque cellule reprend son en-tête
+  const heads = Array.from(document.querySelectorAll("thead th")).map((th) => th.textContent);
+  document.querySelectorAll("tbody tr").forEach((tr) => Array.from(tr.cells).forEach((td, i) => { if (i) td.dataset.l = heads[i]; }));
+
+  renderFiles(); renderStep(); renderWho();
+  select({ kind: "sc", id: 0 }, $("scen"), false);
+  nb(document.body);
+})();
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

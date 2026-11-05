@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La fenêtre de contexte</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout : une "scène" sombre (la fenêtre, comme sur la slide d'origine) au-dessus d'un pupitre de narration, puis historique + compteurs */
+:root{
+  --bg:#f2f4f9; --surface:#ffffff; --fg:#0d1a3b; --muted:#56627c; --line:#d8deea;
+  --navy:#0f2a7a; --warn:#b4400f; --warn-bg:#fdeee5; --ok:#17784f; --ok-bg:#e4f4ec;
+  /* scène : volontairement sombre dans les deux thèmes */
+  --stage:#0a0f1e; --stage-2:#121a30; --stage-fg:#eef2fb; --stage-muted:#94a0bd;
+  --k-system:#4d5c7c; --k-prompt:#05060a; --k-response:#14498a; --k-summary:#e7b21b; --k-brief:#1d8a5a;
+  --yellow:#f5c400;
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c1122; --surface:#141c33; --fg:#e6ebf7; --muted:#9ba7c2; --line:#27324f;
+  --navy:#9db8ff; --warn:#ff9a6b; --warn-bg:#3a1e12; --ok:#5fd19b; --ok-bg:#12301f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1122; --surface:#141c33; --fg:#e6ebf7; --muted:#9ba7c2; --line:#27324f;
+  --navy:#9db8ff; --warn:#ff9a6b; --warn-bg:#3a1e12; --ok:#5fd19b; --ok-bg:#12301f; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:end;justify-content:space-between}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.05;margin:0;color:var(--navy);text-wrap:balance;letter-spacing:-.01em}
+.sub{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.mode{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--surface);padding:3px}
+.mode label{position:relative;cursor:pointer}
+.mode input{position:absolute;opacity:0;inset:0}
+.mode span{display:block;padding:7px 14px;border-radius:999px;font-size:.88rem;font-weight:500;color:var(--muted)}
+.mode input:checked+span{background:var(--navy);color:var(--bg)}
+.mode input:focus-visible+span{outline:2px solid var(--yellow);outline-offset:2px}
+.mode-cap{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+
+/* Scène */
+.stage{background:radial-gradient(120% 140% at 85% 0%,#1b2650 0%,var(--stage) 60%);color:var(--stage-fg);border-radius:14px;padding:20px clamp(14px,3vw,28px) 18px;display:grid;gap:14px;overflow:hidden}
+.stage-top{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.win-name{font-family:var(--f-mono);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--stage-muted)}
+.ctx-word{font-family:var(--f-display);font-weight:800;font-style:italic;color:var(--yellow);font-size:clamp(1.5rem,3.4vw,2.3rem);line-height:1}
+.gauge{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.pct{font-family:var(--f-mono);font-weight:600;font-size:clamp(2rem,5vw,3rem);line-height:1;font-variant-numeric:tabular-nums}
+.tok{font-family:var(--f-mono);color:var(--stage-muted);font-size:.85rem;font-variant-numeric:tabular-nums}
+.pill{font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:999px;letter-spacing:.02em}
+.z0{background:#16402d;color:#8ff0bd}.z1{background:#3d3510;color:#ffe27a}.z2{background:#4a2810;color:#ffb27a}.z3{background:#5a1414;color:#ff9b9b}
+
+.bar-shell{position:relative;padding:14px 0 26px}
+.bar{position:relative;display:flex;height:clamp(64px,10vw,96px);border:2px solid #e9edf7;background:#2a2f3d;border-radius:3px;overflow:hidden}
+.blk{flex:0 0 0%;min-width:0;position:relative;transition:flex-basis .6s cubic-bezier(.3,.7,.2,1),opacity .5s,filter .4s;overflow:hidden}
+.blk .in{position:absolute;inset:4px 2px;border:2px dashed rgba(255,255,255,.75);display:grid;place-content:center;text-align:center;padding:0 2px;overflow:hidden}
+.blk b{font-weight:600;font-size:clamp(.7rem,1.4vw,1rem);white-space:nowrap}
+.blk small{display:block;font-family:var(--f-mono);font-size:.68rem;opacity:.75;white-space:nowrap}
+.k-system{background:var(--k-system)}.k-prompt{background:var(--k-prompt)}.k-response{background:var(--k-response)}
+.k-summary{background:repeating-linear-gradient(135deg,var(--k-summary) 0 10px,#d29d0c 10px 20px);color:#241a00}
+.k-summary .in{border-color:rgba(36,26,0,.6)}
+.k-brief{background:var(--k-brief)}
+.blk.leaving{opacity:0}
+.blk.marked{filter:brightness(1.15)}
+.blk.marked .in{border-color:var(--yellow);border-style:solid;animation:pulse 1s ease-in-out infinite alternate}
+.blk.current .in{border-color:#fff;border-style:solid}
+@keyframes pulse{to{box-shadow:inset 0 0 0 3px rgba(245,196,0,.55)}}
+.scan{position:absolute;top:0;bottom:0;left:0;pointer-events:none}
+.scan .beam{position:absolute;top:0;bottom:0;width:14%;left:0;opacity:0;background:linear-gradient(90deg,transparent,rgba(245,196,0,.55),transparent)}
+.scan.go .beam{animation:beam 1.1s ease-in-out 1}
+@keyframes beam{0%{left:-14%;opacity:1}100%{left:100%;opacity:1}}
+.ticks{position:absolute;left:0;right:0;bottom:0;height:22px}
+.tick{position:absolute;bottom:0;transform:translateX(-50%);font-family:var(--f-mono);font-size:.68rem;color:var(--stage-muted);white-space:nowrap}
+.tick::before{content:"";position:absolute;left:50%;bottom:16px;width:1px;height:8px;background:var(--stage-muted)}
+.overflow{position:absolute;right:-2px;top:6px;color:#ff4b3e;font-weight:800;font-size:1.1rem;opacity:0;transition:opacity .3s}
+.overflow.on{opacity:1}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8rem;color:var(--stage-muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:6px;border:1px dashed rgba(255,255,255,.6)}
+.archived{display:grid;gap:4px}
+.archived .bar{height:22px;opacity:.45;filter:grayscale(.6)}
+.archived .bar .in{inset:2px 1px;border-width:1px}
+.archived .bar b,.archived .bar small{display:none}
+
+/* Pupitre */
+.desk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 24px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px clamp(16px,3vw,28px)}
+.narr{min-width:0}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.narr h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.3rem,2.6vw,1.75rem);margin:4px 0 8px;line-height:1.15;text-wrap:balance}
+.narr p{margin:0 0 8px;max-width:70ch}
+.narr .warn{background:var(--warn-bg);color:var(--warn);padding:8px 12px;border-radius:8px;font-weight:500}
+.kl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:10px}
+.kl div{border-radius:8px;padding:10px 14px}
+.kl .k{background:var(--ok-bg)}.kl .l{background:var(--warn-bg)}
+.kl h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;margin:0 0 4px}
+.kl .k h3{color:var(--ok)}.kl .l h3{color:var(--warn)}
+.kl ul,.brief ul,.end ul{margin:0;padding-left:18px}
+.brief{margin-top:10px;border:2px dashed var(--k-brief);border-radius:8px;padding:10px 14px}
+.brief em{color:var(--ok);font-style:normal;font-weight:600;font-size:.85rem}
+.controls{display:flex;flex-direction:column;gap:8px;min-width:200px}
+.row{display:flex;gap:8px}
+button{font:inherit;font-weight:600;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:10px 14px;cursor:pointer;flex:1}
+button:hover{border-color:var(--navy)}
+button:focus-visible,input[type=range]:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+button.primary{background:var(--navy);color:var(--bg);border-color:var(--navy)}
+button:disabled{opacity:.4;cursor:default}
+.count{font-family:var(--f-mono);font-size:.8rem;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--navy)}
+.hint{font-size:.75rem;color:var(--muted);text-align:center}
+
+/* Bas de page */
+.lower{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;min-width:0}
+.panel h3{font-family:var(--f-display);font-size:1.05rem;margin:0 0 2px}
+.panel .cap{font-size:.85rem;color:var(--muted);margin:0 0 12px}
+.chat{display:grid;gap:8px;max-height:340px;overflow-y:auto;padding-right:4px}
+.msg{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:start;padding:8px 10px;border-radius:8px;border:1px solid var(--line);font-size:.9rem;transition:opacity .4s}
+.msg .who{font-family:var(--f-mono);font-size:.72rem;font-weight:600;padding:2px 6px;border-radius:4px;color:#fff}
+.msg .tag{grid-column:2;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.msg.prompt .who{background:var(--k-prompt)}.msg.response .who{background:var(--k-response)}.msg.brief .who{background:var(--k-brief)}
+.msg.sum,.msg.out,.msg.old{opacity:.55}
+.msg.sum .tag{color:#a67a00}.msg.out .tag{color:var(--warn)}.msg.old .tag{color:var(--muted)}
+.msg.in .tag{color:var(--ok)}
+.msg.now{border-color:var(--navy);box-shadow:0 0 0 1px var(--navy)}
+.stats{display:grid;gap:10px;margin:0}
+.stats div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.stats dt{color:var(--muted);font-size:.9rem}
+.stats dd{margin:0;font-family:var(--f-mono);font-weight:600;font-variant-numeric:tabular-nums}
+.snow{margin-top:12px;font-size:.85rem;color:var(--muted)}
+.notes{font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+.notes h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;color:var(--fg)}
+.notes ul{margin:0;padding-left:18px;display:grid;gap:4px;max-width:90ch}
+@media (max-width:820px){.desk,.lower{grid-template-columns:minmax(0,1fr)}.controls{min-width:0}}
+@media (prefers-reduced-motion:reduce){.blk{transition:none}.scan.go .beam,.blk.marked .in{animation:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Fonctionnement de la fenêtre de contexte</h1>
+      <p class="sub">Une conversation de travail réelle, tour par tour : ce qui entre dans la fenêtre, ce que Claude relit, ce qu'il résume, et quand il faut repartir sur une fenêtre neuve.</p>
+    </div>
+    <div>
+      <div class="mode-cap">Quand la fenêtre se remplit</div>
+      <div class="mode" role="radiogroup" aria-label="Comportement de la fenêtre">
+        <label><input type="radio" name="mode" id="m-comp" value="comp" checked><span>L'outil résume</span></label>
+        <label><input type="radio" name="mode" id="m-trunc" value="trunc"><span>L'outil oublie le début</span></label>
+      </div>
+    </div>
+  </header>
+
+  <section class="stage" aria-label="Fenêtre de contexte">
+    <div id="archived" class="archived" hidden>
+      <div class="win-name">Fenêtre n°1 · ancienne conversation (Claude ne la voit plus)</div>
+      <div class="bar" id="bar-old"></div>
+    </div>
+    <div class="stage-top">
+      <div>
+        <div class="win-name" id="win-name">Fenêtre n°1 · capacité de démo : 10 000 tokens</div>
+        <div class="gauge"><span class="pct" id="pct">6 %</span><span class="tok" id="tok">600 / 10 000 tokens</span><span class="pill z0" id="pill">Confortable</span></div>
+      </div>
+      <div class="ctx-word">Contexte</div>
+    </div>
+    <div class="bar-shell">
+      <div class="bar" id="bar"><div class="scan" id="scan"><div class="beam"></div></div></div>
+      <span class="overflow" id="ovf" aria-hidden="true">⟷</span>
+      <div class="ticks">
+        <span class="tick" style="left:50%">50 %</span>
+        <span class="tick" style="left:75%">75 % · résumer</span>
+        <span class="tick" style="left:90%">90 %</span>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--k-system)"></i>Instructions</span>
+      <span><i style="background:var(--k-prompt)"></i>Prompt (vous)</span>
+      <span><i style="background:var(--k-response)"></i>Réponse (Claude)</span>
+      <span><i style="background:var(--k-summary)"></i>Résumé</span>
+      <span><i style="background:var(--k-brief)"></i>Brief</span>
+    </div>
+  </section>
+
+  <section class="desk" aria-live="polite">
+    <div class="narr" id="narr"></div>
+    <div class="controls">
+      <div class="row">
+        <button id="prev" aria-label="Étape précédente">←</button>
+        <button id="next" class="primary">Suivant →</button>
+      </div>
+      <div class="row">
+        <button id="auto">Lecture auto</button>
+        <button id="reset">Recommencer</button>
+      </div>
+      <input type="range" id="scrub" min="0" max="1" value="0" aria-label="Aller à l'étape">
+      <div class="count" id="count">1 / 1</div>
+      <div class="hint">Clavier : → ou espace pour avancer, ← pour reculer</div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="panel">
+      <h3>Ce que vous voyez à l'écran</h3>
+      <p class="cap">L'historique reste affiché en entier. Ce n'est pas pour autant ce que Claude voit.</p>
+      <div class="chat" id="chat"></div>
+    </div>
+    <div class="panel">
+      <h3>Compteurs</h3>
+      <p class="cap">L'effet boule de neige, en chiffres.</p>
+      <dl class="stats">
+        <div><dt>Fenêtre</dt><dd id="s-win">n°1</dd></div>
+        <div><dt>Relu par Claude à ce tour</dt><dd id="s-last">0</dd></div>
+        <div><dt>Relu au total depuis le début</dt><dd id="s-read">0</dd></div>
+        <div><dt>Résumés effectués</dt><dd id="s-comp">0</dd></div>
+        <div><dt>Messages hors de la vue de Claude</dt><dd id="s-lost">0</dd></div>
+      </dl>
+      <p class="snow">À chaque réponse, Claude relit toute la fenêtre, pas seulement votre dernier message.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <h3>Notes pour le formateur</h3>
+    <ul>
+      <li>La démo utilise une fenêtre miniature de 10 000 tokens pour que le remplissage soit visible. Les vraies fenêtres de Claude font 200 000 tokens, voire jusqu'à 1 million selon le modèle et l'offre : le mécanisme est le même, seule l'échelle change.</li>
+      <li>Les seuils 50 / 75 / 90 % sont illustratifs. Claude Code résume automatiquement près de la limite (et à la demande avec <code>/compact</code>). Sur claude.ai, le comportement dépend de l'offre et évolue : vérifiez dans votre interface avant d'affirmer quoi que ce soit. D'autres outils suppriment simplement les messages les plus anciens (mode « oublie le début »).</li>
+      <li>À relier à la Leçon 2.6 : « Avant que ça sature, résumez », « Deux façons de repartir propre » (Compact ou Fresh + brief).</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const CAP = 10000;
+const fmt = n => n.toLocaleString('fr-FR');
+
+// Scénario : une proposition commerciale pour la Boulangerie Martin
+const SCRIPT = [
+  {type:'start'},
+  {type:'add', id:'P1', kind:'prompt', n:1, tok:300,
+   text:"Je prépare une proposition commerciale pour la Boulangerie Martin : refonte du site + click & collect. Propose-moi un plan.",
+   note:"Votre message entre dans la fenêtre. Tout ce qui y entre occupe de la place."},
+  {type:'add', id:'R1', kind:'response', n:1, tok:1400,
+   text:"Voici un plan en 6 parties : contexte client, objectifs, solution proposée, planning, budget, conditions…",
+   note:"La réponse est souvent plus longue que la question : ce sont les réponses qui remplissent le plus vite la fenêtre."},
+  {type:'add', id:'P2', kind:'prompt', n:2, tok:250,
+   text:"Budget : 8 500 € HT, livraison en 10 semaines. La cliente veut payer en 3 fois.",
+   note:"Une information clé (budget, délai) entre dans le contexte. Suivez-la : on va voir ce qu'elle devient."},
+  {type:'add', id:'R2', kind:'response', n:2, tok:1200,
+   text:"Noté. Je propose un échéancier 30 % / 40 % / 30 % et un planning en 4 phases."},
+  {type:'add', id:'P3', kind:'prompt', n:3, tok:1500,
+   text:"Voici le compte rendu complet du rendez-vous avec Mme Martin (texte collé).",
+   note:"Coller un document long ajoute un gros bloc d'un coup. Il contient un détail important : Mme Martin refuse tout abonnement mensuel."},
+  {type:'add', id:'R3', kind:'response', n:3, tok:900,
+   text:"Points clés : clientèle locale, pic de commandes le dimanche, refus de tout abonnement mensuel."},
+  {type:'add', id:'P4', kind:'prompt', n:4, tok:200, text:"Rédige l'introduction de la proposition."},
+  {type:'add', id:'R4', kind:'response', n:4, tok:1300,
+   text:"« Madame Martin, suite à notre échange, nous avons le plaisir de vous présenter… »",
+   note:"La fenêtre dépasse 75 %. Plus elle est pleine, plus Claude exploite mal les éléments anciens, et plus chaque réponse coûte cher."},
+  {type:'compact', id:'S1', tok:900, ids:['P1','R1','P2','R2','P3','R3'], first:true,
+   kept:["Client : Boulangerie Martin, site + click & collect","Budget 8 500 € HT, 10 semaines","Plan en 6 parties"],
+   lost:["Échéancier 30 / 40 / 30 %","Refus de tout abonnement mensuel","Pic de commandes le dimanche"]},
+  {type:'add', id:'P5', kind:'prompt', n:5, tok:250, text:"Rédige la section planning."},
+  {type:'add', id:'R5', kind:'response', n:5, tok:1500,
+   text:"Phase 1 : cadrage (2 sem.) · Phase 2 : maquettes (3 sem.) · Phase 3 : développement (4 sem.) · Phase 4 : mise en ligne (1 sem.)"},
+  {type:'add', id:'P6', kind:'prompt', n:6, tok:300, text:"Ajoute 3 options : maintenance, référencement, photos produits."},
+  {type:'add', id:'R6', kind:'response', n:6, tok:1600,
+   text:"Option 1 — Maintenance : abonnement de 49 €/mois. Option 2 — Référencement local… Option 3 — Shooting photo…",
+   warn:"Claude propose un abonnement mensuel, alors que Mme Martin l'avait refusé. Ce détail a disparu dans le résumé : Claude ne peut pas s'en souvenir.",
+   textT:"Option 1 — Maintenance : forfait annuel de 540 € (pas d'abonnement, comme souhaité par la cliente). Option 2 — Référencement local… Option 3 — Shooting photo…",
+   noteT:"Le compte rendu (prompt 3) est encore dans la fenêtre : Claude respecte la contrainte. En revanche, le début de la conversation vient d'en sortir."},
+  {type:'add', id:'P7', kind:'prompt', n:7, tok:200, text:"Relis l'ensemble et vérifie la cohérence avec le budget."},
+  {type:'add', id:'R7', kind:'response', n:7, tok:1400,
+   text:"Total avec options : 10 200 € HT, soit 1 700 € au-dessus du budget de 8 500 €. Je suggère de rendre le référencement optionnel.",
+   note:"Le budget avait survécu au résumé : Claude peut encore vérifier.",
+   textT:"Je ne retrouve pas de budget de référence dans notre échange. Peux-tu me rappeler le montant prévu ?",
+   warnT:"Le prompt 2 (le budget) vient de sortir de la fenêtre. Vous le voyez encore à l'écran, Claude non."},
+  {type:'compact', id:'S2', tok:1500, ids:['S1','P4','R4','P5','R5','P6','R6'],
+   kept:["Client, budget, délai","Introduction, planning et 3 options rédigés"],
+   lost:["Formulations exactes de l'introduction","Justification de chaque phase","(déjà perdu) le refus d'abonnement"]},
+  {type:'add', id:'P8', kind:'prompt', n:8, tok:2600,
+   text:"Voici nos conditions générales de vente (texte complet) : vérifie que la proposition les respecte.",
+   note:"Nouveau gros document : la fenêtre remonte d'un coup."},
+  {type:'add', id:'R8', kind:'response', n:8, tok:2200,
+   text:"Deux points à ajuster : vos CGV imposent un acompte minimum de 40 %, et une clause de propriété du code…"},
+  {type:'warn'},
+  {type:'brief'},
+  {type:'newwin', id:'B', tok:700},
+  {type:'add', id:'P9', kind:'prompt', n:9, tok:200,
+   text:"Finalise la proposition : acompte de 40 %, maintenance en forfait annuel."},
+  {type:'add', id:'R9', kind:'response', n:9, tok:1500,
+   text:"Voici la version finale de la proposition pour la Boulangerie Martin…",
+   note:"Réponse rapide et fidèle : la fenêtre est légère et ne contient que ce qui compte."},
+  {type:'end'}
+];
+
+const SYS = {id:'SYS', kind:'system', tok:600, label:'Instructions', short:'Instr.'};
+const labelOf = b => b.kind==='prompt' ? 'Prompt '+b.n : b.kind==='response' ? 'Réponse '+b.n : b.kind==='summary' ? 'Résumé '+b.id.slice(1) : b.kind==='brief' ? 'Brief' : 'Instructions';
+const shortOf = b => b.kind==='prompt' ? 'P'+b.n : b.kind==='response' ? 'R'+b.n : b.kind==='summary' ? 'S'+b.id.slice(1) : b.kind==='brief' ? 'B' : 'Instr.';
+const used = st => st.blocks.reduce((s,b)=>s+b.tok,0);
+const list = a => a.length<2 ? a.join('') : a.slice(0,-1).join(', ')+' et '+a.at(-1);
+
+function build(mode){
+  const st = {win:1, blocks:[SYS], chat:[], read:0, last:0, comp:0, archived:null, marked:[], scan:0, current:null, ovf:false};
+  const steps = [];
+  const push = (si, n) => steps.push({si, n, st: structuredClone(st)});
+  SCRIPT.forEach((ev, si) => {
+    st.marked=[]; st.scan=0; st.current=null; st.ovf=false;
+    if (ev.type==='start') {
+      push(si,{eyebrow:'Avant le premier message', title:'La fenêtre n\'est jamais vide',
+        body:["Avant même votre premier message, elle contient les instructions : prompt système, instructions du projet, fichiers de référence. Elles restent chargées en permanence.",
+              "Cliquez sur « Suivant » pour démarrer la conversation."]});
+    }
+    if (ev.type==='add') {
+      const evicted=[];
+      if (mode==='trunc') while (used(st)+ev.tok > CAP) {
+        const i = st.blocks.findIndex(b=>b.kind!=='system');
+        const b = st.blocks.splice(i,1)[0]; evicted.push(labelOf(b));
+        const c = st.chat.find(c=>c.id===b.id); if (c) c.status='out';
+        st.ovf = true;
+      }
+      const isR = ev.kind==='response';
+      if (isR) { st.last = used(st); st.read += st.last; st.scan = st.last/CAP; }
+      st.blocks.push({id:ev.id, kind:ev.kind, n:ev.n, tok:ev.tok});
+      const trunc = mode==='trunc';
+      st.chat.push({id:ev.id, kind:ev.kind, n:ev.n, text:(trunc&&ev.textT)||ev.text, status:'in'});
+      st.current = ev.id;
+      const body = [];
+      if (isR) body.push(`Pour répondre, Claude relit toute la fenêtre : ${fmt(st.last)} tokens. Puis sa réponse s'ajoute à la suite.`);
+      const note = trunc && ev.noteT!==undefined ? ev.noteT : ev.note; if (note) body.push(note);
+      if (evicted.length) body.unshift(`Plus de place : ${list(evicted)} ${evicted.length>1?'sortent':'sort'} de la fenêtre pour laisser entrer ce message. Claude n'y a plus accès.`);
+      const warn = trunc ? ev.warnT : ev.warn;
+      push(si,{eyebrow:`Tour ${ev.n}`, title: isR ? `Réponse ${ev.n} : Claude répond` : `Prompt ${ev.n} : vous écrivez`,
+        quote:(trunc&&ev.textT)||ev.text, body, warn});
+    }
+    if (ev.type==='compact' && mode==='comp') {
+      const removed = st.blocks.filter(b=>ev.ids.includes(b.id));
+      const tot = removed.reduce((s,b)=>s+b.tok,0);
+      st.marked = ev.ids.slice();
+      push(si,{eyebrow:'Compaction', title: ev.first ? 'Seuil atteint : on résume le début' : 'Deuxième compaction : on résume… le résumé',
+        body: ev.first
+          ? [`Les échanges les plus anciens (${list(removed.map(labelOf))}) vont être condensés en un résumé. Les instructions et le dernier échange restent intacts.`]
+          : [`Le résumé n°1 et les échanges suivants sont condensés à leur tour. Un résumé de résumé : chaque passage perd un peu plus de précision.`]});
+      st.marked = [];
+      const at = st.blocks.findIndex(b=>ev.ids.includes(b.id));
+      st.blocks = st.blocks.filter(b=>!ev.ids.includes(b.id));
+      st.blocks.splice(at,0,{id:ev.id, kind:'summary', tok:ev.tok});
+      st.chat.forEach(c=>{ if (ev.ids.includes(c.id) || c.sumIn && ev.ids.includes(c.sumIn)) { c.status='sum'; c.sumIn=ev.id; } });
+      st.comp++; st.current = ev.id;
+      push(si,{eyebrow:'Compaction', title:`${fmt(tot)} tokens deviennent ${fmt(ev.tok)}`,
+        body:[`La fenêtre respire : on redescend à ${Math.round(used(st)/CAP*100)} %. À l'écran, vous voyez toujours l'historique complet ; Claude, lui, ne voit plus que le résumé.`],
+        kept:ev.kept, lost:ev.lost});
+    }
+    if (ev.type==='warn') {
+      push(si, mode==='comp'
+        ? {eyebrow:'Saturation proche', title:`${Math.round(used(st)/CAP*100)} % : il est temps de changer de fenêtre`,
+           body:["Résumer une troisième fois ? Ce serait un résumé de résumé de résumé, et la contrainte « pas d'abonnement » est déjà perdue.",
+                 "Près de la saturation, les réponses deviennent plus lentes, plus chères et plus approximatives. Le bon réflexe : ouvrir une nouvelle conversation avec un brief."]}
+        : {eyebrow:'Fenêtre pleine', title:'Pleine en permanence, elle oublie sans prévenir',
+           body:["Chaque nouveau message pousse les plus anciens dehors, sans avertissement. Claude a déjà perdu le plan, le budget, le compte rendu et l'introduction.",
+                 "Le bon réflexe : ouvrir une nouvelle conversation avec un brief."]});
+    }
+    if (ev.type==='brief') {
+      push(si,{eyebrow:'Passation', title:'On rédige un brief, et on le relit',
+        body:["Demandez à Claude un brief de passation, puis relisez-le et corrigez-le. C'est le moment de réintroduire ce qui s'était perdu."],
+        brief:[["Client : Boulangerie Martin, refonte du site + click & collect"],["Budget : 8 500 € HT, paiement en 3 fois, acompte 40 % (CGV)"],
+               ["Délai : 10 semaines, planning en 4 phases"],["Contrainte : aucun abonnement mensuel, maintenance en forfait annuel", true],
+               ["Déjà rédigé : introduction, planning, 3 options"],["Reste à faire : version finale"]]});
+    }
+    if (ev.type==='newwin') {
+      st.archived = st.blocks.slice();
+      st.blocks = [SYS, {id:'B', kind:'brief', tok:ev.tok}];
+      st.win = 2; st.last = 0;
+      st.chat.forEach(c=>{ c.status='old'; });
+      st.chat.push({id:'B', kind:'brief', text:'Brief de passation collé en premier message.', status:'in'});
+      st.current = 'B';
+      push(si,{eyebrow:'Nouvelle fenêtre', title:'Base propre : instructions + brief',
+        body:[`La nouvelle conversation démarre à ${Math.round(used(st)/CAP*100)} % de remplissage, avec seulement ce qui compte. L'ancienne reste consultable, mais Claude ne la voit plus.`]});
+    }
+    if (ev.type==='end') {
+      push(si,{eyebrow:'À retenir', title:'Quatre idées à garder',
+        end:["La fenêtre contient tout ce que Claude voit : instructions, messages, réponses, documents collés.",
+             "À chaque tour, Claude relit tout : plus la conversation est longue, plus chaque réponse coûte.",
+             "Quand elle se remplit, l'outil résume ou oublie le début. Dans les deux cas, des informations se perdent.",
+             "Près de la saturation, changez de fenêtre avec un brief que vous avez relu."]});
+    }
+  });
+  return steps;
+}
+
+const $ = id => document.getElementById(id);
+let mode = 'comp', steps = build(mode), idx = 0, timer = null;
+
+function zone(p){ return p<.5?['z0','Confortable']:p<.75?['z1','Vigilance']:p<.9?['z2','Résumer ou changer de fenêtre']:['z3','Saturation']; }
+
+function renderBar(bar, blocks, st, opts={}){
+  const live = new Map([...bar.querySelectorAll('.blk:not(.leaving)')].map(e=>[e.dataset.id,e]));
+  const keep = new Set(blocks.map(b=>b.id));
+  live.forEach((el,id)=>{ if(!keep.has(id)){ el.classList.add('leaving'); el.style.flexBasis='0%'; setTimeout(()=>el.remove(),650); } });
+  let prev = null;
+  blocks.forEach(b=>{
+    const pct = b.tok/CAP*100;
+    let el = live.get(b.id);
+    if (!el) {
+      el = document.createElement('div'); el.className='blk k-'+b.kind; el.dataset.id=b.id;
+      el.innerHTML='<div class="in"><b></b><small></small></div>';
+      el.style.flexBasis = opts.instant ? pct+'%' : '0%';
+      if (prev) prev.after(el); else bar.prepend(el);
+      if (!opts.instant) requestAnimationFrame(()=>requestAnimationFrame(()=>el.style.flexBasis=pct+'%'));
+    } else el.style.flexBasis = pct+'%';
+    el.title = `${labelOf(b)} · ${fmt(b.tok)} tokens`;
+    el.querySelector('b').textContent = pct<2.4 ? '' : pct<11 ? shortOf(b) : labelOf(b);
+    el.querySelector('small').textContent = pct<8 ? '' : fmt(b.tok)+' t';
+    el.classList.toggle('marked', !!st && st.marked.includes(b.id));
+    el.classList.toggle('current', !!st && st.current===b.id && !st.marked.length);
+    prev = el;
+  });
+}
+
+function render(animate){
+  const step = steps[idx], st = step.st, n = step.n;
+  const u = used(st), p = u/CAP;
+  renderBar($('bar'), st.blocks, st, {instant:!animate});
+  $('pct').textContent = Math.round(p*100)+' %';
+  $('tok').textContent = `${fmt(u)} / ${fmt(CAP)} tokens`;
+  const [z,label] = zone(p); $('pill').className='pill '+z; $('pill').textContent=label;
+  $('win-name').textContent = `Fenêtre n°${st.win} · capacité de démo : ${fmt(CAP)} tokens`;
+  $('ovf').classList.toggle('on', st.ovf);
+  $('archived').hidden = !st.archived;
+  if (st.archived) renderBar($('bar-old'), st.archived, null, {instant:true}); else $('bar-old').innerHTML='';
+  const scan = $('scan'); scan.style.width = (st.scan*100)+'%'; scan.classList.remove('go');
+  if (animate && st.scan) { void scan.offsetWidth; scan.classList.add('go'); }
+
+  let h = `<div class="eyebrow">${n.eyebrow}</div><h2>${n.title}</h2>`;
+  if (n.quote) h += `<p><strong>« ${n.quote} »</strong></p>`;
+  (n.body||[]).forEach(t=> h += `<p>${t}</p>`);
+  if (n.warn) h += `<p class="warn">⚠ ${n.warn}</p>`;
+  if (n.kept) h += `<div class="kl"><div class="k"><h3>Gardé dans le résumé</h3><ul>${n.kept.map(x=>`<li>${x}</li>`).join('')}</ul></div><div class="l"><h3>Perdu en route</h3><ul>${n.lost.map(x=>`<li>${x}</li>`).join('')}</ul></div></div>`;
+  if (n.brief) h += `<div class="brief"><ul>${n.brief.map(([t,me])=>`<li>${t}${me?' <em>← réintroduit par vous</em>':''}</li>`).join('')}</ul></div>`;
+  if (n.end) h += `<div class="end"><ul>${n.end.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+  $('narr').innerHTML = h;
+
+  const tags = {in:'Dans la fenêtre', sum:'Résumé', out:'Sorti de la fenêtre', old:'Ancienne fenêtre'};
+  $('chat').innerHTML = st.chat.length ? st.chat.map(c=>{
+    const who = c.kind==='prompt'?'P'+c.n : c.kind==='response'?'R'+c.n : 'Brief';
+    const tag = c.status==='sum' ? `Résumé dans ${'Résumé '+c.sumIn.slice(1)}` : tags[c.status];
+    return `<div class="msg ${c.kind} ${c.status} ${st.current===c.id?'now':''}"><span class="who">${who}</span><span>${c.text}</span><span class="tag">${tag}</span></div>`;
+  }).join('') : '<p class="cap">Aucun message pour l\'instant.</p>';
+  const now = $('chat').querySelector('.now'); if (now) now.scrollIntoView({block:'nearest', behavior: animate?'smooth':'auto'});
+
+  $('s-win').textContent = 'n°'+st.win;
+  $('s-last').textContent = fmt(st.last)+' t';
+  $('s-read').textContent = fmt(st.read)+' t';
+  $('s-comp').textContent = st.comp;
+  $('s-lost').textContent = st.chat.filter(c=>c.status!=='in').length;
+
+  $('prev').disabled = idx===0; $('next').disabled = idx===steps.length-1;
+  $('scrub').max = steps.length-1; $('scrub').value = idx;
+  $('count').textContent = `Étape ${idx+1} / ${steps.length}`;
+}
+
+function go(i, animate=true){ idx = Math.max(0, Math.min(steps.length-1, i)); render(animate); if (idx===steps.length-1) stop(); }
+function stop(){ clearInterval(timer); timer=null; $('auto').textContent='Lecture auto'; }
+$('next').onclick = ()=>go(idx+1);
+$('prev').onclick = ()=>go(idx-1);
+$('reset').onclick = ()=>{ stop(); $('bar').querySelectorAll('.blk').forEach(e=>e.remove()); go(0,false); };
+$('scrub').oninput = e=>go(+e.target.value);
+$('auto').onclick = ()=>{ if (timer) return stop(); if (idx===steps.length-1) go(0,false); $('auto').textContent='Pause'; timer=setInterval(()=>go(idx+1), 2800); };
+document.querySelectorAll('input[name=mode]').forEach(r=>r.onchange=()=>{
+  const si = steps[idx].si; mode = r.value; steps = build(mode);
+  let j = 0; steps.forEach((s,k)=>{ if (s.si<=si) j=k; }); go(j);
+});
+document.addEventListener('keydown', e=>{
+  const t = e.target.tagName;
+  if (t==='INPUT' || (t==='BUTTON' && (e.key===' '||e.key==='Enter'))) return;
+  if (e.key==='ArrowRight' || e.key===' ' || e.key==='PageDown') { e.preventDefault(); go(idx+1); }
+  if (e.key==='ArrowLeft' || e.key==='PageUp') { e.preventDefault(); go(idx-1); }
+});
+go(0,false);
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

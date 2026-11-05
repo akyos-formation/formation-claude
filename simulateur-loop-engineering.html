@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La Boucle de vérification</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout : le prompt complet en haut, puis la démo pas à pas : schéma circulaire à gauche, travail de l'IA à droite (empilés sur mobile) */
+:root{
+  --bg:#f7f8fb; --surface:#ffffff; --ink:#151a33; --muted:#5b6180; --line:#e2e5ef;
+  --brand:#1474d4; --lime:#dcff1f; --lime-ink:#151a33;
+  --err:#b4232c; --err-bg:#fbeaeb; --vague:#9a5b00; --vague-bg:#fdf1dc; --proof:#6b3fc4; --proof-bg:#efe8fb;
+  --ok:#14804a; --ok-bg:#e6f5ec;
+  --display:"Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1224; --surface:#181c33; --ink:#eef0f8; --muted:#a2a8c6; --line:#2b3052;
+  --brand:#5aa8ff; --lime:#d4f51c; --lime-ink:#151a33;
+  --err:#ff8a91; --err-bg:#3a161b; --vague:#f3bd5e; --vague-bg:#3a2a10; --proof:#c3a6ff; --proof-bg:#2a1f45;
+  --ok:#5fd69a; --ok-bg:#12321f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1224; --surface:#181c33; --ink:#eef0f8; --muted:#a2a8c6; --line:#2b3052;
+  --brand:#5aa8ff; --lime:#d4f51c; --lime-ink:#151a33;
+  --err:#ff8a91; --err-bg:#3a161b; --vague:#f3bd5e; --vague-bg:#3a2a10; --proof:#c3a6ff; --proof-bg:#2a1f45;
+  --ok:#5fd69a; --ok-bg:#12321f; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 48px;overflow-x:hidden}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:22px;position:relative}
+.deco{position:absolute;top:-40px;right:-50px;width:200px;height:150px;pointer-events:none;z-index:0}
+header{position:relative;z-index:1;display:grid;gap:6px;max-width:720px}
+.eyebrow{font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,6vw,44px);line-height:1.05;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:600;font-size:20px;margin:0;text-wrap:balance}
+h3{font-family:var(--display);font-weight:600;font-size:16px;margin:0}
+.lede{color:var(--muted);margin:0;max-width:64ch}
+.card{position:relative;z-index:1;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:14px;min-width:0}
+.label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.alt{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+
+/* prompt annoté */
+.prompt{display:grid;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.pb{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;padding:12px 16px;border-top:1px solid var(--line);background:var(--bg)}
+.pb:first-child{border-top:0}
+.pb .tg{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--brand);padding-top:3px}
+.pb .tx{font:15px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;min-width:0}
+.pb.loopb{background:color-mix(in srgb,var(--lime) 22%,var(--bg))}
+@media (max-width:560px){.pb{grid-template-columns:1fr;gap:4px}}
+
+/* démo */
+.demo{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:22px;align-items:start}
+@media (max-width:860px){.demo{grid-template-columns:1fr}}
+.diagram svg{width:100%;height:auto;display:block}
+.node rect{fill:var(--surface);stroke:var(--line);stroke-width:2;transition:fill .3s,stroke .3s}
+.node text{fill:var(--muted);font:600 15px var(--body);transition:fill .3s}
+.node.on rect{fill:var(--lime);stroke:var(--lime)}
+.node.on text{fill:var(--lime-ink)}
+.node.done text{fill:var(--ink)}
+.edge{fill:none;stroke:var(--line);stroke-width:3;transition:stroke .3s}
+.edge.on{stroke:var(--ink)}
+.ah{fill:var(--line)} .ah.on{fill:var(--ink)}
+.cap{fill:var(--muted);font:500 13px var(--body)}
+.center-n{fill:var(--ink);font:800 44px var(--display)}
+.center-l{fill:var(--muted);font:600 12px var(--body);letter-spacing:.08em;text-transform:uppercase}
+.steps{display:flex;gap:6px;justify-content:center}
+.pip{width:22px;height:6px;border-radius:3px;background:var(--line)} .pip.on{background:var(--ink)}
+
+.work{display:grid;gap:14px}
+.does{margin:0;font-size:16px}
+.ref{font-size:13px;color:var(--muted);margin:0}
+.ref code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg);padding:1px 6px;border-radius:4px;color:var(--ink)}
+.doc{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:8px}
+.doc h4{font-family:var(--display);font-weight:800;font-size:19px;line-height:1.2;margin:0}
+.doc p{margin:0}
+.doc ul{margin:0;padding-left:20px;display:grid;gap:3px}
+.s{padding:1px 2px;margin:0 -2px;border-radius:4px}
+.s.t-err{background:var(--err-bg);box-shadow:inset 0 -2px 0 var(--err)}
+.s.t-vague{background:var(--vague-bg);box-shadow:inset 0 -2px 0 var(--vague)}
+.s.t-proof{background:var(--proof-bg);box-shadow:inset 0 -2px 0 var(--proof)}
+.s.chg{background:var(--ok-bg);box-shadow:inset 0 -2px 0 var(--ok)}
+.tag{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.tag.t-err{background:var(--err-bg);color:var(--err)} .tag.t-vague{background:var(--vague-bg);color:var(--vague)} .tag.t-proof{background:var(--proof-bg);color:var(--proof)} .tag.t-ok{background:var(--ok-bg);color:var(--ok)}
+.checks{width:100%;border-collapse:collapse;font-size:14px}
+.checks td{padding:6px 0;border-top:1px solid var(--line);vertical-align:top}
+.checks td:last-child{text-align:right;padding-left:12px}
+.checks tr:first-child td{border-top:0}
+.list{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:14px}
+.list li{display:grid;gap:3px}
+.list q{font-weight:600;quotes:"« " " »"}
+.kit-hidden{position:absolute;left:-9999px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <svg class="deco" viewBox="0 0 200 150" aria-hidden="true">
+    <circle cx="80" cy="70" r="44" fill="none" stroke="var(--lime)" stroke-width="24"/>
+    <path d="M150 12 l-18 120" fill="none" stroke="var(--lime)" stroke-width="24" stroke-linecap="round"/>
+  </svg>
+  <header>
+    <span class="eyebrow">Fonctionnement · Loop Engineering</span>
+    <h1>La Boucle de vérification</h1>
+    <p class="lede">Un prompt qui demande à l'IA de se relire, se corriger et se relire encore avant de livrer. Ci-dessous, le prompt complet, puis ce que l'IA en fait, tour par tour.</p>
+  </header>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between"><h2>Le prompt complet</h2><button class="btn alt" id="copy">Copier le prompt</button></div>
+    <div class="prompt" id="prompt"></div>
+  </section>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="stitle"></h2>
+      <div class="row">
+        <button class="btn alt" id="prev" aria-label="Étape précédente">← Précédent</button>
+        <button class="btn alt" id="play">Lecture auto</button>
+        <button class="btn" id="next">Suivant →</button>
+      </div>
+    </div>
+    <div class="demo">
+      <div class="diagram">
+        <svg viewBox="0 0 520 410" role="img" aria-label="Schéma de la boucle : produire, puis vérifier et corriger en cercle jusqu'à trois tours, puis livrer">
+          <defs>
+            <marker id="m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" id="mh" d="M0 0 L10 5 L0 10 z"/></marker>
+            <marker id="mo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah on" d="M0 0 L10 5 L0 10 z"/></marker>
+          </defs>
+          <circle cx="260" cy="205" r="130" fill="none" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 6"/>
+          <path class="edge" id="e-in" d="M140 75 L196 75" marker-end="url(#m)"/>
+          <path class="edge" id="e-out" d="M324 75 L380 75" marker-end="url(#m)"/>
+          <path class="edge" id="e-right" d="M325 92.4 A130 130 0 0 1 325 317.6" marker-end="url(#m)"/>
+          <path class="edge" id="e-left" d="M195 317.6 A130 130 0 0 1 195 92.4" marker-end="url(#m)"/>
+          <text class="cap" x="398" y="200">problèmes</text><text class="cap" x="398" y="217">trouvés</text>
+          <text class="cap" x="122" y="200" text-anchor="end">revérifier</text><text class="cap" x="122" y="217" text-anchor="end">la correction</text>
+          <text class="cap" x="80" y="118" text-anchor="middle">version 1</text>
+          <text class="cap" x="440" y="118" text-anchor="middle">tout est conforme</text><text class="cap" x="440" y="135" text-anchor="middle">ou 3ᵉ tour atteint</text>
+          <g class="node" id="n-prod"><rect x="20" y="53" width="120" height="44" rx="22"/><text x="80" y="80" text-anchor="middle">Produire</text></g>
+          <g class="node" id="n-verif"><rect x="200" y="53" width="120" height="44" rx="22"/><text x="260" y="80" text-anchor="middle">Vérifier</text></g>
+          <g class="node" id="n-corr"><rect x="200" y="313" width="120" height="44" rx="22"/><text x="260" y="340" text-anchor="middle">Corriger</text></g>
+          <g class="node" id="n-livr"><rect x="380" y="53" width="120" height="44" rx="22"/><text x="440" y="80" text-anchor="middle">Livrer</text></g>
+          <text class="center-l" x="260" y="188" text-anchor="middle">Tour</text>
+          <text class="center-n" id="tourn" x="260" y="232" text-anchor="middle">1</text>
+          <text class="center-l" x="260" y="254" text-anchor="middle">sur 3 maximum</text>
+        </svg>
+        <div class="steps" id="pips"></div>
+      </div>
+      <div class="work" id="work" aria-live="polite"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const PROMPT=[
+ ["Tâche","Réalise cette tâche : rédige le texte de présentation de la formation « Claude au quotidien » pour notre plaquette commerciale."],
+ ["Contexte","Contexte : public : dirigeants de PME qui découvrent l'IA. Objectif : leur donner envie de s'inscrire. Contraintes : formation d'une journée, en présentiel à Lyon, 690 € HT. Aucune promesse chiffrée sans source."],
+ ["Format","Format attendu : un titre, une phrase d'accroche, 3 puces sur ce que l'on apprend, une ligne d'infos pratiques. 80 mots maximum."],
+ ["La boucle","1. Produis une première version.\n2. Vérifie qu'elle répond à la demande et repère les erreurs, les imprécisions et les affirmations sans preuve.\n3. Corrige les problèmes, puis vérifie à nouveau.",1],
+ ["Garde-fous","Recommence si nécessaire, au maximum trois fois. N'invente aucun fait et signale ce que tu ne peux pas vérifier.",1],
+ ["Livraison","Livre le résultat final avec un bref bilan des corrections et des points restant à confirmer."],
+];
+const KIT=PROMPT.map(p=>p[1]).join("\n\n");
+document.getElementById("prompt").innerHTML=PROMPT.map(([t,x,l])=>`<div class="pb ${l?"loopb":""}"><span class="tg">${t}</span><span class="tx">${x.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</span></div>`).join("");
+
+const TYPES={err:"Erreur",vague:"Imprécision",proof:"Sans preuve"};
+// Les trois versions du texte. i = problème que l'IA repère ; c = passage modifié par la correction précédente
+const V=[
+ [["h",[["Claude au quotidien : maîtrisez l'IA en 2 jours",{i:["err","Le contexte dit : une journée."]}]]],
+  ["p",[["Une formation pensée pour les dirigeants de PME qui veulent gagner du temps sans devenir experts."],[" Recommandée par Anthropic.",{i:["proof","Aucune source : fait inventé."]}]]],
+  ["li",[["Rédiger mails, comptes rendus et propositions avec Claude"]]],
+  ["li",[["98 % des participants doublent leur productivité",{i:["proof","Promesse chiffrée sans source, interdite par le contexte."]}]]],
+  ["li",[["Des outils avancés pour optimiser vos processus",{i:["vague","Quels outils, quels processus ? Rien de concret."]}]]],
+  ["p",[["Formation à distance",{i:["err","Le contexte dit : en présentiel à Lyon."]}],[", 690 € HT."]]]],
+ [["h",[["Claude au quotidien : maîtrisez l'IA en une journée",{c:1}]]],
+  ["p",[["Une formation pensée pour les dirigeants de PME qui veulent gagner du temps sans devenir experts."]]],
+  ["li",[["Rédiger mails, comptes rendus et propositions avec Claude"]]],
+  ["li",[["Travailler sur vos propres documents, avec des cas pratiques",{c:1}]]],
+  ["li",[["Créer un projet Claude avec vos consignes et vos modèles",{c:1}]]],
+  ["p",[["En présentiel à Lyon, 690 € HT.",{c:1}],[" Places limitées à 8 participants.",{c:1,i:["proof","Ce chiffre n'est pas dans le prompt : la correction l'a inventé."]}]]]],
+ [["h",[["Claude au quotidien : maîtrisez l'IA en une journée"]]],
+  ["p",[["Une formation pensée pour les dirigeants de PME qui veulent gagner du temps sans devenir experts."]]],
+  ["li",[["Rédiger mails, comptes rendus et propositions avec Claude"]]],
+  ["li",[["Travailler sur vos propres documents, avec des cas pratiques"]]],
+  ["li",[["Créer un projet Claude avec vos consignes et vos modèles"]]],
+  ["p",[["En présentiel à Lyon, 690 € HT.",{c:1}]]]],
+];
+const CRIT=["Durée : une journée","Lieu : présentiel à Lyon","Prix : 690 € HT","Public : dirigeants de PME","Format : titre, accroche, 3 puces, infos","Longueur : 80 mots maximum","Aucune promesse chiffrée sans source","Aucun fait inventé","Contenu précis, sans formule vague"];
+const RES=[
+ [0,0,1,1,1,1,0,0,0],
+ [1,1,1,1,1,1,1,0,1],
+ [1,1,1,1,1,1,1,1,1]];
+const STEPS=[
+ {node:"prod",hl:[],tour:0,ver:0,mode:"plain",title:"Étape 1 · Produire",
+  does:"L'IA rédige une première version à partir de la tâche, du contexte et du format. Sans la boucle, c'est ce texte qui vous serait livré.",ref:"1. Produis une première version."},
+ {node:"verif",hl:["e-in"],tour:1,ver:0,mode:"issues",chk:0,title:"Tour 1 · Vérifier",
+  does:"L'IA relit sa version contre chaque élément du prompt et cherche les trois types de problèmes demandés. Elle en trouve cinq.",ref:"2. Vérifie qu'elle répond à la demande et repère les erreurs, les imprécisions et les affirmations sans preuve."},
+ {node:"corr",hl:["e-right"],tour:1,ver:1,mode:"chg",title:"Tour 1 · Corriger",
+  does:"L'IA corrige les cinq problèmes. En voulant rendre l'offre plus attractive, elle ajoute une phrase qui n'est pas dans le prompt.",ref:"3. Corrige les problèmes…",
+  fixes:["« 2 jours » devient « une journée ».","« Recommandée par Anthropic » est retiré.","« 98 % des participants… » est remplacé par une puce concrète.","« Outils avancés » est remplacé par « Créer un projet Claude… ».","« À distance » devient « En présentiel à Lyon ».","Ajout : « Places limitées à 8 participants. »"]},
+ {node:"verif",hl:["e-left"],tour:2,ver:1,mode:"issues",chk:1,title:"Tour 2 · Vérifier à nouveau",
+  does:"L'IA revérifie, en particulier les passages qu'elle vient de modifier. Elle repère le chiffre de 8 participants : il ne vient d'aucune source.",ref:"…puis vérifie à nouveau."},
+ {node:"corr",hl:["e-right"],tour:2,ver:2,mode:"chg",title:"Tour 2 · Corriger",
+  does:"L'IA retire la phrase inventée. Plutôt que de deviner un chiffre, elle le note comme point à confirmer.",ref:"N'invente aucun fait et signale ce que tu ne peux pas vérifier.",
+  fixes:["« Places limitées à 8 participants » est retiré.","Le nombre de places est ajouté aux points à confirmer."]},
+ {node:"verif",hl:["e-left"],tour:3,ver:2,mode:"issues",chk:2,title:"Tour 3 · Vérifier",
+  does:"Tous les critères sont remplis. La boucle s'arrête : il n'y a plus rien à corriger. La limite de trois tours est respectée.",ref:"Recommence si nécessaire, au maximum trois fois."},
+ {node:"livr",hl:["e-out"],tour:3,ver:2,mode:"plain",title:"Étape finale · Livrer",bilan:1,
+  does:"L'IA livre le texte final avec son bilan. Vous savez ce qui a changé et ce qu'il vous reste à vérifier avant d'imprimer.",ref:"Livre le résultat final avec un bref bilan des corrections et des points restant à confirmer."},
+];
+
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+let k=0, timer=null;
+const $=id=>document.getElementById(id);
+
+function doc(v,mode){
+  let out="",ul=[];
+  const seg=([t,o={}])=>{
+    const cls=mode==="issues"&&o.i?"s t-"+o.i[0]:mode==="chg"&&o.c?"s chg":"";
+    return cls?`<span class="${cls}">${esc(t)}</span>`:esc(t);};
+  const flush=()=>{if(ul.length){out+=`<ul>${ul.join("")}</ul>`;ul=[];}};
+  v.forEach(([kind,segs])=>{const h=segs.map(seg).join("");
+    if(kind==="li")ul.push(`<li>${h}</li>`);else{flush();out+=kind==="h"?`<h4>${h}</h4>`:`<p>${h}</p>`;}});
+  flush();return `<div class="doc">${out}</div>`;
+}
+
+function render(){
+  const s=STEPS[k];
+  $("stitle").textContent=s.title;
+  ["prod","verif","corr","livr"].forEach(n=>{
+    const g=$("n-"+n); g.classList.toggle("on",n===s.node);
+    const order=["prod","verif","corr","livr"];
+    g.classList.toggle("done",STEPS.slice(0,k).some(x=>x.node===n));
+  });
+  ["e-in","e-out","e-right","e-left"].forEach(e=>{const on=s.hl.includes(e);$(e).classList.toggle("on",on);$(e).setAttribute("marker-end",on?"url(#mo)":"url(#m)");});
+  $("tourn").textContent=s.tour||"–";
+  $("pips").innerHTML=STEPS.map((_,i)=>`<span class="pip ${i<=k?"on":""}"></span>`).join("");
+
+  const v=V[s.ver];
+  let extra="";
+  if(s.mode==="issues"){
+    const found=v.flatMap(l=>l[1]).filter(x=>x[1]&&x[1].i);
+    extra+=`<h3>Contrôle de l'IA</h3><table class="checks">${CRIT.map((c,i)=>`<tr><td>${c}</td><td>${RES[s.chk][i]?'<span class="tag t-ok">Conforme</span>':'<span class="tag t-err">À corriger</span>'}</td></tr>`).join("")}</table>`;
+    extra+=found.length?`<h3>Problèmes repérés (${found.length})</h3><ul class="list">${found.map(([t,o])=>`<li><span><span class="tag t-${o.i[0]}">${TYPES[o.i[0]]}</span></span><span><q>${esc(t.trim())}</q> ${esc(o.i[1])}</span></li>`).join("")}</ul>`
+      :`<h3>Problèmes repérés</h3><p class="ref">Aucun. Condition d'arrêt atteinte.</p>`;
+  }
+  if(s.fixes) extra+=`<h3>Corrections appliquées</h3><ul class="list">${s.fixes.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>`;
+  if(s.bilan) extra+=`<h3>Bilan livré</h3><ul class="list">
+     <li><b>Corrections :</b> durée, lieu, recommandation retirée, statistique retirée, puce précisée, nombre de places inventé retiré.</li>
+     <li><b>À confirmer :</b> nombre maximum de participants ; date de la prochaine session.</li>
+     <li><b>Tours utilisés :</b> 3 sur 3 autorisés.</li></ul>`;
+  $("work").innerHTML=`<p class="does">${esc(s.does)}</p>
+    <p class="ref">Consigne du prompt appliquée : <code>${esc(s.ref)}</code></p>
+    <p class="label">${s.mode==="issues"?"Version "+(s.ver+1)+" relue par l'IA":s.mode==="chg"?"Version "+(s.ver+1)+" · en vert, ce qui a changé":s.bilan?"Texte final":"Version 1"}</p>
+    ${doc(v,s.mode)}${extra}`;
+  $("prev").disabled=k===0; $("next").disabled=k===STEPS.length-1;
+}
+function go(d){k=Math.max(0,Math.min(STEPS.length-1,k+d));render();}
+function stop(){clearInterval(timer);timer=null;$("play").textContent="Lecture auto";}
+$("prev").onclick=()=>{stop();go(-1)};
+$("next").onclick=()=>{stop();go(1)};
+$("play").onclick=()=>{
+  if(timer)return stop();
+  if(k===STEPS.length-1){k=0;render();}
+  $("play").textContent="Pause";
+  timer=setInterval(()=>{if(k>=STEPS.length-1)return stop();go(1);},7000);
+};
+document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"){stop();go(1)}if(e.key==="ArrowLeft"){stop();go(-1)}});
+$("copy").onclick=async e=>{
+  try{await navigator.clipboard.writeText(KIT);e.target.textContent="Copié";}
+  catch{const r=document.createRange();r.selectNodeContents($("prompt"));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);e.target.textContent="Texte sélectionné, faites Cmd/Ctrl+C";}
+};
+
+function start(d){ if(d&&typeof d.k==="number")k=d.k; render(); }
+window.claude?.hot?.snapshot?.(()=>({k}));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

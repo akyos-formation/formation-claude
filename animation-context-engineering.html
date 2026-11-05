@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Context engineering d'un agent</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout : réservoir (gauche) → curation par le harnais (centre) → fenêtre de contexte avec jauge (droite) → modèle / sous-agent ; pupitre de narration à droite. Même famille visuelle que « Agent de tri de CV ». */
+:root{
+  --bg:#f4f4f1; --surface:#ffffff; --fg:#1d2230; --muted:#5d6475; --line:#dcdcd5;
+  --navy:#0f2a7a; --frame:#3d4a63;
+  --harn:#eeede8; --harn-line:#bdbcb3;
+  --model:#e3f4ec; --model-line:#5ea88a; --model-fg:#1f5a43;
+  --skill:#f9ebe6; --skill-line:#c8826d; --skill-fg:#8a3c25;
+  --tool:#e8f0fa; --tool-line:#7fa3d6; --tool-fg:#2b5694;
+  --rag:#ecebfb; --rag-line:#9890db; --rag-fg:#4b3fae;
+  --instr:#f6f1df; --instr-line:#c5aa55; --instr-fg:#7a5f10;
+  --cv:#eef3e2; --cv-line:#93a86a; --cv-fg:#4a5e1f;
+  --sub:#e2f2f4; --sub-line:#5aa3ad; --sub-fg:#1f5d66;
+  --guard:#fdeaea; --guard-line:#d47777; --guard-fg:#992a2a;
+  --ok:#17784f; --ok-bg:#e4f4ec; --warn:#b4400f; --warn-bg:#fdeee5;
+  --yellow:#f5c400;
+  --hist:var(--harn); --hist-line:var(--harn-line); --hist-fg:var(--fg);
+  --notes:var(--ok-bg); --notes-line:var(--ok); --notes-fg:var(--ok);
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111418; --surface:#1a1e25; --fg:#e8eaef; --muted:#9ca3b2; --line:#2c323d;
+  --navy:#a9bfff; --frame:#9aa8c4;
+  --harn:#1d2129; --harn-line:#3e4554;
+  --model:#16302a; --model-line:#4f9a7c; --model-fg:#8fe0bd;
+  --skill:#35211c; --skill-line:#b0705c; --skill-fg:#f0b6a2;
+  --tool:#1a2638; --tool-line:#5d82b8; --tool-fg:#a9c6f2;
+  --rag:#242242; --rag-line:#7d74c9; --rag-fg:#c3bcff;
+  --instr:#2e2a18; --instr-line:#a68e3e; --instr-fg:#ecd28a;
+  --cv:#222b17; --cv-line:#7d9455; --cv-fg:#c5dc9a;
+  --sub:#15302f; --sub-line:#4f9aa3; --sub-fg:#9fdde4;
+  --guard:#3a1c1c; --guard-line:#b35b5b; --guard-fg:#ffb0b0;
+  --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111418; --surface:#1a1e25; --fg:#e8eaef; --muted:#9ca3b2; --line:#2c323d;
+  --navy:#a9bfff; --frame:#9aa8c4;
+  --harn:#1d2129; --harn-line:#3e4554;
+  --model:#16302a; --model-line:#4f9a7c; --model-fg:#8fe0bd;
+  --skill:#35211c; --skill-line:#b0705c; --skill-fg:#f0b6a2;
+  --tool:#1a2638; --tool-line:#5d82b8; --tool-fg:#a9c6f2;
+  --rag:#242242; --rag-line:#7d74c9; --rag-fg:#c3bcff;
+  --instr:#2e2a18; --instr-line:#a68e3e; --instr-fg:#ecd28a;
+  --cv:#222b17; --cv-line:#7d9455; --cv-fg:#c5dc9a;
+  --sub:#15302f; --sub-line:#4f9aa3; --sub-fg:#9fdde4;
+  --guard:#3a1c1c; --guard-line:#b35b5b; --guard-fg:#ffb0b0;
+  --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.05;margin:0;color:var(--navy);text-wrap:balance}
+.sub{margin:6px 0 0;color:var(--muted);max-width:72ch}
+.steps{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0;padding:0}
+.steps button{font:inherit;font-size:.82rem;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 12px;cursor:pointer}
+.steps button .n{font-family:var(--f-mono);font-weight:600;margin-right:6px}
+.steps button.done{color:var(--fg)}
+.steps button.on{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:18px;align-items:start}
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;overflow-x:auto}
+svg{display:block;width:100%;height:auto}
+.diagram svg{min-width:560px}
+svg text{font-family:var(--f-body);text-anchor:middle}
+svg text.l{text-anchor:start} svg text.r{text-anchor:end}
+svg .t1{font-family:var(--f-display);font-weight:800;font-size:21px}
+svg .t2{font-size:15px}
+svg .t3{font-size:13px}
+svg .mono{font-family:var(--f-mono);font-size:12px}
+.c,.ri{transition:opacity .5s}
+.c.ghost{opacity:.13}
+.ri.out{opacity:.32}
+.ri.sel rect.box{stroke-width:3.5}
+.ri.part rect.box{stroke-dasharray:7 4;stroke-width:2.5}
+.ri.new rect.box,.wrow.new rect.box{animation:glow 1.2s ease-in-out 2}
+@keyframes glow{50%{stroke-width:5}}
+.arrow{stroke:var(--muted);stroke-width:2;fill:none}
+.ra{stroke:var(--muted);stroke-width:2;fill:none;opacity:.35;transition:opacity .4s}
+.ra.sel{stroke:var(--frame);stroke-width:2.6;opacity:1}
+.ra.part{stroke:var(--frame);stroke-dasharray:4 3;opacity:.9}
+.ra.out{opacity:.1}
+#gfill{transition:height .45s ease,y .45s ease,fill .3s}
+.side{display:grid;gap:14px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;min-width:0}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lev{font-family:var(--f-body);letter-spacing:.02em;text-transform:none;font-size:.78rem;font-weight:600;padding:2px 10px;border-radius:999px;background:var(--navy);color:var(--bg)}
+.card h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.25rem,2.4vw,1.6rem);margin:4px 0 8px;line-height:1.15;text-wrap:balance}
+.card p{margin:0 0 8px}
+.card ul{margin:0 0 8px;padding-left:18px;display:grid;gap:4px}
+.ask{font-size:.85rem;color:var(--muted);margin-bottom:6px}
+.bubble{border-radius:10px;padding:10px 14px;background:var(--model);color:var(--fg);border:1px solid var(--model-line);font-size:.95rem}
+.key{border-radius:10px;padding:10px 14px;background:var(--instr);color:var(--instr-fg);border:1px solid var(--instr-line);font-weight:600}
+.fill{font-family:var(--f-mono);font-size:.9rem;font-variant-numeric:tabular-nums}
+.meter{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:.85rem;color:var(--muted);flex-wrap:wrap}
+.meter span.d{width:22px;height:8px;border-radius:2px;background:var(--line)}
+.meter span.d.f{background:var(--ok)}
+.meter.mid span.d.f{background:var(--instr-line)}
+.meter.bad span.d.f{background:var(--guard-line)}
+.miss{margin-top:10px;font-size:.88rem;background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 12px}
+.gain{margin-top:10px;font-size:.88rem;background:var(--ok-bg);color:var(--ok);border-radius:8px;padding:8px 12px}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+button.b{font:inherit;font-weight:600;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:10px 14px;cursor:pointer;flex:1}
+button.b.primary{background:var(--navy);color:var(--bg);border-color:var(--navy)}
+button.b:disabled{opacity:.4;cursor:default}
+button:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-size:.85rem;font-weight:600;flex:1;border:0;background:var(--surface);color:var(--muted);padding:8px 10px;cursor:pointer}
+.seg button[aria-pressed="true"].naive{background:var(--guard);color:var(--guard-fg)}
+.seg button[aria-pressed="true"].cur{background:var(--ok-bg);color:var(--ok)}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:12px 0 6px;font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.read{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.88rem;margin-top:8px}
+.read b{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:600}
+.levers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:8px 0 12px}
+.levers > div{border-radius:10px;padding:10px 12px;font-size:.85rem;background:var(--harn);border:1px solid var(--harn-line);min-width:0}
+.levers h3{font-family:var(--f-display);font-size:1.05rem;margin:0 0 2px;color:var(--navy)}
+.levers p{margin:0 0 4px}
+.levers .ex{color:var(--muted);font-size:.8rem}
+.notes{font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;display:grid;gap:12px}
+.notes h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;color:var(--fg)}
+.notes ul{margin:0;padding-left:18px;display:grid;gap:4px;max-width:95ch}
+.notes a{color:var(--navy)}
+.hint{font-size:.75rem;color:var(--muted)}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:480px){.levers{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.c,.ri,#gfill,.ra{transition:none}.ri.new rect.box,.wrow.new rect.box{animation:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Context engineering : ce qui entre dans la fenêtre</h1>
+    <p class="sub">Même agent de tri de CV, vu de l'intérieur. Il a accès à bien plus d'informations qu'il ne peut en lire. Le harnais décide ce que le modèle voit, à quel moment, et sous quelle forme.</p>
+  </header>
+  <ol class="steps" id="steps" aria-label="Étapes"></ol>
+
+  <div class="main">
+    <div class="diagram">
+      <svg viewBox="0 62 1000 558" role="img" aria-label="Schéma : réservoir d'informations, curation par le harnais, fenêtre de contexte et modèle">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--muted)"/></marker>
+        </defs>
+
+        <text class="mono l" x="24" y="80" style="fill:var(--muted);font-weight:600">RÉSERVOIR · ≈ 520 k TOKENS</text>
+        <text class="mono" x="400" y="80" style="fill:var(--muted);font-weight:600">HARNAIS</text>
+        <g id="res"></g>
+
+        <g class="c" id="c-cur">
+          <rect x="346" y="96" width="108" height="510" rx="14" style="fill:var(--harn);stroke:var(--frame);stroke-width:2;stroke-dasharray:6 5"/>
+          <g id="slats" style="stroke:var(--harn-line);stroke-width:2"></g>
+          <text id="cur-label" class="mono" transform="translate(406 351) rotate(-90)" style="fill:var(--frame);font-weight:600;font-size:14px;letter-spacing:.12em">CURATION PAR LE HARNAIS</text>
+          <path class="arrow" d="M454 283H473" marker-end="url(#ah)"/>
+        </g>
+
+        <g id="c-win">
+          <rect id="win-frame" x="476" y="96" width="500" height="374" rx="8" style="fill:var(--surface);stroke:var(--frame);stroke-width:3"/>
+          <text class="mono l" x="492" y="122" style="fill:var(--frame);font-weight:600">FENÊTRE DE CONTEXTE · CE QUE VOIT LE MODÈLE</text>
+          <g id="rows"></g>
+          <rect x="912" y="150" width="40" height="296" rx="4" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="913" y="151" width="38" height="58" style="fill:var(--guard);opacity:.8"/>
+          <rect x="913" y="209" width="38" height="119" style="fill:var(--instr);opacity:.8"/>
+          <rect id="gfill" x="916" y="446" width="32" height="0" rx="2" style="fill:var(--ok)"/>
+          <text class="mono r" x="904" y="158" style="fill:var(--muted);font-size:11px">200 k</text>
+          <text class="mono r" x="904" y="446" style="fill:var(--muted);font-size:11px">0</text>
+          <text id="gval" class="mono" x="932" y="124" style="fill:var(--fg);font-weight:600;font-size:13px">0</text>
+          <text id="gover" class="mono" x="932" y="142" style="fill:var(--guard-fg);font-weight:600;font-size:10px;opacity:0">DÉBORDE</text>
+        </g>
+
+        <g class="c" id="c-model">
+          <path class="arrow" d="M596 470V485" marker-end="url(#ah)"/>
+          <rect class="box" x="476" y="488" width="240" height="118" rx="16" style="fill:var(--model);stroke:var(--model-line);stroke-width:2"/>
+          <text class="t1" x="596" y="528" style="fill:var(--model-fg)">Modèle (Claude)</text>
+          <text class="t3" x="596" y="554" style="fill:var(--model-fg)">Ne voit que la fenêtre</text>
+          <text id="m-state" class="t3" x="596" y="584" style="fill:var(--model-fg);font-weight:600"></text>
+        </g>
+
+        <g class="c" id="c-sub">
+          <path class="arrow" d="M856 488V473" marker-end="url(#ah)"/>
+          <rect class="box" x="736" y="488" width="240" height="118" rx="16" style="fill:var(--sub);stroke:var(--sub-line);stroke-width:2"/>
+          <text class="t2" x="856" y="516" style="fill:var(--sub-fg);font-weight:600">Sous-agent vérificateur</text>
+          <text class="t3" x="856" y="538" style="fill:var(--sub-fg)">Sa propre fenêtre, vierge</text>
+          <rect x="756" y="552" width="200" height="12" rx="3" style="fill:var(--surface);stroke:var(--sub-line)"/>
+          <rect x="756" y="552" width="10" height="12" rx="2" style="fill:var(--sub-line)"/>
+          <text class="mono" x="856" y="588" style="fill:var(--sub-fg)">≈ 10 k utilisés · rend 1,2 k</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="side">
+      <section class="card" id="narr" aria-live="polite"></section>
+      <div class="controls">
+        <button class="b" id="prev" aria-label="Étape précédente">← Précédent</button>
+        <button class="b primary" id="next">Suivant →</button>
+      </div>
+      <div class="hint">Clavier : → ou espace pour avancer, ← pour reculer</div>
+    </div>
+  </div>
+
+  <section class="notes">
+    <div>
+      <h3>Notes pour le formateur</h3>
+      <ul>
+        <li>Les volumes en tokens sont des ordres de grandeur illustratifs : un CV de deux pages pèse quelques milliers de tokens, et les définitions d'outils de plusieurs connecteurs MCP peuvent en occuper des dizaines de milliers avant même le premier message.</li>
+        <li>200 000 tokens est une taille de fenêtre courante chez Claude. Certains modèles vont jusqu'à un million de tokens : le problème d'attention ne disparaît pas pour autant.</li>
+        <li>La jauge d'attention est une image pédagogique. La dégradation est progressive et varie selon les modèles et les tâches : il n'existe pas de seuil précis à citer.</li>
+        <li>Les quatre leviers (Écrire, Sélectionner, Compresser, Isoler) reprennent le classement proposé par LangChain. Les techniques détaillées (altitude des instructions, chargement juste à temps, compaction, notes structurées, sous-agents) viennent de l'article d'Anthropic.</li>
+        <li>À enchaîner avec la Leçon 2.6 (fenêtre de contexte), la Leçon 2.7 (prompt, contexte, harnais) et l'animation « Agent de tri de CV ». CV, notes et fiche RH-2026-14 sont fictifs.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Sources</h3>
+      <ul>
+        <li><a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noopener">Anthropic, « Effective context engineering for AI agents » (2025)</a></li>
+        <li><a href="https://www.langchain.com/blog/context-engineering-for-agents" target="_blank" rel="noopener">LangChain, « Context Engineering for Agents » (2025)</a></li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const CAP = 200000;
+const ASK = "« Trie les 40 CV reçus pour le poste de chargé·e de recrutement et propose une shortlist. »";
+const pad = n => String(n).padStart(2,'0');
+
+/* Réservoir */
+const RES = [
+  {k:'instr', c:'instr', name:'Instructions', sub:'rôle, poste, ton', tok:'2 k'},
+  {k:'skill', c:'skill', name:'Skills (5)', sub:'tri, courriers…', tok:'15 k'},
+  {k:'mcp',   c:'tool',  name:'Connecteurs (12)', sub:'Drive, mail, CRM…', tok:'45 k'},
+  {k:'base',  c:'rag',   name:'Base de connaissances', sub:'200 fiches de poste', tok:'300 k'},
+  {k:'cv',    c:'cv',    name:'Dossier Candidatures', sub:'40 CV en PDF', tok:'160 k'},
+  {k:'hist',  c:'hist',  name:'Historique', sub:'tours précédents', tok:'variable'},
+  {k:'notes', c:'notes', name:'Notes de travail', sub:'notes.md, tableur', tok:'hors fenêtre'}
+];
+$('res').innerHTML = RES.map((r,i)=>{ const y = 96 + i*74; return `
+  <g class="ri" id="r-${r.k}">
+    <rect class="box" x="24" y="${y}" width="300" height="66" rx="12" style="fill:var(--${r.c});stroke:var(--${r.c}-line);stroke-width:2"/>
+    <text class="t2 l" x="40" y="${y+27}" style="fill:var(--${r.c}-fg);font-weight:600">${r.name}</text>
+    <text class="t3 l" x="40" y="${y+50}" style="fill:var(--${r.c}-fg)">${r.sub}</text>
+    <text class="mono r" x="310" y="${y+27}" style="fill:var(--${r.c}-fg)">${r.tok}</text>
+    <text class="mono r" id="rs-${r.k}" x="310" y="${y+50}" style="fill:var(--${r.c}-fg);font-weight:600"></text>
+  </g>
+  <path class="ra" id="ra-${r.k}" d="M324 ${y+33}H343" marker-end="url(#ah)"/>`; }).join('');
+$('slats').innerHTML = Array.from({length:12},(_,i)=>{const y=118+i*40;return `<line x1="356" y1="${y}" x2="378" y2="${y}"/><line x1="432" y1="${y}" x2="444" y2="${y}"/>`}).join('');
+
+/* Blocs pouvant entrer dans la fenêtre */
+const B = {
+  base:   {k:'instr', l:"Demande + instructions (CLAUDE.md)", t:2000},
+  skFull: {k:'skill', l:"5 skills complètes", t:15000},
+  skDesc: {k:'skill', l:"Descriptions des 5 skills (1 ligne)", t:500},
+  skCv:   {k:'skill', l:"Skill tri-cv complète (déclenchée)", t:3000},
+  mcpAll: {k:'tool',  l:"12 connecteurs : définitions d'outils", t:45000},
+  tools3: {k:'tool',  l:"3 outils : lister, lire_pdf, écrire_tableur", t:1500},
+  baseAll:{k:'rag',   l:"Base complète : 200 fiches de poste", t:300000},
+  rag2:   {k:'rag',   l:"Fiche de poste : 2 extraits (RAG)", t:1800},
+  cvAll:  {k:'cv',    l:"40 CV complets", t:160000},
+  list:   {k:'cv',    l:"Liste des 40 fichiers (noms seuls)", t:400},
+  histC:  {k:'hist',  l:"Historique compacté (18 CV notés)", t:1200},
+  notes:  {k:'notes', l:"notes.md (relu au besoin)", t:300},
+  sub:    {k:'sub',   l:"Rapport du sous-agent", t:1200}
+};
+const cvB = n => ({k:'cv', l:`CV-${pad(n)} en cours de lecture`, t:4000});
+
+/* États du réservoir */
+const R0 = {instr:['idle',''], skill:['idle',''], mcp:['idle',''], base:['idle',''], cv:['idle',''], hist:['idle',''], notes:['idle','']};
+const RALL = {...R0, instr:['sel','tout chargé'], skill:['sel','tout chargé'], mcp:['sel','tout chargé'], base:['sel','tout chargé'], cv:['sel','tout chargé']};
+const R3 = {...RALL, mcp:['out','écarté'], base:['out','écarté']};
+const R4 = {...R0, instr:['sel','tout chargé'], skill:['part','1 ligne chacune'], mcp:['part','3 outils / 12'], base:['out','pas encore'], cv:['out','pas encore']};
+const R5 = {...R4, skill:['part','tri-cv chargée'], base:['part','2 extraits'], cv:['part','1 CV à la fois']};
+const R6 = {...R5, hist:['part','résumé']};
+const R7 = {...R6, notes:['part','relu au besoin']};
+const RNAIVE = {...R0, instr:['sel','tout chargé'], skill:['sel','tout chargé'], mcp:['sel','tout chargé'], base:['out','écarté'], cv:['sel','tous gardés'], hist:['sel','tout gardé'], notes:['out','non utilisé']};
+
+const W5 = [B.base, B.skDesc, B.tools3, B.list, B.skCv, B.rag2, cvB(1)];
+const W6 = [B.base, B.skDesc, B.tools3, B.list, B.skCv, B.rag2, B.histC, cvB(19)];
+const W7 = [B.base, B.skDesc, B.tools3, B.list, B.skCv, B.rag2, B.histC, B.notes, cvB(19)];
+const W8 = [B.base, B.skDesc, B.tools3, B.list, B.skCv, B.rag2, B.histC, B.notes, B.sub, cvB(19)];
+
+const STEPS = [
+  {name:'Le réservoir', title:"Tout ce que l'agent pourrait lire", res:R0, win:[], ghost:['c-cur','c-sub'], model:'Attend la tâche',
+   body:["L'agent de tri a accès à des instructions, des skills, 12 connecteurs, une base de 200 fiches de poste et 40 CV. Au total, environ 520 000 tokens.",
+         "Le modèle, lui, ne voit qu'une chose : sa fenêtre de contexte, limitée ici à 200 000 tokens. Le context engineering consiste à décider ce qui y entre, à quel moment, et sous quelle forme."],
+   key:"La question à se poser à chaque étape : quel est le plus petit ensemble d'informations utiles pour réussir ?"},
+  {name:'Tout charger', title:"Réflexe naïf : tout mettre dans la fenêtre", res:RALL, win:[B.base,B.skFull,B.mcpAll,B.baseAll,B.cvAll], ghost:['c-sub'], open:true, model:'Ne peut pas démarrer',
+   body:["Sans tri, le harnais envoie tout au modèle. La fenêtre déborde : la requête échoue avant même de commencer."],
+   answer:"Erreur : la demande dépasse la taille maximale de la fenêtre de contexte.",
+   warn:"Même avec une fenêtre plus grande, le modèle devrait chercher la bonne fiche parmi 200 fiches sans rapport avec ce poste."},
+  {name:'Trop plein', title:"Ça rentre, mais le modèle se disperse", res:R3, win:[B.base,B.skFull,B.cvAll], ghost:['c-sub'], open:true, model:'Se perd dans 40 CV',
+   body:["On retire la base et les connecteurs : 177 000 tokens, ça passe. Pourtant le résultat se dégrade."],
+   list:["Chaque token ajouté consomme une part de l'attention du modèle. C'est un budget limité.",
+         "Plus la fenêtre est remplie, moins le modèle retrouve avec précision une information donnée. Anthropic parle de <i>context rot</i> : le contexte « s'abîme » en grossissant."],
+   after:"Remplir la fenêtre n'est donc pas un objectif. Le but est d'y mettre peu, mais juste.",
+   answer:"CV-12 : 15/20. Justification : « 6 ans en cabinet de recrutement ».",
+   warn:"Cette citation vient en réalité du CV-27. Avec 40 CV côte à côte, les candidats se mélangent."},
+  {name:'Sélectionner', lever:'Sélectionner', title:"Un socle court et stable", res:R4, win:[B.base,B.skDesc,B.tools3], ghost:['c-sub'], model:'Prêt, rien d\'inutile',
+   body:["Le harnais ne charge en permanence que l'indispensable :"],
+   list:["Des instructions « à la bonne altitude » : ni un script rigide qui prévoit tous les cas, ni des consignes vagues.",
+         "Trois outils utiles et distincts au lieu de 12 connecteurs. Chaque définition d'outil coûte des tokens, même si l'outil ne sert jamais.",
+         "Pour les skills, seule une description d'une ligne est chargée. Le contenu complet attend d'être utile."],
+   answer:"J'ai mes consignes et trois outils. Je commence par lister le dossier Candidatures.",
+   gain:"4 000 tokens au lieu de 177 000, et aucun bloc inutile."},
+  {name:'Juste à temps', lever:'Sélectionner', title:"Charger au bon moment", res:R5, win:W5, ghost:['c-sub'], model:'Concentré sur 1 CV',
+   body:["L'agent garde des références légères (les noms des fichiers) et ne charge le contenu qu'au moment où il en a besoin :"],
+   list:["La skill tri-cv complète, déclenchée par la tâche : c'est la divulgation progressive.",
+         "Deux extraits de la fiche de poste trouvés par le RAG, pas les 200 fiches.",
+         "Un seul CV à la fois."],
+   after:"C'est ce que fait Claude Code : CLAUDE.md est chargé d'emblée, les fichiers sont lus au moment où il en a besoin.",
+   answer:"CV-01 : 17/20. Justification : « 6 ans en cabinet de recrutement » (page 1), conforme à la fiche RH-2026-14."},
+  {name:'Compresser', lever:'Compresser', title:"Alléger la fenêtre au fil de la boucle", res:R6, win:W6, ghost:['c-sub'], model:'Concentré sur 1 CV',
+   body:["À chaque tour de boucle, des résultats s'accumulent. Le harnais fait le ménage :"],
+   list:["Nettoyer les résultats d'outils : une fois le CV-01 noté et écrit dans le tableur, son texte complet sort de la fenêtre. Seule la note reste.",
+         "Compacter l'historique : quand il grossit, le harnais le résume et repart avec ce résumé. Dans Claude Code, c'est la commande /compact, ou la compaction automatique."],
+   after:"Le risque : un résumé trop agressif perd un détail qui comptait. On garde les décisions, les problèmes ouverts et ce qui reste à faire.",
+   answer:"CV-19 en cours. Les 18 premiers sont notés dans le tableur et l'historique a été résumé."},
+  {name:'Écrire', lever:'Écrire', title:"Écrire hors de la fenêtre", res:R7, win:W7, ghost:['c-sub'], model:'Sait où il en est',
+   body:["L'agent tient un fichier de notes qu'il met à jour et relit au besoin : CV traités, points à revérifier, précisions données par le RH.",
+         "Ces notes survivent à la compaction et à une nouvelle session. C'est le même principe que votre MEMORY.md : ce qui n'est pas écrit est oublié."],
+   answer:"Nouvelle session. D'après notes.md : 18 CV traités sur 40, CV-02 à revérifier. Je reprends au CV-19."},
+  {name:'Isoler', lever:'Isoler', title:"Confier une tâche à un sous-agent", res:R7, win:W8, ghost:[], model:'Reçoit un rapport court',
+   body:["Vérifier les 40 justifications oblige à relire tous les CV. Plutôt que d'encombrer la fenêtre principale, l'agent confie ce travail à un sous-agent."],
+   list:["Le sous-agent démarre avec une fenêtre vierge et ne charge que ce dont il a besoin.",
+         "Il ne renvoie qu'un rapport condensé, de l'ordre de 1 000 à 2 000 tokens.",
+         "Contrepartie : plus de tokens consommés au total, donc un coût plus élevé."],
+   answer:"Vérification du sous-agent : 39 justifications conformes, 1 à corriger (CV-02). Je corrige."},
+  {name:'Comparer', sim:true, title:"Comparer sur les 40 CV", body:["Lancez la boucle et observez la jauge. Le sélecteur choisit la stratégie affichée dans le schéma ; la courbe montre les deux."]},
+  {name:'Les 4 leviers', recap:true, title:"Quatre leviers, une seule question", res:R7, win:W8, ghost:[], model:'Concentré, fiable'}
+];
+
+/* Simulation */
+const NAIVE_BASE = 62000, NAIVE_PER = 4500;
+const naiveTot = n => NAIVE_BASE + NAIVE_PER*n;
+const OVER_N = (()=>{ let n=0; while (naiveTot(n) <= CAP) n++; return n; })();
+const naiveBlocks = n => [B.base, B.skFull, B.mcpAll,
+  ...(n ? [{k:'cv', l:`CV-01 → CV-${pad(n)} : texte complet gardé`, t:4000*n}, {k:'hist', l:`Historique : ${n} tours gardés`, t:500*n}] : [])];
+const curBlocks = n => [B.base, B.skDesc, B.tools3, B.list, B.skCv, B.rag2, B.notes,
+  ...(n>=15 ? [{k:'hist', l:`Historique compacté (${n>=30?30:15} CV)`, t:1200}] : []),
+  ...(n%15 ? [{k:'hist', l:`Historique récent : ${n%15} tours`, t:60*(n%15)}] : []),
+  ...(n>=1 ? [cvB(n)] : [])];
+const sum = bl => bl.reduce((a,b)=>a+b.t,0);
+
+const fmt = t => t>=10000 ? Math.round(t/1000)+' k' : (Math.round(t/100)/10).toString().replace('.',',')+' k';
+let idx = 0, simN = 0, simTimer = null, strat = 'cur';
+let lastRows = new Set(), lastRes = {};
+
+function attention(t){ if (!t) return null; const r=t/CAP; return r>1?0: r>.8?1: r>.5?2: r>.25?3: r>.1?4: 5; }
+
+function drawWin(blocks, animate){
+  const total = sum(blocks), r = total/CAP;
+  let shown = blocks;
+  if (blocks.length > 10) shown = [...blocks.slice(0,9), {k:'hist', l:`+ ${blocks.length-9} autres blocs`, t:sum(blocks.slice(9))}];
+  const now = new Set(shown.map(b=>b.l));
+  $('rows').innerHTML = shown.length ? shown.map((b,i)=>{ const y = 134 + i*32; const nw = animate && !lastRows.has(b.l);
+    return `<g class="wrow ${nw?'new':''}"><rect class="box" x="492" y="${y}" width="360" height="28" rx="6" style="fill:var(--${b.k});stroke:var(--${b.k}-line);stroke-width:1.5"/><text class="t3 l" x="502" y="${y+19}" style="fill:var(--${b.k}-fg)">${b.l}</text><text class="mono r" x="842" y="${y+19}" style="fill:var(--${b.k}-fg)">${fmt(b.t)}</text></g>`; }).join('')
+    : `<text class="t3" x="672" y="290" style="fill:var(--muted)">Vide : le modèle n'a encore rien reçu.</text>`;
+  lastRows = now;
+  const h = Math.min(r,1)*294;
+  const g = $('gfill'); g.setAttribute('y', 446-h); g.setAttribute('height', h);
+  g.style.fill = r>1 ? 'var(--guard-line)' : r>.8 ? 'var(--guard-line)' : r>.4 ? 'var(--instr-line)' : 'var(--ok)';
+  $('gval').textContent = total ? fmt(total) : '0';
+  $('gval').style.fill = r>1 ? 'var(--guard-fg)' : 'var(--fg)';
+  $('gover').style.opacity = r>1 ? 1 : 0;
+  $('win-frame').style.stroke = r>1 ? 'var(--guard-line)' : 'var(--frame)';
+  return total;
+}
+
+function setRes(map, animate){
+  RES.forEach(({k})=>{ const [st,lab] = map[k]; const el = $('r-'+k);
+    el.setAttribute('class', `ri ${st} ${animate && lastRes[k] && lastRes[k]!==st+lab ? 'new':''}`);
+    $('rs-'+k).textContent = lab; $('ra-'+k).setAttribute('class', `ra ${st}`); lastRes[k] = st+lab; });
+}
+function setGhost(list){ ['c-cur','c-sub','c-model'].forEach(id=>$(id).classList.toggle('ghost', list.includes(id))); }
+function setCur(open){ $('cur-label').textContent = open ? 'AUCUN TRI : TOUT PASSE' : 'CURATION PAR LE HARNAIS'; }
+
+function fillHtml(total){
+  const a = attention(total), r = total/CAP;
+  const pct = r*100 < 1 ? '< 1' : Math.round(r*100);
+  const cls = a===null ? '' : a>=4 ? '' : a>=2 ? 'mid' : 'bad';
+  return `<div class="label">Dans la fenêtre</div>
+    <div class="fill">${total.toLocaleString('fr-FR')} tokens · ${pct} % de la fenêtre</div>
+    <div class="meter ${cls}">Attention du modèle ${[0,1,2,3,4].map(k=>`<span class="d ${a!==null&&k<a?'f':''}"></span>`).join('')} ${a===null?'–':a+'/5'}</div>`;
+}
+
+function renderSteps(){
+  $('steps').innerHTML = STEPS.map((s,i)=>`<li><button data-i="${i}" class="${i===idx?'on':i<idx?'done':''}" ${i===idx?'aria-current="step"':''}><span class="n">${i+1}</span>${s.name}</button></li>`).join('');
+  $('steps').querySelectorAll('button').forEach(b=>b.onclick=()=>go(+b.dataset.i));
+}
+
+/* Courbe de comparaison */
+const X = n => 46 + n/40*304, Y = v => 176 - Math.min(v,220000)/220000*164;
+function chartSvg(){
+  const nN = Math.min(simN, OVER_N), ptsN = [], ptsC = [];
+  for (let i=0;i<=nN;i++) ptsN.push(`${X(i).toFixed(1)},${Y(naiveTot(i)).toFixed(1)}`);
+  for (let i=0;i<=simN;i++) ptsC.push(`${X(i).toFixed(1)},${Y(sum(curBlocks(i))).toFixed(1)}`);
+  const over = simN >= OVER_N;
+  return `<svg viewBox="0 0 360 214" role="img" aria-label="Tokens dans la fenêtre selon le nombre de CV traités">
+    <rect x="46" y="${Y(200000)}" width="304" height="${Y(160000)-Y(200000)}" style="fill:var(--guard);opacity:.7"/>
+    <text class="l" x="52" y="${Y(180000)+4}" style="fill:var(--guard-fg);font-size:10px">attention diluée</text>
+    <line x1="46" x2="350" y1="${Y(200000)}" y2="${Y(200000)}" style="stroke:var(--guard-line);stroke-width:1.5;stroke-dasharray:5 4"/>
+    <text class="r" x="350" y="${Y(200000)-5}" style="fill:var(--guard-fg);font-size:10px">limite 200 k</text>
+    ${[0,100000].map(v=>`<line x1="46" x2="350" y1="${Y(v)}" y2="${Y(v)}" style="stroke:var(--line)"/>`).join('')}
+    ${[0,100000,200000].map(v=>`<text class="r" x="40" y="${Y(v)+4}" style="fill:var(--muted);font-size:10px;font-family:var(--f-mono)">${v/1000} k</text>`).join('')}
+    ${[0,10,20,30,40].map(n=>`<text x="${X(n)}" y="192" style="fill:var(--muted);font-size:10px;font-family:var(--f-mono)">${n}</text>`).join('')}
+    <text x="198" y="208" style="fill:var(--muted);font-size:10px">CV traités</text>
+    <polyline points="${ptsN.join(' ')}" style="fill:none;stroke:var(--guard-line);stroke-width:2.5;stroke-linejoin:round"/>
+    <polyline points="${ptsC.join(' ')}" style="fill:none;stroke:var(--ok);stroke-width:2.5;stroke-linejoin:round"/>
+    <circle cx="${X(nN)}" cy="${Y(naiveTot(nN))}" r="4" style="fill:var(--guard-line)"/>
+    <circle cx="${X(simN)}" cy="${Y(sum(curBlocks(simN)))}" r="4" style="fill:var(--ok)"/>
+    ${over ? `<text class="r" x="${X(OVER_N)-8}" y="${Y(200000)+16}" style="fill:var(--guard-fg);font-size:10px;font-weight:600">fenêtre pleine</text>` : ''}
+  </svg>`;
+}
+
+function renderSim(){
+  const naive = strat==='naive', n = naive ? Math.min(simN, OVER_N) : simN;
+  const blocks = naive ? naiveBlocks(n) : curBlocks(n);
+  const total = drawWin(blocks, false);
+  setRes(naive ? RNAIVE : R7, false); setCur(naive); setGhost(naive ? ['c-sub'] : []);
+  const over = simN >= OVER_N;
+  $('m-state').textContent = naive ? (over ? `Fenêtre pleine au CV ${OVER_N}` : simN ? `Relit ${simN} CV à la fois` : 'Prêt') : simN ? `Concentré sur le CV-${pad(simN)}` : 'Prêt';
+  $('chart').innerHTML = chartSvg();
+  $('simfill').innerHTML = fillHtml(total);
+  const tn = Math.min(naiveTot(Math.min(simN,OVER_N)), 999999), tc = sum(curBlocks(simN));
+  $('readN').textContent = over ? `pleine au CV ${OVER_N}` : `${fmt(tn)} (${Math.round(tn/CAP*100)} %)`;
+  $('readC').textContent = `${fmt(tc)} (${Math.max(1,Math.round(tc/CAP*100))} %)`;
+  $('readI').textContent = `${simN} / 40`;
+  $('simnote').hidden = !(over);
+  $('play').textContent = simTimer ? 'Pause' : simN>=40 ? 'Rejouer' : simN ? 'Reprendre' : 'Lancer la boucle';
+  $('s-naive').setAttribute('aria-pressed', naive); $('s-cur').setAttribute('aria-pressed', !naive);
+}
+function simTick(){ if (simN < 40) simN++; if (simN >= 40) stopSim(); renderSim(); }
+function stopSim(){ clearInterval(simTimer); simTimer = null; }
+
+function render(){
+  const s = STEPS[idx]; stopSim();
+  let h = `<div class="eyebrow">Étape ${idx+1} sur ${STEPS.length}${s.lever?` <span class="lev">Levier : ${s.lever}</span>`:''}</div><h2>${s.title}</h2>`;
+  (s.body||[]).forEach(t=>h+=`<p>${t}</p>`);
+  if (s.list) h += `<ul>${s.list.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  if (s.after) h += `<p>${s.after}</p>`;
+  if (s.key) h += `<div class="key">${s.key}</div>`;
+
+  if (s.sim) {
+    simN = 0;
+    h += `<div class="seg" role="group" aria-label="Stratégie affichée dans le schéma"><button class="naive" id="s-naive" aria-pressed="false">Sans curation</button><button class="cur" id="s-cur" aria-pressed="true">Avec curation</button></div>
+      <div class="controls" style="margin-top:10px"><button class="b primary" id="play">Lancer la boucle</button><button class="b" id="stepone">+1 CV</button><button class="b" id="reset">Recommencer</button></div>
+      <div class="label">Tokens dans la fenêtre</div>
+      <div class="legend"><span><i style="background:var(--guard-line)"></i>Sans curation</span><span><i style="background:var(--ok)"></i>Avec curation</span></div>
+      <div id="chart"></div>
+      <div class="read"><span>CV traités</span><b id="readI"></b><span>Sans curation</span><b id="readN"></b><span>Avec curation</span><b id="readC"></b></div>
+      <div id="simfill"></div>
+      <div class="miss" id="simnote" hidden>Sans curation, la fenêtre est pleine au CV ${OVER_N} : le harnais doit compacter en urgence, en perdant des détails, ou s'arrêter. Avec curation, la fenêtre reste sous 10 % jusqu'au bout.</div>`;
+  } else if (s.recap) {
+    h += `<div class="levers">
+      <div><h3>Écrire</h3><p>Sortir l'information de la fenêtre pour la retrouver plus tard.</p><div class="ex">notes.md, tableur de suivi</div></div>
+      <div><h3>Sélectionner</h3><p>Ne faire entrer que ce qui sert, au moment où ça sert.</p><div class="ex">3 outils, descriptions de skills, 2 extraits RAG, 1 CV à la fois</div></div>
+      <div><h3>Compresser</h3><p>Garder l'essentiel quand la fenêtre se remplit.</p><div class="ex">résultats d'outils nettoyés, compaction</div></div>
+      <div><h3>Isoler</h3><p>Confier une sous-tâche à un contexte séparé.</p><div class="ex">sous-agent vérificateur</div></div>
+    </div>
+    <div class="key">Une seule question guide les quatre : quel est le plus petit ensemble d'informations utiles pour réussir cette étape ?</div>
+    <p style="margin-top:12px">Le harnais applique cette stratégie. Le modèle, lui, travaille avec ce qu'on lui donne.</p>
+    <p>Question pour le groupe : dans votre propre agent, quel bloc pèse le plus lourd dans la fenêtre ? Pourrait-il être chargé seulement au besoin ?</p>`;
+  } else {
+    const total = sum(s.win);
+    h += fillHtml(total);
+    if (s.answer) h += `<div class="label">La demande</div><div class="ask">${ASK}</div><div class="label">Ce que répond l'agent</div><div class="bubble">${s.answer}</div>`;
+    if (s.warn) h += `<div class="miss">${s.warn}</div>`;
+    if (s.gain) h += `<div class="gain">${s.gain}</div>`;
+  }
+  $('narr').innerHTML = h;
+
+  if (s.sim) {
+    $('play').onclick = ()=>{ if (simTimer) { stopSim(); renderSim(); return; } if (simN>=40) simN=0; simTimer = setInterval(simTick, 320); simTick(); };
+    $('stepone').onclick = ()=>{ stopSim(); if (simN>=40) simN=0; simTick(); };
+    $('reset').onclick = ()=>{ stopSim(); simN=0; renderSim(); };
+    $('s-naive').onclick = ()=>{ strat='naive'; renderSim(); };
+    $('s-cur').onclick = ()=>{ strat='cur'; renderSim(); };
+    renderSim();
+  } else {
+    drawWin(s.win, true); setRes(s.res, true); setGhost(s.ghost||[]); setCur(!!s.open);
+    $('m-state').textContent = s.model || '';
+  }
+  $('prev').disabled = idx===0; $('next').disabled = idx===STEPS.length-1;
+  renderSteps();
+}
+function go(i){ idx = Math.max(0, Math.min(STEPS.length-1, i)); render(); }
+$('next').onclick = ()=>go(idx+1);
+$('prev').onclick = ()=>go(idx-1);
+document.addEventListener('keydown', e=>{
+  if (e.target.tagName==='BUTTON' && (e.key===' '||e.key==='Enter')) return;
+  if (e.key==='ArrowRight' || e.key===' ' || e.key==='PageDown') { e.preventDefault(); go(idx+1); }
+  if (e.key==='ArrowLeft' || e.key==='PageUp') { e.preventDefault(); go(idx-1); }
+});
+go(0);
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

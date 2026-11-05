@@ -1,0 +1,529 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Analyse exhaustive Map-Reduce</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout : schéma cliquable à gauche, fiche détaillée collante à droite ; une colonne sur mobile */
+:root{
+  --bg:#f4f6fb; --surface:#ffffff; --ink:#0f1a5c; --text:#1c2036; --muted:#596080;
+  --line:#d4d9ea; --tint:#e9edf8; --lime:#d4f23a; --on-lime:#0f1a5c;
+  --warn:#c4440f; --warn-bg:#fdebe2; --ok:#1d7a4f; --ok-bg:#dff3e8;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1030; --surface:#131a45; --ink:#e6e9ff; --text:#dde1f4; --muted:#9aa2c8;
+  --line:#2b346c; --tint:#18205a; --lime:#d4f23a; --on-lime:#0f1a5c;
+  --warn:#ff8b52; --warn-bg:#3a1f1a; --ok:#5fd39a; --ok-bg:#163a2c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1030; --surface:#131a45; --ink:#e6e9ff; --text:#dde1f4; --muted:#9aa2c8;
+  --line:#2b346c; --tint:#18205a; --lime:#d4f23a; --on-lime:#0f1a5c;
+  --warn:#ff8b52; --warn-bg:#3a1f1a; --ok:#5fd39a; --ok-bg:#163a2c; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;padding-block:40px 64px;display:flex;flex-direction:column;gap:40px}
+h1,h2,h3{font-family:var(--f-display);color:var(--ink);text-wrap:balance;margin:0}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--lime);outline-offset:2px}
+
+/* En-tête */
+header{display:flex;flex-direction:column;gap:14px;max-width:820px}
+h1{font-size:clamp(30px,4.4vw,46px);font-weight:800;line-height:1.08;letter-spacing:-.01em}
+.lede{font-size:18px;max-width:66ch;margin:0}
+.formula{font-family:var(--f-mono);font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 12px;line-height:1.9}
+.formula b{background:var(--lime);color:var(--on-lime);padding:1px 5px;border-radius:4px;font-weight:500}
+
+.limits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.limit{border-top:2px solid var(--ink);padding-top:10px}
+.limit h3{font-size:16px;margin-bottom:4px}
+.limit p{margin:0;color:var(--muted);font-size:15px}
+
+/* Zone principale */
+.main{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:32px;align-items:start}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.btn{border:1.5px solid var(--ink);background:var(--surface);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:700;font-size:14px}
+.btn.primary{background:var(--ink);color:var(--surface)}
+.btn:disabled{opacity:.4;cursor:default}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;margin-left:auto}
+.seg button{border:0;background:var(--surface);padding:7px 12px;cursor:pointer;font-size:14px;color:var(--muted);font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--lime);color:var(--on-lime)}
+.seg span{padding:7px 10px;font-size:13px;color:var(--muted);border-right:1px solid var(--line);background:var(--tint)}
+.narration{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:16px;min-height:74px}
+.narration .eyebrow{display:block;margin-bottom:2px}
+.narration p{margin:0;font-size:15px}
+
+.flow{display:flex;flex-direction:column}
+.band{position:relative;border-radius:14px;padding:12px 14px 14px;display:flex;flex-direction:column}
+.band-label{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.band.map{background:var(--tint)}
+.band.reduce{background:var(--tint)}
+.band.loop{border:1.5px dashed var(--warn);padding-left:50px}
+.band.loop .band-label{color:var(--warn)}
+.arrow{display:flex;justify-content:center;color:var(--muted);height:24px}
+.arrow svg{display:block}
+
+.node{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:1px;align-items:center;width:100%;text-align:left;
+  background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;cursor:pointer;
+  transition:background .25s,border-color .25s,box-shadow .25s}
+.node:hover{border-color:var(--ink)}
+.node .num{grid-row:span 2;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--ink);display:grid;place-items:center;
+  font-family:var(--f-mono);font-size:13px;color:var(--ink);transition:background .25s,color .25s}
+.node .nt{font-family:var(--f-display);font-weight:700;font-size:16px;color:var(--ink);line-height:1.25}
+.node .role{font-size:13px;color:var(--muted)}
+.node .extra{grid-column:2;display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.node.selected{box-shadow:0 0 0 2px var(--ink)}
+.node.done .num{background:var(--ink);color:var(--surface)}
+.node.active{background:var(--lime);border-color:var(--lime)}
+.node.active .nt,.node.active .role,.node.active .num{color:var(--on-lime)}
+.node.active .num{border-color:var(--on-lime);background:transparent}
+.node.decision .num{border-radius:4px;transform:rotate(45deg);width:24px;height:24px;margin:3px}
+.node.decision .num i{transform:rotate(-45deg);font-style:normal}
+
+.tag{font-family:var(--f-mono);font-size:11px;padding:2px 7px;border-radius:5px;border:1px solid var(--line);color:var(--muted);background:var(--bg)}
+.tag.fmt{border-color:var(--ink);color:var(--ink)}
+.node.active .tag{background:rgba(255,255,255,.55);color:var(--on-lime);border-color:transparent}
+.chip{font-family:var(--f-mono);font-size:11px;padding:2px 6px;border-radius:5px;border:1px solid var(--line);color:var(--muted);background:var(--bg);transition:background .3s,color .3s,border-color .3s}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+
+.branches{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.branch{display:flex;flex-direction:column}
+.pill{align-self:flex-start;font-family:var(--f-mono);font-size:12px;padding:3px 8px;border-radius:999px;border:1.5px solid currentColor;transition:background .25s}
+.branch.yes .pill{color:var(--warn)}
+.branch.no .pill{color:var(--ok)}
+.branch.lit.yes .pill{background:var(--warn-bg)}
+.branch.lit.no .pill{background:var(--ok-bg)}
+.exit{border:1.5px dashed var(--ok);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--muted)}
+.rail{position:absolute;left:16px;border:2px dashed var(--warn);border-right:0;border-radius:14px 0 0 14px;opacity:.65;transition:opacity .25s}
+.rail::after{content:"";position:absolute;top:-7px;right:-2px;border-left:9px solid var(--warn);border-top:6px solid transparent;border-bottom:6px solid transparent}
+.rail.lit{opacity:1;border-style:solid}
+.rail-label{position:absolute;left:-14px;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);background:var(--bg);padding:6px 0}
+
+/* Fiche détaillée */
+.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);max-height:calc(100vh - 32px);overflow:auto;
+  background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:16px}
+.panel h2{font-size:26px;font-weight:800;line-height:1.15}
+.panel .rolel{font-size:14px;color:var(--muted);margin-top:4px}
+.panel .rolel b{color:var(--ink)}
+.panel p{margin:0}
+.panel h3{font-size:14px;font-family:var(--f-mono);font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.panel ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:3px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+.tbl table{border-collapse:collapse;width:100%;font-size:13px;min-width:420px}
+.tbl th{font-family:var(--f-mono);font-weight:500;font-size:11px;text-align:left;color:var(--muted);background:var(--tint);padding:7px 9px;text-transform:uppercase;letter-spacing:.04em}
+.tbl td{padding:7px 9px;border-top:1px solid var(--line);vertical-align:top}
+.tbl caption{caption-side:bottom;text-align:left;font-size:12px;color:var(--muted);padding:6px 9px}
+.trap{background:var(--warn-bg);border-radius:8px;padding:10px 12px;font-size:15px}
+.trap b{color:var(--warn)}
+.fmtnote{border:1.5px solid var(--ink);border-radius:8px;padding:10px 12px;font-size:15px}
+.fmtnote b{font-family:var(--f-mono);font-size:12px;background:var(--lime);color:var(--on-lime);padding:1px 6px;border-radius:4px;margin-right:6px}
+.statuses{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.st{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.st.c{color:var(--ok);border-color:var(--ok)} .st.p{color:var(--ink)} .st.n,.st.x{color:var(--warn);border-color:var(--warn)} .st.i,.st.v{color:var(--muted)}
+.cols2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.prompt{position:relative;background:var(--tint);border-radius:8px;padding:12px 12px 44px;font-size:14px;line-height:1.5}
+.prompt .copy{position:absolute;right:8px;bottom:8px}
+.btn.sm{padding:4px 10px;font-size:13px}
+
+/* Sections du bas */
+.more{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:32px;align-items:start}
+.more h2{font-size:24px;font-weight:800;margin-bottom:12px}
+.cmp{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.cmp table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
+.cmp th,.cmp td{padding:10px 12px;text-align:left;vertical-align:top;border-top:1px solid var(--line)}
+.cmp thead th{border-top:0;font-family:var(--f-display);font-size:15px;color:var(--ink);background:var(--tint)}
+.cmp tbody th{font-family:var(--f-mono);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);width:18%}
+.cmp td.hl{background:color-mix(in srgb,var(--lime) 18%,var(--surface))}
+.cmp .tip td{font-size:14px}
+.side{display:flex;flex-direction:column;gap:14px}
+.side p{margin:0}
+.note{font-size:14px;color:var(--muted)}
+a{color:var(--ink);text-underline-offset:3px}
+.checks{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.checks li{padding-left:24px;position:relative}
+.checks li::before{content:"";position:absolute;left:2px;top:6px;width:12px;height:12px;border:2px solid var(--ok);border-radius:3px}
+
+@keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+.chip.anim{animation:pop .35s ease both}
+
+@media (max-width:900px){
+  .main,.more{grid-template-columns:minmax(0,1fr)}
+  .panel{position:static;max-height:none}
+}
+@media (max-width:620px){
+  .limits{grid-template-columns:minmax(0,1fr);gap:16px}
+  .cols2{grid-template-columns:minmax(0,1fr)}
+  .seg{margin-left:0}
+  .wrap{padding-block:24px 48px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Méthode · document long PDF ou Word</span>
+    <h1>Analyser un document long en entier, sans rien perdre</h1>
+    <p class="lede">L’IA ne lit pas chaque page comme un humain. Pour une analyse complète, on ne lui demande pas « résume ce document » : on organise le travail avec une méthode externe, en étapes contrôlables.</p>
+    <div class="formula" aria-label="La méthode en une ligne">
+      Cartographier → découper → <b>Map</b> analyser chaque segment → contrôler → <b>Reduce</b> consolider → critiquer → vérifier dans la source → corriger → <b>Loop</b> recommencer si nécessaire
+    </div>
+  </header>
+
+  <section class="limits" aria-label="Pourquoi une méthode">
+    <div class="limit"><h3>Une capacité limitée</h3><p>La fenêtre de contexte, c’est la quantité de texte que l’IA garde en tête d’un coup. Au-delà, des passages sont tronqués ou survolés.</p></div>
+    <div class="limit"><h3>Une attention inégale</h3><p>Même quand tout tient dans le contexte, le milieu d’un long document est souvent moins bien exploité que le début et la fin.</p></div>
+    <div class="limit"><h3>Une extraction imparfaite</h3><p>Un PDF scanné, un tableau aplati ou des colonnes mélangées faussent l’analyse avant même qu’elle commence.</p></div>
+  </section>
+
+  <section class="main">
+    <div>
+      <div class="controls">
+        <button class="btn primary" id="play" type="button">▶ Simuler un exemple</button>
+        <button class="btn" id="prev" type="button" disabled>← Précédent</button>
+        <button class="btn" id="next" type="button">Suivant →</button>
+        <button class="btn" id="reset" type="button" hidden>Réinitialiser</button>
+        <div class="seg" role="group" aria-label="Format du document">
+          <span>Format</span>
+          <button type="button" id="fmt-pdf" aria-pressed="true">PDF</button>
+          <button type="button" id="fmt-word" aria-pressed="false">Word</button>
+        </div>
+      </div>
+      <div class="narration" aria-live="polite">
+        <span class="eyebrow" id="nar-step">Mode exploration</span>
+        <p id="nar-text">Cliquez sur une étape du schéma pour voir ce que l’IA doit faire, ou lancez la simulation sur un exemple fictif : un rapport d’étude de marché de 84 pages.</p>
+      </div>
+
+      <div class="flow" id="flow">
+        <div class="band">
+          <div class="band-label"><span>Préparer</span></div>
+          <button class="node" data-id="p0" type="button"><span class="num">0</span><span class="nt">Extraction et contrôle du document</span><span class="role">Contrôleur</span><span class="extra"><span class="tag fmt" data-fmt="p0"></span></span></button>
+          <div class="arrow" aria-hidden="true"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+          <button class="node" data-id="p1" type="button"><span class="num">1</span><span class="nt">Cartographie</span><span class="role">Cartographe</span><span class="extra"><span class="tag fmt" data-fmt="p1"></span></span></button>
+          <div class="arrow" aria-hidden="true"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+          <button class="node" data-id="p2" type="button"><span class="num">2</span><span class="nt">Découpage par chapitre</span><span class="role">Préparateur</span><span class="extra"><span class="tag fmt" data-fmt="p2"></span></span></button>
+        </div>
+        <div class="arrow" aria-hidden="true"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+        <div class="band map">
+          <div class="band-label"><span>Map · segment par segment</span><span>parallélisable</span></div>
+          <button class="node" data-id="p3" type="button"><span class="num">3</span><span class="nt">Analyse de chaque segment</span><span class="role">Analyste local · 1 agent par segment</span><span class="extra" id="chips3"></span></button>
+          <div class="arrow" aria-hidden="true"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+          <button class="node" data-id="p4" type="button"><span class="num">4</span><span class="nt">Contrôle local</span><span class="role">Critique local · fiche face à sa source</span><span class="extra" id="chips4"></span></button>
+        </div>
+        <div class="arrow" aria-hidden="true"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+        <div class="band reduce">
+          <div class="band-label"><span>Reduce · assembler</span></div>
+          <button class="node" data-id="p5" type="button"><span class="num">5</span><span class="nt">Agrégation des fiches</span><span class="role">Analyste global</span></button>
+        </div>
+        <div class="arrow" aria-hidden="true"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+        <div class="band loop" id="loopzone">
+          <div class="band-label"><span>Loop engineering · boucle de qualité</span><span id="loopcount">3 tours maximum</span></div>
+          <div class="rail" id="rail" aria-hidden="true"><span class="rail-label">nouvelle boucle</span></div>
+          <button class="node" data-id="p6" type="button"><span class="num">6</span><span class="nt">Critique indépendante</span><span class="role">Critique · n’a pas rédigé la synthèse</span></button>
+          <div class="arrow" aria-hidden="true"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+          <button class="node" data-id="p7" type="button"><span class="num">7</span><span class="nt">Vérification dans la source</span><span class="role">Vérificateur</span></button>
+          <div class="arrow" aria-hidden="true"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+          <button class="node decision" data-id="d" type="button"><span class="num"><i>?</i></span><span class="nt">Écarts importants ?</span><span class="role">Décision · on reboucle ou on livre</span></button>
+          <div class="arrow" aria-hidden="true"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+          <div class="branches">
+            <div class="branch yes" id="br-yes">
+              <span class="pill">Oui · on corrige</span>
+              <div class="arrow" aria-hidden="true" style="justify-content:flex-start;padding-left:20px"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+              <button class="node" data-id="p8" type="button"><span class="num">8</span><span class="nt">Correction ciblée</span><span class="role">Optimiseur · puis retour à 6</span></button>
+            </div>
+            <div class="branch no" id="br-no">
+              <span class="pill">Non · on livre</span>
+              <div class="arrow" aria-hidden="true" style="justify-content:flex-start;padding-left:20px"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+              <div class="exit">Conditions d’arrêt atteintes. Sans succès après le dernier tour : validation humaine ciblée.</div>
+            </div>
+          </div>
+        </div>
+        <div class="arrow" aria-hidden="true"><svg width="12" height="24" viewBox="0 0 12 24"><path d="M6 0v19M1.5 15 6 21l4.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+        <div class="band">
+          <div class="band-label"><span>Livrer</span></div>
+          <button class="node" data-id="out" type="button"><span class="num">✓</span><span class="nt">Synthèse consolidée</span><span class="role">Livrable avec couverture et traçabilité</span></button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </section>
+
+  <section class="more">
+    <div>
+      <h2>PDF ou Word : ce qui change avant l’analyse</h2>
+      <div class="cmp">
+        <table>
+          <thead><tr><th></th><th data-col="pdf">PDF</th><th data-col="word">Word (.docx)</th></tr></thead>
+          <tbody>
+            <tr><th>Structure</th><td data-col="pdf">Se devine à la mise en page. Comparer la carte au sommaire imprimé.</td><td data-col="word">Les styles Titre 1, Titre 2… donnent presque la carte. Des titres simplement en gras ne la donnent pas.</td></tr>
+            <tr><th>Texte</th><td data-col="pdf">Un PDF scanné est une image : sans OCR, aucun texte n’est lu.</td><td data-col="word">Bien extrait, mais révisions et commentaires peuvent s’y mêler.</td></tr>
+            <tr><th>Mise en page</th><td data-col="pdf">Colonnes, en-têtes et pieds de page peuvent s’intercaler au milieu des phrases.</td><td data-col="word">Zones de texte, notes de bas de page et en-têtes parfois ignorés.</td></tr>
+            <tr><th>Tableaux</th><td data-col="pdf">Souvent aplatis en suites de chiffres. À contrôler à l’œil.</td><td data-col="word">En général bien conservés. Graphiques et images ne sont pas lus comme du texte.</td></tr>
+            <tr><th>Repères</th><td data-col="pdf">Pages fixes, mais page imprimée ≠ page du fichier. Préciser laquelle.</td><td data-col="word">Pas de pages fixes : citer le titre de section et le paragraphe.</td></tr>
+            <tr class="tip"><th>Astuce</th><td colspan="2">Dans les deux cas, convertir d’abord le fichier en texte (Markdown, par exemple avec MarkItDown) permet de voir exactement ce que l’IA va lire, et de repérer les pages vides ou les tableaux cassés.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="side">
+      <h2>Lancer la méthode en multi-agents</h2>
+      <p>L’étape Map se prête au travail en parallèle : un agent par segment, puis un critique distinct pour la boucle.</p>
+      <div class="prompt"><span id="mainprompt">Lance un workflow multi-agents pour analyser ce document par Map-Reduce. 1) Contrôle l’extraction et établis la cartographie. 2) Découpe par chapitre et confie chaque segment à un sous-agent distinct, qui produit une fiche avec les numéros de page. 3) Consolide les fiches. 4) Fais relire la synthèse par un agent critique qui ne l’a pas rédigée, en la comparant au document source. 5) Corrige les écarts importants et relance la critique, 3 boucles au maximum. Livre la synthèse, le tableau de couverture et la liste des points à valider par un humain.</span><button class="btn sm copy" type="button" data-copy="mainprompt">Copier</button></div>
+      <p class="note">À vérifier selon votre outil : les sous-agents en parallèle sont disponibles dans Claude Code et dans les environnements agentiques de Claude. Dans une conversation simple, la même méthode fonctionne, mais les étapes s’enchaînent une par une. Le critique doit alors au moins être lancé dans une nouvelle conversation.</p>
+      <p class="note">Prompt complet, phase par phase : <a href="https://app.notion.com/p/Analyse-d-un-document-long-par-Map-Reduce-et-Loop-Engineering-3c4f4372d985808b8ae9f3c9c6b177d0" target="_blank" rel="noopener">page Notion de la méthode</a>.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+const ARROWS = null;
+const SEGS = ["P01","P02","P03","P04-S01","P04-S02","P04-S03","P05-S01","P05-S02","P06","P07","Annexes"];
+
+const FMT = {
+  pdf:{
+    badge:{p0:"Scanné ? → OCR",p1:"Structure à deviner",p2:"Page imprimée ≠ page du fichier"},
+    note:{
+      p0:"Un PDF scanné n’est qu’une image : sans reconnaissance de caractères (OCR), l’IA ne reçoit aucun texte. Vérifiez aussi que colonnes, en-têtes et pieds de page ne se mélangent pas au texte.",
+      p1:"La structure se devine à la mise en page (taille des titres, sommaire). Comparez la carte au sommaire imprimé pour repérer une partie manquante.",
+      p2:"Pour la traçabilité, précisez quel numéro vous utilisez : la page imprimée (p. 12) ou la page du fichier (page 14 du PDF). Les deux diffèrent souvent."
+    }
+  },
+  word:{
+    badge:{p0:"Révisions, commentaires ?",p1:"Styles de titres = carte",p2:"Repères : titre + paragraphe"},
+    note:{
+      p0:"Le texte s’extrait bien, mais le suivi des modifications et les commentaires peuvent s’y mêler. Décidez avant : version acceptée seule, ou avec les commentaires ?",
+      p1:"Si l’auteur a utilisé les styles Titre 1, Titre 2…, la cartographie est presque donnée. Si les titres sont seulement en gras, elle reste à construire.",
+      p2:"Un Word n’a pas de pages fixes : elles changent selon l’affichage. Repérez chaque passage par son titre de section et son numéro de paragraphe."
+    }
+  }
+};
+
+const D = {
+  p0:{band:"Phase 0 · Préparer",title:"Extraction et contrôle du document",role:"Contrôleur",
+    why:"Avant d’analyser, on vérifie que l’IA a vraiment reçu tout le texte. Joindre un fichier ne garantit pas qu’il a été lu en entier, ni bien lu.",
+    todo:["Le document est-il complet, les pages dans l’ordre ?","Le texte est-il bien extrait, sans page muette ?","Titres, tableaux et illustrations sont-ils lisibles ?","Le sommaire correspond-il au contenu reçu ?"],
+    out:{name:"Tableau des anomalies",cols:["Pages","Anomalie","Conséquence","Action"],row:["p. 47-49","Tableau scanné, aucun texte","Chiffres clés absents de l’analyse","OCR, ou fournir le tableau à part"]},
+    trap:"Passer directement au résumé. Une partie illisible ne provoque pas d’erreur visible : elle disparaît simplement de la synthèse.",
+    prompt:"Avant toute analyse, vérifie que le document est complet et correctement extrait : pages manquantes, ordre des pages, tableaux ou illustrations illisibles, sommaire cohérent. Liste les anomalies dans un tableau Pages | Anomalie | Conséquence | Action. Ne résume rien pour l’instant."},
+  p1:{band:"Phase 1 · Préparer",title:"Cartographie",role:"Cartographe",
+    why:"On dresse le plan complet du document, comme le sommaire qu’on se fait avant de réviser. Pas encore de résumé, seulement la carte. Elle servira à la fin de liste de contrôle pour vérifier que rien n’a été oublié.",
+    todo:["Titre, auteur, nature et objectif du document","Parties, chapitres et sous-chapitres avec leurs pages","Introduction, conclusion, annexes","Tableaux, graphiques et encadrés importants"],
+    out:{name:"Cartographie",cols:["ID","Partie","Pages","Éléments particuliers","Extraction"],row:["P04","Analyse concurrentielle","31-56","3 tableaux, 1 encadré","Complète"]},
+    trap:"Commencer à résumer pendant la cartographie : on mélange deux tâches et la carte devient incomplète.",
+    prompt:"Établis la cartographie complète du document sans le résumer : ID, partie ou chapitre, pages, sous-parties, éléments particuliers (tableaux, encadrés, annexes) et qualité d’extraction (complète, partielle, difficile)."},
+  p2:{band:"Phase 2 · Préparer",title:"Découpage par chapitre",role:"Préparateur",
+    why:"On découpe le document en morceaux que l’IA peut analyser avec toute son attention. Le découpage suit la logique de l’auteur, pas un nombre de pages fixe.",
+    todo:["Couper par chapitre ou sous-chapitre","Diviser une partie trop longue : P04-S01, P04-S02…","Prévoir un léger chevauchement si un raisonnement continue","Garder ensemble un tableau, sa légende et son commentaire","Rattacher notes et annexes à la partie qu’elles complètent"],
+    out:{name:"Plan de découpage",cols:["Segment","Partie","Pages","Début","Fin","Chevauchement"],row:["P04-S02","P04","40-48","« Les nouveaux entrants… »","« …parts de marché. »","1 paragraphe"]},
+    trap:"Couper toutes les 10 pages, au milieu d’une démonstration : chaque moitié devient incompréhensible.",
+    prompt:"Découpe le document en segments qui respectent les chapitres. Si une partie est trop longue, crée des sous-segments (P04-S01, P04-S02…) avec un léger chevauchement. Ne coupe jamais au milieu d’un raisonnement. Vérifie que les segments couvrent toute la cartographie."},
+  p3:{band:"Phase 3 · Map",title:"Analyse de chaque segment",role:"Analyste local, un par segment",
+    why:"C’est l’étape Map. Chaque segment est analysé seul, comme une équipe de relecteurs qui se partage les chapitres. Chaque analyse peut être confiée à un agent différent, en parallèle.",
+    todo:["Idée directrice, idées principales, arguments","Concepts, faits, dates et chiffres, avec leur page","Exemples, méthodes, limites, conclusion locale","Passages ambigus ou illisibles, niveau de confiance","Liste des affirmations vérifiables"],
+    out:{name:"Fiche de segment et affirmations",cols:["ID","Affirmation","Source","Nature"],row:["A-P04-07","Le marché croît de 12 % par an","p. 42","Explicite"]},
+    trap:"Combler un trou avec ce qu’on a lu dans un autre segment. Si une information dépend d’une autre partie, on le signale, on ne la complète pas.",
+    prompt:"Analyse ce segment seul, sans t’aider des autres. Produis sa fiche (idée directrice, arguments, chiffres, limites, conclusion locale) avec la page de chaque information, puis la liste des affirmations vérifiables, chacune marquée Explicite, Déduite ou Interprétée."},
+  p4:{band:"Phase 4 · Map",title:"Contrôle local",role:"Critique local",
+    why:"Chaque fiche est relue face à son passage source, avant l’assemblage. On corrige ici, tant que les erreurs sont faciles à localiser.",
+    todo:["Idées oubliées, nuances supprimées","Chiffres déformés, exemples importants absents","Conclusions excessives, interprétations présentées comme des faits","Tableaux, notes ou illustrations ignorés","Classer chaque écart : critique, important ou mineur"],
+    out:{name:"Rapport d’écarts",cols:["ID","Segment","Écart","Gravité","Correction"],row:["E03","P05-S01","12 % lu « 21 % »","Critique","Corrigé d’après p. 61"]},
+    trap:"Laisser passer une erreur jusqu’à l’assemblage : une fois fondue dans la synthèse, on ne sait plus d’où elle vient.",
+    prompt:"Compare cette fiche au passage source. Relève les oublis, nuances supprimées, chiffres déformés et interprétations présentées comme des faits. Classe chaque écart (critique, important, mineur), puis corrige la fiche à partir du texte source."},
+  p5:{band:"Phase 5 · Reduce",title:"Agrégation des fiches",role:"Analyste global",
+    why:"C’est l’étape Reduce. Un rédacteur en chef assemble les fiches corrigées en une analyse unique, sans perdre les nuances ni les renvois aux pages.",
+    todo:["Restituer la structure générale du document","Regrouper les idées, supprimer les répétitions","Relier les arguments entre chapitres, relever les contradictions","Répondre à la question principale","Désaccord entre deux fiches : retour au texte source"],
+    out:{name:"Analyse consolidée",cols:["Thème","Parties","Ce que dit le document","Sources"],row:["Croissance du marché","P02, P04, P06","Forte, mais estimations divergentes","p. 9, 42, 71"]},
+    trap:"Trancher au hasard entre deux fiches incompatibles. On retourne au passage source.",
+    prompt:"À partir des fiches corrigées, construis l’analyse consolidée : structure générale, idées récurrentes, liens entre chapitres, contradictions et réponse à la question principale. Garde les renvois aux pages. Si deux fiches se contredisent, retourne au texte source au lieu de choisir."},
+  p6:{band:"Phase 6 · Loop",title:"Critique indépendante",role:"Critique",
+    why:"On part du principe que la synthèse peut être incomplète ou trompeuse. Le critique doit être indépendant, car on corrige mal sa propre copie : idéalement un autre agent, au minimum une nouvelle conversation.",
+    todo:["Chaque partie de la carte apparaît-elle ?","Un chapitre est-il surreprésenté ?","Des informations ont-elles disparu à l’assemblage ?","Les conclusions sont-elles proportionnées aux preuves ?","Annexes et visuels utiles sont-ils intégrés ?"],
+    out:{name:"Rapport critique global",cols:["ID","Problème","Parties","Gravité","Vérification"],row:["C01","Annexe B absente de la synthèse","Annexe B","Importante","Relire p. 80-84"]},
+    trap:"Demander à l’agent qui a rédigé la synthèse de la juger : il retrouve ses propres raisonnements et valide ses erreurs.",
+    prompt:"Considère que cette synthèse peut être incomplète ou trompeuse. Vérifie que chaque partie de la cartographie y figure, qu’aucune n’est surreprésentée, que rien d’important n’a disparu et que les conclusions sont proportionnées aux preuves. Produis un rapport ID | Problème | Parties | Gravité | Vérification requise."},
+  p7:{band:"Phase 7 · Loop",title:"Vérification dans la source",role:"Vérificateur",
+    why:"Chaque affirmation déterminante est confrontée au document original, jamais à un résumé intermédiaire. Une synthèse n’est pas une preuve.",
+    todo:["Chiffres, dates, définitions, citations","Contradictions et conclusions générales","Chaque écart signalé par le critique","Un statut pour chaque affirmation"],
+    out:{name:"Matrice de traçabilité",cols:["ID","Affirmation","Source exacte","Statut","Correction"],row:["V12","Le marché croît de 12 % par an","p. 42, tableau 3","Confirmée","Non"]},
+    statuses:true,
+    trap:"Vérifier une affirmation en relisant la synthèse elle-même : on tourne en rond.",
+    prompt:"Retourne au document original et vérifie chaque chiffre, date, citation et conclusion déterminante, ainsi que chaque écart signalé par le critique. Donne un statut à chacune : confirmée, partiellement confirmée, non confirmée, contredite, introuvable ou non vérifiable."},
+  d:{band:"Phase 9 · Loop",title:"Écarts importants ?",role:"Point de décision",
+    why:"La boucle continue tant que la qualité n’est pas atteinte, mais pas indéfiniment : on fixe à l’avance un nombre maximal de tours (3 par défaut).",
+    loopIf:["Une partie n’est pas couverte","Une affirmation déterminante n’a pas de source","Une erreur critique ou importante subsiste","Une contradiction reste inexpliquée","La question principale est mal étayée"],
+    stopIf:["Tous les segments analysés et représentés","Aucune erreur critique","Affirmations clés reliées à la source","Incertitudes signalées","L’objectif initial est atteint"],
+    trap:"Boucler sans limite ni critère d’arrêt : la synthèse change à chaque tour sans s’améliorer. Après le dernier tour, on demande une validation humaine ciblée.",
+    prompt:"Relance la critique et la vérification tant qu’il reste une erreur critique ou importante, une partie non couverte ou une affirmation déterminante sans source. 3 boucles au maximum. Si les conditions d’arrêt ne sont pas atteintes, liste précisément ce qu’un humain doit valider."},
+  p8:{band:"Phase 8 · Loop",title:"Correction ciblée",role:"Optimiseur",
+    why:"On corrige uniquement ce que la critique et la vérification ont relevé, en repartant du document source. Puis on relance la critique : c’est la boucle.",
+    todo:["Ajouter les éléments oubliés","Supprimer les affirmations non confirmées","Rétablir les nuances, garder les renvois aux pages","Signaler les contradictions qui demeurent","Tenir un journal des corrections"],
+    out:{name:"Journal des corrections",cols:["Écart","Correction","Source","Statut final"],row:["C01","Annexe B intégrée à la partie méthode","p. 80-84","Résolu"]},
+    trap:"Tout réécrire à chaque tour : on introduit de nouvelles erreurs. On ne reprend que ce qui est défaillant.",
+    prompt:"Corrige l’analyse à partir du rapport critique, de la matrice de traçabilité et du document source : ajoute les oublis, supprime les affirmations non confirmées, rétablis les nuances, garde les références aux pages. Tiens un journal Écart | Correction | Source | Statut final."},
+  out:{band:"Livrable",title:"Synthèse consolidée",role:"Livrable final",
+    why:"Le livrable ne contient pas seulement la synthèse. Il montre aussi ce qui a été couvert, ce qui a été vérifié, et ce qui reste à valider par un humain.",
+    todo:["Synthèse exécutive","Analyse par partie et analyse transversale","Réponse directe à la question principale","Tableau de couverture et journal de vérification","Points à valider par un humain","Indicateurs : couverture, affirmations vérifiées, nombre de boucles, confiance"],
+    out:{name:"Tableau de couverture",cols:["Partie","Pages","Analysée","Vérifiée","Confiance"],row:["P04","31-56","Oui","Oui","Élevée"]},
+    trap:"Livrer une synthèse fluide sans tableau de couverture : impossible de savoir ce qui a réellement été lu.",
+    prompt:"Livre : synthèse exécutive, analyse par partie, analyse transversale, réponse à la question principale, tableau de couverture, journal de vérification, points à valider par un humain et indicateurs finaux (couverture, segments analysés, affirmations vérifiées, boucles effectuées, confiance globale)."}
+};
+
+const STEPS = [
+  {n:"p0",t:"84 pages reçues. Pages 47 à 49 : un tableau scanné, sans texte extrait. On demande un OCR avant d’aller plus loin."},
+  {n:"p1",t:"La carte compte 7 parties (P01 à P07) et 2 annexes. P04 « Analyse concurrentielle » fait 26 pages à elle seule."},
+  {n:"p2",t:"11 segments. P04 est divisée en trois (P04-S01 à P04-S03), avec un paragraphe de chevauchement entre chacun."},
+  {n:"p3",t:"11 fiches produites en parallèle, une par segment. 142 affirmations vérifiables listées avec leur page."},
+  {n:"p4",t:"9 écarts trouvés, dont 1 critique : dans P05-S01, une croissance de 12 % avait été lue 21 %. Les fiches sont corrigées."},
+  {n:"p5",t:"Synthèse consolidée : les 7 parties sont représentées, 2 contradictions relevées entre P02 et P06."},
+  {n:"p6",loop:1,t:"Tour 1. Le critique remarque que l’annexe B (méthode de l’enquête) n’apparaît nulle part, et que P04 prend trop de place."},
+  {n:"p7",loop:1,t:"Tour 1. 38 affirmations déterminantes contrôlées : 33 confirmées, 3 partiellement, 1 non confirmée, 1 introuvable."},
+  {n:"d",loop:1,br:"yes",t:"Écarts importants ? Oui : une annexe oubliée et une affirmation non confirmée. On passe à la correction."},
+  {n:"p8",loop:1,br:"yes",rail:true,t:"Annexe B intégrée, affirmation non confirmée supprimée, 3 nuances rétablies. Retour à la critique pour un second tour."},
+  {n:"p6",loop:2,t:"Tour 2. Toutes les parties sont couvertes. L’une des contradictions P02/P06 s’explique par des dates d’enquête différentes ; l’autre reste signalée."},
+  {n:"p7",loop:2,t:"Tour 2. Les 38 affirmations déterminantes sont reliées à une page. Aucune erreur critique."},
+  {n:"d",loop:2,br:"no",t:"Écarts importants ? Non : les conditions d’arrêt sont atteintes en 2 tours sur 3."},
+  {n:"out",br:"no",t:"Livrable : 7 parties sur 7 couvertes, confiance élevée. Validation humaine recommandée sur le tableau des pages 47 à 49, reconstitué par OCR."}
+];
+
+const $ = s=>document.querySelector(s);
+const nodes = [...document.querySelectorAll(".node")];
+let fmt = "pdf", selected = "p0", step = -1, timer = null;
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function buildChips(){
+  ["chips3","chips4"].forEach(id=>{
+    const el=document.getElementById(id);
+    el.innerHTML = SEGS.map(s=>`<span class="chip" data-seg="${s}">${s}</span>`).join("");
+  });
+}
+
+function renderFmt(){
+  document.querySelectorAll("[data-fmt]").forEach(el=>{el.textContent = (fmt==="pdf"?"PDF : ":"Word : ")+FMT[fmt].badge[el.dataset.fmt]});
+  $("#fmt-pdf").setAttribute("aria-pressed",fmt==="pdf");
+  $("#fmt-word").setAttribute("aria-pressed",fmt==="word");
+  document.querySelectorAll(".cmp [data-col]").forEach(c=>c.classList.toggle("hl",c.dataset.col===fmt));
+  renderPanel();
+}
+
+function tableHTML(o){
+  return `<div class="tbl"><table><thead><tr>${o.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead>
+  <tbody><tr>${o.row.map(c=>`<td>${esc(c)}</td>`).join("")}</tr></tbody><caption>Ligne d’exemple fictive</caption></table></div>`;
+}
+
+function renderPanel(){
+  const d = D[selected];
+  let h = `<div><span class="eyebrow">${esc(d.band)}</span><h2>${esc(d.title)}</h2><div class="rolel">Rôle confié à l’IA : <b>${esc(d.role)}</b></div></div>`;
+  h += `<p>${esc(d.why)}</p>`;
+  if(d.todo) h += `<div><h3>Ce que l’IA doit faire</h3><ul>${d.todo.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`;
+  if(d.loopIf) h += `<div class="cols2"><div><h3>On reboucle si</h3><ul>${d.loopIf.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div><div><h3>On s’arrête si</h3><ul>${d.stopIf.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div></div>`;
+  if(d.out) h += `<div><h3>Ce qu’elle produit · ${esc(d.out.name)}</h3>${tableHTML(d.out)}</div>`;
+  if(d.statuses) h += `<div><h3>Les six statuts</h3><div class="statuses"><span class="st c">Confirmée</span><span class="st p">Partiellement confirmée</span><span class="st n">Non confirmée</span><span class="st x">Contredite</span><span class="st i">Introuvable</span><span class="st v">Non vérifiable</span></div></div>`;
+  const fn = FMT[fmt].note[selected];
+  if(fn) h += `<div class="fmtnote"><b>${fmt==="pdf"?"PDF":"WORD"}</b>${esc(fn)}</div>`;
+  h += `<div class="trap"><b>Le piège : </b>${esc(d.trap)}</div>`;
+  h += `<div><h3>Consigne à donner à l’IA</h3><div class="prompt"><span id="phaseprompt">${esc(d.prompt)}</span><button class="btn sm copy" type="button" data-copy="phaseprompt">Copier</button></div></div>`;
+  $("#panel").innerHTML = h;
+  nodes.forEach(n=>n.classList.toggle("selected",n.dataset.id===selected));
+}
+
+function renderSim(){
+  const s = STEPS[step];
+  nodes.forEach(n=>{n.classList.remove("active","done")});
+  // états cumulés
+  const visited = new Set(STEPS.slice(0,Math.max(step,0)).map(x=>x.n));
+  if(step>=0){
+    nodes.forEach(n=>{ if(visited.has(n.dataset.id) && n.dataset.id!==s.n) n.classList.add("done"); });
+    const cur = document.querySelector(`.node[data-id="${s.n}"]`); cur.classList.add("active");
+  }
+  // puces Map
+  document.querySelectorAll("#chips3 .chip").forEach((c,i)=>{
+    const on = step>=3; const was = c.classList.contains("on");
+    c.classList.toggle("on",on);
+    if(on && !was && step===3){c.style.animationDelay=(i*60)+"ms";c.classList.remove("anim");void c.offsetWidth;c.classList.add("anim")}
+  });
+  document.querySelectorAll("#chips4 .chip").forEach((c,i)=>{
+    const st = step>=4; c.classList.toggle("ok",st && c.dataset.seg!=="P05-S01"); c.classList.toggle("warn",st && c.dataset.seg==="P05-S01");
+    if(st && step===4){c.style.animationDelay=(i*60)+"ms";c.classList.remove("anim");void c.offsetWidth;c.classList.add("anim")}
+  });
+  // boucle
+  let loop = 0; STEPS.slice(0,step+1).forEach(x=>{if(x.loop) loop=x.loop});
+  $("#loopcount").textContent = loop ? `Tour ${loop} sur 3 maximum` : "3 tours maximum";
+  $("#br-yes").classList.toggle("lit", !!(s && s.br==="yes"));
+  $("#br-no").classList.toggle("lit", !!(s && s.br==="no"));
+  $("#rail").classList.toggle("lit", !!(s && s.rail));
+  // narration
+  if(step>=0){
+    $("#nar-step").textContent = `Exemple fictif · étape ${step+1} sur ${STEPS.length} · ${D[s.n].title}`;
+    $("#nar-text").textContent = s.t;
+    selected = s.n; renderPanel();
+  }else{
+    $("#nar-step").textContent = "Mode exploration";
+    $("#nar-text").textContent = "Cliquez sur une étape du schéma pour voir ce que l’IA doit faire, ou lancez la simulation sur un exemple fictif : un rapport d’étude de marché de 84 pages.";
+  }
+  $("#prev").disabled = step<=0;
+  $("#next").disabled = step>=STEPS.length-1;
+  $("#reset").hidden = step<0;
+}
+
+function go(i){ step = Math.max(-1,Math.min(STEPS.length-1,i)); renderSim(); if(step>=STEPS.length-1) stop(); }
+function stop(){ clearInterval(timer); timer=null; $("#play").textContent = step>=STEPS.length-1 ? "▶ Rejouer" : (step>=0?"▶ Reprendre":"▶ Simuler un exemple"); }
+function play(){
+  if(timer){stop();return}
+  if(step>=STEPS.length-1) step=-1;
+  go(step+1);
+  $("#play").textContent="❚❚ Pause";
+  timer = setInterval(()=>{ if(step>=STEPS.length-1){stop();return} go(step+1); }, 3600);
+}
+
+$("#play").addEventListener("click",play);
+$("#next").addEventListener("click",()=>{stop();go(step+1);stop()});
+$("#prev").addEventListener("click",()=>{stop();go(step-1);stop()});
+$("#reset").addEventListener("click",()=>{stop();go(-1);stop();selected="p0";renderPanel()});
+$("#fmt-pdf").addEventListener("click",()=>{fmt="pdf";renderFmt()});
+$("#fmt-word").addEventListener("click",()=>{fmt="word";renderFmt()});
+
+nodes.forEach(n=>n.addEventListener("click",()=>{
+  selected = n.dataset.id; renderPanel();
+  if(window.matchMedia("(max-width:900px)").matches){ $("#panel").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth", block:"start"}); }
+}));
+
+document.addEventListener("click",e=>{
+  const b = e.target.closest("[data-copy]"); if(!b) return;
+  const el = document.getElementById(b.dataset.copy); const txt = el.textContent;
+  const done = ()=>{const o=b.textContent;b.textContent="Copié";setTimeout(()=>b.textContent=o,1600)};
+  const fallback = ()=>{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Texte sélectionné"};
+  try{ navigator.clipboard.writeText(txt).then(done,fallback) }catch(err){ fallback() }
+});
+
+function placeRail(){
+  const z=$("#loopzone"), a=document.querySelector('[data-id="p6"]'), b=document.querySelector('[data-id="p8"]'), r=$("#rail");
+  const zr=z.getBoundingClientRect(), ar=a.getBoundingClientRect(), br=b.getBoundingClientRect();
+  const top = ar.top-zr.top+ar.height/2, bot = br.top-zr.top+br.height/2;
+  r.style.top = top+"px"; r.style.height = Math.max(0,bot-top)+"px";
+  r.style.width = Math.max(10, ar.left-zr.left-16-3)+"px";
+}
+
+buildChips(); renderFmt(); renderSim(); placeRail();
+if("ResizeObserver" in window){ new ResizeObserver(placeRail).observe($("#loopzone")); } else { addEventListener("resize",placeRail); }
+document.fonts && document.fonts.ready.then(placeRail);
+})();
+</script>
+</body></html>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

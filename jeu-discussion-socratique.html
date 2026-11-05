@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Le Défi Socrate</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout : une colonne de dialogue, une mise en situation à la fois, accent jaune-citron repris de la fiche de cours */
+:root{
+  --bg:#f7f8fb; --surface:#ffffff; --ink:#151a33; --muted:#5b6180; --line:#e2e5ef;
+  --brand:#1474d4; --lime:#dcff1f; --lime-ink:#151a33; --bubble:#eef3fc;
+  --ok:#14804a; --ok-bg:#e6f5ec; --ko:#b4232c; --ko-bg:#fbeaeb;
+  --display:"Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1224; --surface:#181c33; --ink:#eef0f8; --muted:#a2a8c6; --line:#2b3052;
+  --brand:#5aa8ff; --lime:#d4f51c; --lime-ink:#151a33; --bubble:#222a4a;
+  --ok:#5fd69a; --ok-bg:#12321f; --ko:#ff8a91; --ko-bg:#3a161b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1224; --surface:#181c33; --ink:#eef0f8; --muted:#a2a8c6; --line:#2b3052;
+  --brand:#5aa8ff; --lime:#d4f51c; --lime-ink:#151a33; --bubble:#222a4a;
+  --ok:#5fd69a; --ok-bg:#12321f; --ko:#ff8a91; --ko-bg:#3a161b; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 48px;overflow-x:hidden}
+.wrap{max-width:720px;margin:0 auto;display:grid;gap:24px;position:relative}
+.deco{position:absolute;top:-40px;right:-60px;width:220px;height:160px;pointer-events:none;opacity:.9;z-index:0}
+header{position:relative;z-index:1;display:grid;gap:6px}
+.eyebrow{font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,6vw,44px);line-height:1.05;margin:0;text-wrap:balance}
+.lede{color:var(--muted);margin:0;max-width:60ch}
+.hud{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;font-size:14px;color:var(--muted)}
+.dots{display:flex;gap:6px;flex-wrap:wrap}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.dot.ok{background:var(--ok)} .dot.ko{background:var(--ko)} .dot.now{background:var(--ink)}
+.score{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
+.card{position:relative;z-index:1;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;display:grid;gap:18px}
+.chip{justify-self:start;background:var(--lime);color:var(--lime-ink);font-weight:600;font-size:13px;padding:4px 10px;border-radius:999px}
+.label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+.ctx{margin:0;font-size:17px}
+.chat{display:grid;gap:8px}
+.msg{max-width:88%;padding:10px 14px;border-radius:12px;font-size:15px}
+.msg b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.msg.vous{justify-self:end;background:var(--bubble);border-bottom-right-radius:4px}
+.msg.claude{justify-self:start;background:var(--bg);border:1px solid var(--line);border-bottom-left-radius:4px}
+.q{font-family:var(--display);font-weight:600;font-size:clamp(19px,3.6vw,23px);line-height:1.25;margin:0;text-wrap:balance}
+.opts{display:grid;gap:10px}
+.opt{font:inherit;text-align:left;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:border-color .15s,background .15s}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt:focus-visible,.btn:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.opt .k{flex:none;width:26px;height:26px;border-radius:6px;display:grid;place-items:center;font-weight:600;font-size:14px;background:var(--bg);border:1px solid var(--line)}
+.opt:disabled{cursor:default}
+.opt.right{border-color:var(--ok);background:var(--ok-bg)}
+.opt.wrong{border-color:var(--ko);background:var(--ko-bg)}
+.fb{border-radius:10px;padding:14px 16px;display:grid;gap:4px}
+.fb.ok{background:var(--ok-bg)} .fb.ko{background:var(--ko-bg)}
+.fb strong{color:var(--ok)} .fb.ko strong{color:var(--ko)}
+.fb p{margin:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.btn{font:inherit;font-weight:600;border:0;border-radius:10px;padding:12px 18px;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.alt{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.big{font-family:var(--display);font-weight:800;font-size:64px;line-height:1;font-variant-numeric:tabular-nums}
+.rank{font-family:var(--display);font-weight:600;font-size:22px;margin:0}
+.kit{margin:0;white-space:pre-wrap;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto}
+.miss{margin:0;padding-left:18px;display:grid;gap:10px;color:var(--muted)}
+.miss b{color:var(--ink)}
+h2{font-family:var(--display);font-weight:600;font-size:18px;margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <svg class="deco" viewBox="0 0 220 160" aria-hidden="true">
+    <path d="M30 20 q-10 70 50 70 q40 0 50-40" fill="none" stroke="var(--lime)" stroke-width="26" stroke-linecap="round"/>
+    <path d="M160 10 l-20 120" fill="none" stroke="var(--lime)" stroke-width="26" stroke-linecap="round"/>
+    <circle cx="190" cy="90" r="26" fill="none" stroke="var(--lime)" stroke-width="22"/>
+  </svg>
+  <header>
+    <span class="eyebrow">Atelier · Discussion socratique</span>
+    <h1>Le Défi Socrate</h1>
+    <p class="lede">12 situations de travail avec Claude. À chaque fois, choisissez la consigne à ajouter à votre prompt parmi trois propositions.</p>
+  </header>
+  <div class="hud"><div class="dots" id="dots"></div><span>Score : <span class="score" id="score">0</span> / <span id="total"></span></span></div>
+  <main id="stage" aria-live="polite"></main>
+</div>
+
+<script>
+const ROUNDS = {1:"Manche 1 · Clarifier avant la réponse",2:"Manche 2 · Challenger la réponse",3:"Manche 3 · Régler la discussion"};
+// a = index de la bonne consigne ; les deux autres sont des distracteurs plausibles
+const Q = [
+ {r:1,ctx:"Vous devez relancer un client qui n'a pas répondu à votre devis. Avant que Claude rédige, vous voulez vérifier qu'il a bien compris votre demande.",
+  chat:[["vous","Écris un mail de relance pour un client qui n'a pas répondu à notre devis."]],
+  q:"Quelle consigne ajoutez-vous ?",o:[
+   "« Reformule ce que tu as compris de ma demande en listant les éléments clés. »",
+   "« Écris-le sur un ton professionnel et chaleureux. »",
+   "« Que dirait un expert opposé à cette vision ? »"],a:0,
+  why:"La reformulation fait apparaître ce que Claude a compris, et ce qu'il a mal compris, avant qu'il écrive. Le ton est une consigne de rédaction, pas de clarification. L'expert opposé sert à challenger une réponse qui n'existe pas encore."},
+ {r:1,ctx:"Vous voulez organiser un atelier interne, mais votre idée est encore floue. Vous voulez que Claude vous aide à la préciser, sans vous envoyer un questionnaire interminable.",
+  q:"Quelle consigne ajoutez-vous ?",o:[
+   "« Pose-moi dix questions pour cerner mon besoin. »",
+   "« Pose-moi une question à la fois pour préciser mon objectif, examiner mes hypothèses et identifier les informations manquantes. »",
+   "« Propose-moi directement trois programmes d'atelier. »"],a:1,
+  why:"Une question à la fois crée un vrai dialogue : chaque question tient compte de la réponse précédente. Dix questions d'un coup donnent des réponses rapides et superficielles. Trois programmes tout de suite, c'est sauter l'étape de clarification."},
+ {r:1,ctx:"Claude vous interroge sur votre campagne. Votre réponse est vague, et il passe pourtant à la suite. Vous corrigez votre prompt de départ.",
+  chat:[["claude","Quel résultat attendez-vous de cette campagne ?"],["vous","Qu'elle marche bien."]],
+  q:"Quelle consigne aurait dû y figurer ?",o:[
+   "« Si une réponse est vague, passe à la question suivante. »",
+   "« Si une réponse est vague, choisis l'option la plus courante. »",
+   "« Si une réponse est vague, demande un exemple concret. »"],a:2,
+  why:"Un exemple (« 50 inscriptions en un mois ») est plus clair qu'un adjectif (« bien »). Passer à la suite ou deviner l'option la plus courante, c'est laisser l'IA combler le flou à votre place."},
+ {r:1,ctx:"À chaque demande, Claude produit un texte complet sans rien vous demander. Le résultat est souvent à côté de ce que vous vouliez.",
+  q:"Quelle consigne placez-vous en tête de votre prompt ?",o:[
+   "« Réponds le plus vite possible, je corrigerai ensuite. »",
+   "« Tu dois TOUJOURS poser des questions AVANT de répondre, afin de mieux cerner ce que je cherche. »",
+   "« Place-toi dans la peau de ma cible. »"],a:1,
+  why:"La règle « questions d'abord » est le socle de la méthode : elle empêche Claude de foncer. Répondre vite aggrave le problème. Se mettre dans la peau de la cible sert à évaluer un contenu déjà produit."},
+
+ {r:2,ctx:"Claude vient de rédiger un post LinkedIn destiné à des DRH. Vous voulez qu'il le juge du point de vue de ses lecteurs.",
+  chat:[["claude","Voici votre post : « 3 erreurs qui font fuir vos meilleurs candidats… »"]],
+  q:"Quelle consigne envoyez-vous ?",o:[
+   "« Rends-le plus percutant. »",
+   "« Place-toi dans la peau d'un DRH. Est-ce que ce contenu fonctionne ? Sinon, dis pourquoi et propose mieux. »",
+   "« Reformule ce que tu as compris de ma demande. »"],a:1,
+  why:"On nomme la cible : Claude évalue le texte avec ses critères à elle, explique ce qui ne va pas et propose mieux. « Plus percutant » est trop vague. La reformulation sert avant la réponse, pas après."},
+ {r:2,ctx:"Vous demandez pourquoi les inscriptions à vos formations baissent. Claude répond que c'est à cause du prix. Vous craignez qu'il s'arrête à la première idée.",
+  chat:[["claude","La baisse s'explique surtout par votre prix, plus élevé que celui de la concurrence."]],
+  q:"Quelle consigne envoyez-vous ?",o:[
+   "« Tu es sûr ? »",
+   "« Donne-moi plus de détails sur le prix. »",
+   "« Quelle autre explication pourrait justifier cette réponse ? »"],a:2,
+  why:"Demander une autre explication oblige Claude à chercher d'autres causes (calendrier, visibilité, contenu…). « Tu es sûr ? » le pousse souvent à se rétracter sans rien apporter. Creuser le prix enferme dans la première hypothèse."},
+ {r:2,ctx:"Claude a produit une checklist d'accueil des nouveaux salariés. Elle a l'air complète, mais vous voulez qu'il cherche ce qui manque.",
+  chat:[["claude","Voici la checklist : badge, poste de travail, accès aux outils, présentation à l'équipe…"]],
+  q:"Quelle consigne envoyez-vous ?",o:[
+   "« Ajoute dix points de plus. »",
+   "« Mets-la sous forme de tableau. »",
+   "« N'as-tu rien oublié d'essentiel ? »"],a:2,
+  why:"La question demande à Claude de relire son travail pour trouver les manques importants. Dix points de plus, c'est de la quantité sans tri. Le tableau change la forme, pas le fond."},
+ {r:2,ctx:"Claude vous recommande de passer toute l'équipe en télétravail complet. Avant de décider, vous voulez entendre le meilleur argument contre.",
+  q:"Quelle consigne envoyez-vous ?",o:[
+   "« Confirme que c'est la meilleure option. »",
+   "« Que dirait un expert opposé à cette vision ? »",
+   "« Résume ta recommandation en une phrase. »"],a:1,
+  why:"Faire parler un contradicteur crédible révèle les risques que la première réponse a laissés de côté. Demander une confirmation pousse Claude à vous donner raison. Le résumé ne teste rien."},
+
+ {r:3,ctx:"Lors d'un premier essai, Claude vous a posé quatorze questions d'affilée et ne vous a jamais rendu de prompt.",
+  q:"Quelle consigne ajoutez-vous ?",o:[
+   "« Pose autant de questions que nécessaire. »",
+   "« Ne pose plus aucune question. »",
+   "« Après cinq questions maximum, résume ce qui est établi et ce qui reste incertain, puis propose un prompt prêt à utiliser. »"],a:2,
+  why:"La limite force Claude à faire le point et à livrer quelque chose d'utilisable. « Autant que nécessaire » laisse le problème entier. Supprimer les questions, c'est abandonner la méthode."},
+ {r:3,ctx:"Claude conteste chacune de vos idées, même celles qui tiennent la route. La discussion devient pénible et n'avance plus.",
+  q:"Quelle consigne ajoutez-vous ?",o:[
+   "« Mets mes idées à l'épreuve sans chercher systématiquement à me contredire. »",
+   "« Sois toujours d'accord avec moi. »",
+   "« Arrête de donner ton avis. »"],a:0,
+  why:"La nuance « sans chercher systématiquement » demande un examen honnête : critiquer ce qui est faible, valider ce qui est solide. Les deux autres consignes font basculer Claude dans l'excès inverse."},
+ {r:3,ctx:"Votre prompt contient : « Pose des questions jusqu'à ce que tu sois à 95 % certain de réussir. » Résultat : Claude ne s'arrête plus de questionner.",
+  q:"Quelle correction faites-vous ?",o:[
+   "« Remplace 95 % par 99 %. »",
+   "Garder la phrase et ajouter : « Après cinq questions maximum, résume et propose un prompt prêt à utiliser. »",
+   "« Supprime toutes les questions et réponds directement. »"],a:1,
+  why:"Claude ne mesure pas vraiment 95 % de certitude : le chiffre l'incite juste à questionner davantage. Il faut donc une limite concrète à côté. Monter à 99 % aggrave le problème."},
+ {r:3,ctx:"Votre projet Claude applique la discussion socratique à toutes les demandes. Vous demandez simplement de convertir 3 heures en minutes, et Claude vous pose des questions.",
+  chat:[["vous","Convertis 3 heures en minutes."],["claude","Avant de répondre : dans quel contexte allez-vous utiliser ce résultat ?"]],
+  q:"Quelle consigne ajoutez-vous aux instructions du projet ?",o:[
+   "« Pose au moins trois questions avant chaque réponse. »",
+   "« Place-toi dans la peau d'un mathématicien. »",
+   "« Si la demande est simple et sans ambiguïté, réponds directement. »"],a:2,
+  why:"La méthode sert quand le besoin est flou ou que la décision compte. Pour une demande fermée, les questions font perdre du temps. Cette exception garde la méthode là où elle est utile."},
+];
+
+let i=0, score=0, results=[], answered=null;
+const $=s=>document.querySelector(s);
+const stage=$("#stage");
+$("#total").textContent=Q.length;
+
+function esc(s){return s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
+function dots(){
+  $("#dots").innerHTML=Q.map((_,k)=>`<span class="dot ${results[k]===true?"ok":results[k]===false?"ko":k===i?"now":""}" title="Situation ${k+1}"></span>`).join("");
+  $("#score").textContent=score;
+}
+
+function show(){
+  dots();
+  if(i>=Q.length) return end();
+  const x=Q[i];
+  stage.innerHTML=`<section class="card">
+    <span class="chip">${ROUNDS[x.r]}</span>
+    <div><p class="label">Situation ${i+1}</p><p class="ctx">${esc(x.ctx)}</p></div>
+    ${x.chat?`<div class="chat">${x.chat.map(([w,t])=>`<div class="msg ${w}"><b>${w==="vous"?"Vous":"Claude"}</b>${esc(t)}</div>`).join("")}</div>`:""}
+    <p class="q">${esc(x.q)}</p>
+    <div class="opts">${x.o.map((t,k)=>`<button class="opt" id="opt-${k}" data-k="${k}"><span class="k">${"ABC"[k]}</span><span>${esc(t)}</span></button>`).join("")}</div>
+    <div id="fb"></div>
+  </section>`;
+  stage.querySelectorAll(".opt").forEach(b=>b.onclick=()=>pick(+b.dataset.k));
+  if(answered!==null) pick(answered,true);
+}
+
+function pick(k,restore){
+  const x=Q[i], ok=k===x.a;
+  if(!restore){answered=k; results[i]=ok; if(ok) score++; dots();}
+  stage.querySelectorAll(".opt").forEach((b,n)=>{b.disabled=true; if(n===x.a)b.classList.add("right"); else if(n===k)b.classList.add("wrong");});
+  $("#fb").innerHTML=`<div class="fb ${ok?"ok":"ko"}"><strong>${ok?"Bonne consigne.":"Pas la meilleure consigne."}</strong><p>${esc(x.why)}</p></div>
+    <div class="row" style="margin-top:14px"><button class="btn" id="next">${i===Q.length-1?"Voir mon résultat":"Situation suivante"}</button></div>`;
+  $("#next").onclick=()=>{i++; answered=null; show();};
+  if(!restore) $("#next").focus();
+}
+
+const KIT=`Aide-moi à clarifier mon besoin avant de rédiger mon prompt.
+Tu dois TOUJOURS poser des questions AVANT de répondre.
+1. Reformule ce que tu as compris de ma demande en listant les éléments clés.
+2. Pose-moi une question à la fois pour préciser mon objectif, examiner mes hypothèses et identifier les informations manquantes. Si une réponse est vague, demande un exemple concret.
+3. Mets mes idées à l'épreuve sans chercher systématiquement à me contredire.
+4. Après cinq questions maximum, résume ce qui est établi et ce qui reste incertain, puis propose un prompt prêt à utiliser.
+
+Ma demande : [décris ton besoin]
+
+Relances après la réponse :
+- Place-toi dans la peau de [ta cible]. Est-ce que ce contenu fonctionne ? Sinon, dis pourquoi et propose mieux.
+- N'as-tu rien oublié d'essentiel ?
+- Quelle autre explication pourrait justifier cette réponse ?
+- Que dirait un expert opposé à cette vision ?`;
+
+function end(){
+  const r = score>=11?["Socrate en personne","Vous savez quoi demander à Claude, avant comme après sa réponse."]
+          : score>=8?["Dialecticien confirmé","Les bases sont là. Revoyez les situations manquées ci-dessous."]
+          : score>=5?["Disciple de l'agora","Bon début. Relisez la fiche et rejouez."]
+          :["Apprenti philosophe","Reprenez la fiche « Discussion socratique », puis retentez le défi."];
+  const miss=Q.map((x,k)=>results[k]?null:`<li><b>${esc(x.ctx)}</b><br>Bonne consigne : ${esc(x.o[x.a])}</li>`).filter(Boolean);
+  stage.innerHTML=`<section class="card">
+    <span class="chip">Résultat</span>
+    <div class="big">${score}<span style="font-size:28px;color:var(--muted)"> / ${Q.length}</span></div>
+    <p class="rank">${r[0]}</p><p style="margin:0;color:var(--muted)">${r[1]}</p>
+    ${miss.length?`<h2>À revoir</h2><ul class="miss">${miss.join("")}</ul>`:""}
+    <h2>Votre kit socratique, prêt à copier</h2>
+    <pre class="kit" id="kit">${esc(KIT)}</pre>
+    <div class="row"><button class="btn alt" id="copy">Copier le kit</button><button class="btn" id="again">Rejouer</button></div>
+  </section>`;
+  $("#again").onclick=()=>{i=0;score=0;results=[];answered=null;show();window.scrollTo(0,0)};
+  $("#copy").onclick=async e=>{
+    try{await navigator.clipboard.writeText(KIT); e.target.textContent="Copié";}
+    catch{const s=getSelection(),rg=document.createRange();rg.selectNodeContents($("#kit"));s.removeAllRanges();s.addRange(rg);e.target.textContent="Texte sélectionné, faites Cmd/Ctrl+C";}
+  };
+}
+
+function start(d){ if(d&&typeof d.i==="number"){({i,score,results,answered}=d);} show(); }
+window.claude?.hot?.snapshot?.(()=>({i,score,results,answered}));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

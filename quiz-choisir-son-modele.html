@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quel modèle Claude ?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout : légende des 4 modèles en haut, puis une carte "tâche" à router ; en partie 2 la chaîne de modèles se construit étape par étape */
+:root{
+  --bg:#f7f8fb; --surface:#ffffff; --ink:#151a33; --muted:#5b6180; --line:#e2e5ef;
+  --brand:#1474d4; --navy:#0d1a5c; --lime:#dcff1f;
+  --haiku:#0f8a7a; --sonnet:#1474d4; --opus:#c8323f; --fable:#0d1a5c;
+  --ok:#14804a; --ok-bg:#e6f5ec; --mid:#9a6400; --mid-bg:#fdf3dc; --ko:#b4232c; --ko-bg:#fbeaeb;
+  --display:"Bricolage Grotesque","Arial Black",system-ui,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1224; --surface:#181c33; --ink:#eef0f8; --muted:#a2a8c6; --line:#2b3052;
+  --brand:#5aa8ff; --navy:#c9d3ff; --lime:#d4f51c;
+  --haiku:#3cc7b3; --sonnet:#5aa8ff; --opus:#ff7b86; --fable:#b9c4ff;
+  --ok:#5fd69a; --ok-bg:#12321f; --mid:#f2c063; --mid-bg:#3a2c10; --ko:#ff8a91; --ko-bg:#3a161b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1224; --surface:#181c33; --ink:#eef0f8; --muted:#a2a8c6; --line:#2b3052;
+  --brand:#5aa8ff; --navy:#c9d3ff; --lime:#d4f51c;
+  --haiku:#3cc7b3; --sonnet:#5aa8ff; --opus:#ff7b86; --fable:#b9c4ff;
+  --ok:#5fd69a; --ok-bg:#12321f; --mid:#f2c063; --mid-bg:#3a2c10; --ko:#ff8a91; --ko-bg:#3a161b; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 48px}
+.wrap{max-width:820px;margin:0 auto;display:grid;gap:22px}
+header{display:grid;gap:6px}
+.eyebrow{font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,6vw,44px);line-height:1.05;margin:0;text-wrap:balance;color:var(--navy)}
+h2{font-family:var(--display);font-weight:600;font-size:20px;margin:0;text-wrap:balance}
+.lede{color:var(--muted);margin:0;max-width:64ch}
+
+.legend{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.leg{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:10px 12px;min-width:0}
+.leg b{font-family:var(--display);font-size:17px;color:var(--c);display:block}
+.leg span{font-size:13px;color:var(--muted);display:block;line-height:1.35}
+@media (max-width:620px){.legend{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.hud{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;font-size:14px;color:var(--muted)}
+.dots{display:flex;gap:5px;flex-wrap:wrap}
+.dot{width:11px;height:11px;border-radius:50%;background:var(--line)}
+.dot.ok{background:var(--ok)}.dot.mid{background:var(--mid)}.dot.ko{background:var(--ko)}.dot.now{background:var(--ink)}
+.score{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;min-width:0}
+.part{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ticket{display:grid;gap:6px;padding:16px 18px;border-radius:12px;background:var(--bg);border:1px dashed var(--line)}
+.ticket p{margin:0;font-size:18px;font-weight:500}
+.ticket small{color:var(--muted)}
+
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.link{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);font-size:14px;color:var(--muted)}
+.link.done{border-color:var(--c);color:var(--c);font-weight:600}
+.link.now{border-color:var(--ink);color:var(--ink);font-weight:600}
+.arrow{color:var(--muted)}
+
+.choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:620px){.choices{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.choice{font:inherit;cursor:pointer;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:14px 10px;display:grid;gap:2px;text-align:center;transition:border-color .15s,transform .15s}
+.choice b{font-family:var(--display);font-size:20px;color:var(--c)}
+.choice span{font-size:12px;color:var(--muted)}
+.choice:hover:not(:disabled){border-color:var(--c);transform:translateY(-2px)}
+.choice:focus-visible,.btn:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.choice:disabled{cursor:default}
+.choice.best{border-color:var(--ok);background:var(--ok-bg)}
+.choice.okish{border-color:var(--mid);background:var(--mid-bg)}
+.choice.picked-ko{border-color:var(--ko);background:var(--ko-bg)}
+.choice.dim{opacity:.45}
+
+.fb{border-radius:12px;padding:14px 16px;display:grid;gap:6px}
+.fb.ok{background:var(--ok-bg)}.fb.mid{background:var(--mid-bg)}.fb.ko{background:var(--ko-bg)}
+.fb strong{font-size:16px}
+.fb.ok strong{color:var(--ok)}.fb.mid strong{color:var(--mid)}.fb.ko strong{color:var(--ko)}
+.fb p{margin:0}
+.rule{font-size:14px;color:var(--muted)}
+
+.row{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+.btn{font:inherit;font-weight:600;cursor:pointer;border:0;border-radius:10px;padding:12px 18px;background:var(--navy);color:var(--bg)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+
+.big{font-family:var(--display);font-weight:800;font-size:56px;line-height:1;color:var(--navy);font-variant-numeric:tabular-nums}
+.recap{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.recap li{padding:10px 12px;border-radius:10px;background:var(--bg);font-size:15px}
+.recap em{font-style:normal;font-weight:600}
+.retenir{border-left:4px solid var(--lime);padding:4px 0 4px 14px;display:grid;gap:4px}
+.retenir p{margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Leçons 0.1 et 2.3 · Atelier</div>
+    <h1>Quel modèle Claude pour cette tâche ?</h1>
+    <p class="lede">Partie 1 : choisis le bon modèle pour une tâche isolée. Partie 2 : enchaîne plusieurs modèles sur un vrai dossier, une étape après l'autre. Réponse idéale = 1 point, réponse défendable = ½ point.</p>
+  </header>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="hud"><div class="dots" id="dots"></div><div>Score : <span class="score" id="score">0</span></div></div>
+
+  <main class="card" id="stage" aria-live="polite"></main>
+</div>
+
+<script>
+const M = {
+  haiku:  {name:'Haiku',  tag:'Le sprinteur',  desc:'Rapide, peu cher. Simple, répétitif, gros volumes.'},
+  sonnet: {name:'Sonnet', tag:'Par défaut',    desc:'Meilleur rapport qualité/prix. Rédaction, analyse du quotidien.'},
+  opus:   {name:'Opus',   tag:'Le costaud',    desc:'Raisonnement poussé. Difficile, enjeu élevé.'},
+  fable:  {name:'Fable',  tag:'Le plus capable', desc:'Les 10 % de tâches qui en ont vraiment besoin.'}
+};
+const ORDER = ['haiku','sonnet','opus','fable'];
+
+// Partie 1 : une tâche = un modèle. best = idéal (1 pt), ok = défendable (½ pt)
+const SOLO = [
+  {t:"Trier 300 emails entrants en 4 catégories : devis, SAV, facture, autre.", best:'haiku', ok:[],
+   why:"Tâche simple, répétée 300 fois : le coût compte. Haiku est fait pour ça."},
+  {t:"Rédiger le compte rendu d'une réunion d'équipe à partir de tes notes en vrac.", best:'sonnet', ok:['haiku'],
+   why:"Rédaction du quotidien : c'est le terrain de Sonnet. Haiku peut suffire si les notes sont déjà propres."},
+  {t:"Extraire les noms, dates et montants de 50 factures PDF.", best:'haiku', ok:['sonnet'],
+   why:"Extraction mécanique en volume : Haiku. Sonnet marche aussi, mais tu paies plus pour le même résultat."},
+  {t:"Analyser un contrat de prestation et repérer les clauses risquées avant signature.", best:'opus', ok:['fable'],
+   why:"Question juridique, enjeu élevé : on monte vers Opus. Fable seulement si Opus ne suffit pas."},
+  {t:"Créer un plan de formation de 2 jours à partir du brief d'un client.", best:'sonnet', ok:['opus'],
+   why:"Exemple type de la slide : synthétiser un brief et structurer un plan, c'est Sonnet."},
+  {t:"Reformuler une phrase d'accroche pour la rendre plus percutante.", best:'haiku', ok:['sonnet'],
+   why:"Réponse rapide, peu de contexte : Haiku. Sonnet reste un bon choix si tu veux plusieurs variantes travaillées."},
+  {t:"Comparer 3 CRM pour une PME de 20 personnes et recommander le plus adapté.", best:'sonnet', ok:['opus'],
+   why:"Comparer plusieurs solutions est un usage courant de Sonnet. Opus se justifie si le budget en jeu est important."},
+  {t:"Construire la stratégie commerciale 2027 de l'agence à partir d'études qui se contredisent.", best:'opus', ok:['fable'],
+   why:"Stratégie complète + sources contradictoires : c'est exactement la colonne Opus."},
+  {t:"Opus a échoué deux fois à auditer un raisonnement financier en plusieurs étapes, malgré un contexte complet.", best:'fable', ok:[],
+   why:"La règle de l'arbre : si Opus bloque, passe à Fable. Ce n'est pas un problème de contexte, c'est la limite du modèle."},
+  {t:"Confier un projet en plusieurs étapes de bout en bout : recherche approfondie, analyse, puis livrable final.", best:'fable', ok:['opus'],
+   why:"Tâche longue que Claude doit mener seul étape par étape : colonne Fable. Opus peut le faire si tu le guides davantage."}
+];
+
+// Partie 2 : un dossier = une chaîne de modèles
+const CHAINS = [
+  {title:"Analyser 400 avis clients pour le comité de direction", steps:[
+    {t:"Classer chaque avis (positif / négatif / neutre) et extraire les mots-clés.", best:'haiku', ok:[],
+     why:"400 fois la même petite tâche : Haiku. Tu gardes le budget pour la suite."},
+    {t:"Synthétiser les grandes tendances en une page à partir de ce classement.", best:'sonnet', ok:['opus'],
+     why:"Synthèse de documents : Sonnet. Il travaille sur la sortie propre de Haiku, pas sur les 400 avis bruts."},
+    {t:"Proposer 3 priorités d'action au CODIR, avec les risques de chacune.", best:'opus', ok:['sonnet'],
+     why:"Décision à enjeu, présentée à la direction : on monte vers Opus pour le raisonnement."}
+  ]},
+  {title:"Répondre à un appel d'offres public", steps:[
+    {t:"Résumer le cahier des charges de 60 pages : attentes, critères de notation, délais.", best:'sonnet', ok:[],
+     why:"Synthétiser un long document : Sonnet. Haiku risque de rater des nuances dans 60 pages."},
+    {t:"Bâtir la stratégie de réponse et repérer les pièges du règlement de consultation.", best:'opus', ok:['fable'],
+     why:"Enjeu élevé, lecture fine des règles : Opus."},
+    {t:"Mettre les 15 fiches références de l'agence au même format.", best:'haiku', ok:['sonnet'],
+     why:"Une chaîne ne fait pas que monter : pour une tâche répétitive et standardisée, on redescend vers Haiku."}
+  ]},
+  {title:"Préparer une proposition commerciale à 150 000 € pour un gros client", steps:[
+    {t:"Avant d'écrire quoi que ce soit, demander à Claude de te poser ses questions : besoin du client, budget, délais, concurrents.", best:'sonnet', ok:['haiku'],
+     why:"Clarifier le besoin ne demande pas un modèle puissant : Sonnet fait ça vite et pour pas cher. Haiku peut suffire si le dossier est simple."},
+    {t:"Une fois toutes les réponses données, rédiger la proposition finale : solution, chiffrage, arguments face aux concurrents.", best:'opus', ok:['sonnet','fable'],
+     why:"Le cadre est clair et l'enjeu est élevé : on passe à un modèle plus capable pour le livrable final. Préparer sur un modèle léger, finaliser sur un modèle costaud."}
+  ]},
+  {title:"Choisir un marché à attaquer en 2027", steps:[
+    {t:"Rassembler et résumer 12 sources sur un marché émergent.", best:'sonnet', ok:['haiku'],
+     why:"Résumer plusieurs documents : Sonnet. Haiku suffit si les sources sont courtes et factuelles."},
+    {t:"Confronter les sources qui se contredisent et proposer une décision argumentée.", best:'opus', ok:['fable'],
+     why:"Décider à partir de sources contradictoires : Opus."},
+    {t:"Opus tourne en rond sur la décision finale, alors que le contexte est complet.", best:'fable', ok:[],
+     why:"Si Opus bloque, passe à Fable. Le dernier recours, pas le point de départ."}
+  ]}
+];
+
+// Liste plate des questions pour la progression
+const Q = [];
+SOLO.forEach((q,i)=>Q.push({...q, part:1, label:`Tâche ${i+1} / ${SOLO.length}`}));
+CHAINS.forEach((c,ci)=>c.steps.forEach((s,si)=>Q.push({...s, part:2, chain:ci, step:si, label:`Dossier ${ci+1} / ${CHAINS.length} · étape ${si+1} / ${c.steps.length}`})));
+
+let i = 0, score = 0, results = [];
+const $ = id => document.getElementById(id);
+const color = k => `var(--${k})`;
+
+$('legend').innerHTML = ORDER.map(k=>`<div class="leg" style="--c:${color(k)}"><b>${M[k].name}</b><span>${M[k].desc}</span></div>`).join('');
+
+function points(q, pick){ return pick===q.best ? 1 : q.ok.includes(pick) ? .5 : 0; }
+function fmt(n){ return String(n).replace('.',','); }
+const TOTAL = Q.length;
+
+function hud(){
+  $('dots').innerHTML = Q.map((_,k)=>{
+    const r = results[k];
+    const cls = r===undefined ? (k===i?'now':'') : r===1?'ok':r===.5?'mid':'ko';
+    return `<span class="dot ${cls}"></span>`;
+  }).join('');
+  $('score').textContent = `${fmt(score)} / ${TOTAL}`;
+}
+
+function chainView(q){
+  const c = CHAINS[q.chain];
+  return `<div class="chain" aria-label="Chaîne de modèles">${c.steps.map((s,si)=>{
+    const k = Q.findIndex(x=>x.chain===q.chain && x.step===si);
+    if (si < q.step || (si===q.step && results[k]!==undefined))
+      return `<span class="link done" style="--c:${color(s.best)}">${si+1}. ${M[s.best].name}</span>`;
+    return `<span class="link ${si===q.step?'now':''}">${si+1}. ?</span>`;
+  }).join('<span class="arrow" aria-hidden="true">→</span>')}</div>`;
+}
+
+function render(){
+  hud();
+  if (i >= TOTAL) return end();
+  const q = Q[i];
+  const intro = q.part===1 ? 'Partie 1 · Un modèle par tâche' : 'Partie 2 · Enchaîner les modèles';
+  $('stage').innerHTML = `
+    <div class="part">${intro} · ${q.label}</div>
+    ${q.part===2 ? `<h2>${CHAINS[q.chain].title}</h2>${chainView(q)}` : ''}
+    <div class="ticket"><small>${q.part===2?'Étape à réaliser':'Ta tâche'}</small><p>${q.t}</p></div>
+    <div class="choices">${ORDER.map(k=>`<button class="choice" id="c-${k}" data-k="${k}" style="--c:${color(k)}"><b>${M[k].name}</b><span>${M[k].tag}</span></button>`).join('')}</div>
+    <div id="fb"></div>`;
+  document.querySelectorAll('.choice').forEach(b=>b.addEventListener('click',()=>answer(b.dataset.k)));
+}
+
+function answer(pick){
+  const q = Q[i], p = points(q,pick);
+  results[i] = p; score += p;
+  document.querySelectorAll('.choice').forEach(b=>{
+    const k = b.dataset.k; b.disabled = true;
+    if (k===q.best) b.classList.add('best');
+    else if (q.ok.includes(k)) b.classList.add('okish');
+    else if (k===pick) b.classList.add('picked-ko');
+    else b.classList.add('dim');
+  });
+  const head = p===1 ? ['ok','Bon choix !'] : p===.5 ? ['mid',`Défendable (½ point). L'idéal : ${M[q.best].name}.`] : ['ko',`Pas le meilleur choix. L'idéal : ${M[q.best].name}.`];
+  const last = i===TOTAL-1;
+  const nextLabel = last ? 'Voir mon résultat' : (q.part===1 && Q[i+1].part===2) ? 'Passer à la partie 2' : 'Suivant';
+  $('fb').innerHTML = `
+    <div class="fb ${head[0]}"><strong>${head[1]}</strong><p>${q.why}</p></div>
+    <div class="row"><button class="btn" id="next">${nextLabel}</button></div>`;
+  if (q.part===2) $('stage').querySelector('.chain').outerHTML = chainView(q);
+  hud();
+  $('next').addEventListener('click',()=>{ i++; render(); });
+  $('next').focus();
+}
+
+function end(){
+  const s1 = results.slice(0,SOLO.length).reduce((a,b)=>a+b,0);
+  const s2 = score - s1;
+  const missed = Q.map((q,k)=>({q,r:results[k]})).filter(x=>x.r<1);
+  const verdict = score/TOTAL >= .85 ? "Tu routes tes tâches comme un pro." : score/TOTAL >= .6 ? "Bonne base. Relis les tâches manquées ci-dessous." : "Reprends l'arbre de décision, puis refais le quiz.";
+  $('stage').innerHTML = `
+    <div class="part">Résultat</div>
+    <div><div class="big">${fmt(score)} / ${TOTAL}</div><p class="lede">${verdict} Partie 1 : ${fmt(s1)} / ${SOLO.length} · Partie 2 : ${fmt(s2)} / ${TOTAL-SOLO.length}</p></div>
+    <div class="retenir">
+      <p><strong>À retenir</strong></p>
+      <p>Pars de Sonnet. Descends vers Haiku si la tâche est simple et répétée. Monte vers Opus si elle est difficile ou à enjeu. Garde Fable pour le cas où Opus bloque.</p>
+      <p>Sur un vrai dossier, chaque étape a son modèle : Haiku prépare les données, Sonnet synthétise, Opus décide.</p>
+    </div>
+    ${missed.length ? `<h2>À revoir</h2><ul class="recap">${missed.map(({q})=>`<li>${q.part===2?`<small>${CHAINS[q.chain].title}</small><br>`:''}${q.t}<br><em style="color:${color(q.best)}">→ ${M[q.best].name}</em> · ${q.why}</li>`).join('')}</ul>` : ''}
+    <div class="row"><button class="btn" id="again">Recommencer</button></div>`;
+  $('again').addEventListener('click',()=>{ i=0; score=0; results=[]; render(); window.scrollTo(0,0); });
+}
+
+render();
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

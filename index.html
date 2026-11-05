@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Formation Claude</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#f7f8fb;--surface:#fff;--ink:#151a33;--muted:#5b6180;--line:#e2e5ef;--navy:#0f2a7a;--lime:#dcff1f;
+  --display:"Bricolage Grotesque","Arial Black",system-ui,sans-serif;--body:"Figtree",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1224;--surface:#181c33;--ink:#eef0f8;--muted:#a2a8c6;--line:#2b3052;--navy:#a9bfff;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--body)}
+.wrap{max-width:1040px;margin:0 auto;padding:40px 16px 64px;display:grid;gap:40px}
+h1,h2{font-family:var(--display);margin:0;text-wrap:balance}
+h1{font-weight:800;font-size:clamp(32px,6vw,52px);line-height:1.05;color:var(--navy)}
+h1 mark{background:var(--lime);color:#151a33;padding:0 .12em}
+h2{font-weight:600;font-size:22px;display:flex;gap:10px;align-items:baseline}
+h2 span{font-size:14px;color:var(--muted);font-family:var(--body);font-weight:500}
+.lede{color:var(--muted);max-width:62ch;margin:10px 0 0;font-size:18px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px}
+nav.toc a{color:var(--ink);text-decoration:none;font-weight:600;padding:6px 12px;border:1.5px solid var(--line);border-radius:999px}
+nav.toc a:hover{border-color:var(--ink)}
+section{display:grid;gap:14px;scroll-margin-top:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.card{display:grid;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;color:inherit;text-decoration:none;transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--ink);transform:translateY(-2px)}
+.card:focus-visible,nav.toc a:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+.card b{font-family:var(--display);font-weight:600;font-size:18px;line-height:1.2}
+.card span{font-size:14px;color:var(--muted)}
+.type{justify-self:start;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--lime);color:#151a33;padding:2px 8px;border-radius:999px;margin-bottom:4px}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Formation <mark>Claude</mark></h1>
+    <p class="lede">Animations, schémas, quiz et jeux pour apprendre à utiliser Claude, du choix de l'outil jusqu'à la construction d'un agent.</p>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <a href="#outils">1. Choisir son outil</a>
+    <a href="#contexte">2. Le contexte</a>
+    <a href="#methodes">3. Méthodes de prompt</a>
+    <a href="#agents">4. Construire un agent</a>
+  </nav>
+
+  <section id="outils">
+    <h2>1. Choisir son outil <span>4 pages</span></h2>
+    <div class="grid">
+      <a class="card" href="quiz-claude-ai-vs-desktop.html"><span class="type">Quiz</span><b>Claude.ai ou Claude Desktop ?</b><span>12 situations pour choisir le bon point d'entrée.</span></a>
+      <a class="card" href="jeu-aiguillage-outils-claude.html"><span class="type">Jeu</span><b>L'Aiguilleur Claude</b><span>Chat, Cowork, Docs, Slides, Design ou Code : quel outil pour quelle tâche ?</span></a>
+      <a class="card" href="quiz-choisir-son-modele.html"><span class="type">Quiz</span><b>Quel modèle Claude ?</b><span>Haiku, Sonnet, Opus ou Fable, tâche par tâche.</span></a>
+      <a class="card" href="schema-projet-navigateur-vs-cowork.html"><span class="type">Schéma</span><b>Navigateur ou Cowork local</b><span>Deux façons de monter le même projet Claude.</span></a>
+    </div>
+  </section>
+
+  <section id="contexte">
+    <h2>2. Le contexte <span>2 pages</span></h2>
+    <div class="grid">
+      <a class="card" href="animation-fenetre-contexte.html"><span class="type">Animation</span><b>La fenêtre de contexte</b><span>Ce que Claude voit, relit, résume et oublie.</span></a>
+      <a class="card" href="animation-context-engineering.html"><span class="type">Animation</span><b>Context engineering</b><span>Ce qui entre dans la fenêtre d'un agent, et quand.</span></a>
+    </div>
+  </section>
+
+  <section id="methodes">
+    <h2>3. Méthodes de prompt <span>4 pages</span></h2>
+    <div class="grid">
+      <a class="card" href="jeu-discussion-socratique.html"><span class="type">Jeu</span><b>Le Défi Socrate</b><span>Faire poser les bonnes questions à Claude.</span></a>
+      <a class="card" href="simulateur-loop-engineering.html"><span class="type">Simulateur</span><b>La boucle de vérification</b><span>Produire, vérifier, corriger : la démo pas à pas.</span></a>
+      <a class="card" href="simulateur-loop-engineering-interactif.html"><span class="type">Atelier</span><b>La boucle de vérification, à vous</b><span>Repérez vous-même les erreurs avant la correction.</span></a>
+      <a class="card" href="analyse-document-long-map-reduce.html"><span class="type">Méthode</span><b>Analyser un document long</b><span>Map-Reduce et boucle de qualité, sans rien perdre.</span></a>
+    </div>
+  </section>
+
+  <section id="agents">
+    <h2>4. Construire un agent <span>5 pages</span></h2>
+    <div class="grid">
+      <a class="card" href="anatomie-skill.html"><span class="type">Schéma</span><b>Anatomie d'un skill</b><span>Structure d'un skill et chargement dans le contexte.</span></a>
+      <a class="card" href="la-prise-mcp.html"><span class="type">Schéma</span><b>La prise MCP</b><span>Brancher Claude sur vos outils, et les risques.</span></a>
+      <a class="card" href="animation-agent-tri-cv.html"><span class="type">Animation</span><b>Agent de tri de CV</b><span>Du modèle seul à l'agent fiable, pièce par pièce.</span></a>
+      <a class="card" href="animation-construction-projet-repas.html"><span class="type">Animation</span><b>Construire le projet Repas</b><span>Un projet agentique, brique par brique.</span></a>
+      <a class="card" href="schema-orchestrateur-interactif.html"><span class="type">Schéma</span><b>Qui fait quoi dans l'orchestrateur ?</b><span>Ce qui reste à vous, ce que l'IA fait seule.</span></a>
+    </div>
+  </section>
+</div>
+</body>
+</html>

@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Navigateur ou Cowork local</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout : deux parcours séparés et empilés. Chacun = une maquette d'interface cliquable + le détail de l'étape. Bleu = en ligne, vert = sur l'ordinateur */
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --ink:#1b2130; --muted:#5a6274; --line:#dde1ea; --ui:#fbfaf8; --ui-line:#e6e3dd;
+  --web:#2b58d4; --web-soft:#e8eeff; --loc:#4a7500; --loc-soft:#eef6d8; --warn:#a45a00; --warn-soft:#fff1dc;
+  --ok:#1d7a4a; --ko:#b3261e;
+  --display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --serif:Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11141b; --surface:#1a1e28; --ink:#e8ebf2; --muted:#9ba3b4; --line:#2b3140; --ui:#20232b; --ui-line:#353a46;
+  --web:#8eaaff; --web-soft:#1d2848; --loc:#b4dd4c; --loc-soft:#232e17; --warn:#ffb85c; --warn-soft:#3a2a12;
+  --ok:#6fd39c; --ko:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11141b; --surface:#1a1e28; --ink:#e8ebf2; --muted:#9ba3b4; --line:#2b3140; --ui:#20232b; --ui-line:#353a46;
+  --web:#8eaaff; --web-soft:#1d2848; --loc:#b4dd4c; --loc-soft:#232e17; --warn:#ffb85c; --warn-soft:#3a2a12;
+  --ok:#6fd39c; --ko:#ff8a80; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body)}
+.wrap{max-width:1120px;margin:0 auto;padding-block:32px 64px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  display:flex;flex-direction:column;gap:64px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(30px,5vw,48px);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(24px,3.4vw,34px);font-weight:800}
+h3{font-size:19px;font-weight:600}
+p{margin:0}
+.lead{max-width:65ch;color:var(--muted);font-size:18px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+code{font-family:var(--mono);font-size:.9em}
+.web{color:var(--web)} .loc{color:var(--loc)}
+section{display:flex;flex-direction:column;gap:20px}
+.hint{font-size:14px;color:var(--muted)}
+
+/* Sommaire des deux parcours */
+.choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.pick{all:unset;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:8px}
+.pick.w{border-top:5px solid var(--web)} .pick.l{border-top:5px solid var(--loc)}
+.pick:hover{border-color:var(--ink)}
+.pick:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.big{font:800 15px/1 var(--mono);letter-spacing:.04em}
+.tag{display:inline-flex;align-items:center;gap:8px;font:700 13px/1 var(--body);letter-spacing:.05em;text-transform:uppercase}
+.dot{width:10px;height:10px;border-radius:50%;background:currentColor;flex:none}
+
+/* En-tête de parcours */
+.phead{display:flex;flex-direction:column;gap:10px;padding:22px;border-radius:16px}
+.phead.w{background:var(--web-soft)} .phead.l{background:var(--loc-soft)}
+.phead .num{font:800 64px/0.9 var(--display)}
+.phead.w .num{color:var(--web)} .phead.l .num{color:var(--loc)}
+.where-all{display:inline-flex;align-self:flex-start;gap:8px;align-items:center;font:700 14px var(--body);background:var(--surface);padding:6px 12px;border-radius:999px}
+
+/* Zone interactive */
+.stage{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;align-items:start}
+.scroll{overflow-x:auto;border-radius:14px}
+.zone{border:2px dashed;border-radius:14px;padding:30px 12px 12px;position:relative;min-width:700px}
+.zone.w{border-color:var(--web)} .zone.l{border-color:var(--loc)}
+.zone > .zlabel{position:absolute;top:-1px;left:14px;transform:translateY(-50%);background:var(--bg);padding:0 8px;font:700 13px var(--body);letter-spacing:.04em;text-transform:uppercase}
+.zone.w > .zlabel{color:var(--web)} .zone.l > .zlabel{color:var(--loc)}
+
+/* Maquette claude.ai */
+.ui{background:var(--ui);border:1px solid var(--ui-line);border-radius:10px;display:grid;grid-template-columns:170px minmax(0,1fr);font:13px/1.4 var(--body);color:var(--ink);overflow:hidden}
+.side{border-right:1px solid var(--ui-line);padding:12px 8px;display:flex;flex-direction:column;gap:2px}
+.side .logo{font:600 18px var(--serif);padding:2px 8px 10px}
+.side .sep{font-size:11px;color:var(--muted);padding:10px 8px 4px}
+.it{padding:6px 8px;border-radius:7px;display:flex;gap:8px;align-items:center;color:var(--ink)}
+.it .ic{width:14px;text-align:center;color:var(--muted)}
+.it.cur{background:var(--ui-line)}
+.mainui{display:flex;flex-direction:column}
+.crumb{border-bottom:1px solid var(--ui-line);padding:10px 16px;color:var(--muted)}
+.crumb b{color:var(--ink);font-weight:400}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:18px;padding:18px 16px 22px}
+.ptitle{font:600 22px var(--serif);margin-bottom:12px}
+.composer{border:1px solid var(--ui-line);border-radius:12px;background:var(--surface);padding:10px 12px 8px;display:flex;flex-direction:column;gap:18px;box-shadow:0 1px 3px rgb(0 0 0 / .06)}
+.composer .ph{color:var(--muted)}
+.composer .bar{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
+.recent{margin-top:16px;display:flex;flex-direction:column;gap:6px;color:var(--muted)}
+.recent div{display:flex;justify-content:space-between;color:var(--ink)}
+.panel{display:flex;flex-direction:column}
+.prow{display:flex;justify-content:space-between;gap:6px;padding:9px 6px;border-bottom:1px solid var(--ui-line)}
+.prow small{color:var(--muted)}
+.prow .act{color:var(--muted)}
+.priv{color:var(--muted);font-size:12px;padding:10px 6px}
+
+/* Points cliquables */
+.hs{cursor:pointer;position:relative;outline:2px solid transparent;outline-offset:2px;border-radius:8px;transition:outline-color .15s}
+.hs:hover{outline-color:var(--line)}
+.hs:focus-visible{outline-color:var(--ink)}
+.hs .badge{position:absolute;top:-9px;right:-9px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font:700 11px var(--mono);color:#fff;z-index:2}
+.zone.w .badge{background:var(--web)} .zone.l .badge{background:var(--loc);color:#111}
+.hs.on{outline:3px solid}
+.zone.w .hs.on{outline-color:var(--web);background:var(--web-soft)}
+.zone.l .hs.on{outline-color:var(--loc);background:var(--loc-soft)}
+
+/* Maquette locale */
+.local{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:14px}
+.win{background:var(--ui);border:1px solid var(--ui-line);border-radius:10px;overflow:hidden;font:13px/1.4 var(--body)}
+.win .tb{display:flex;gap:6px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--ui-line);color:var(--muted);font-size:12px}
+.win .tb i{width:10px;height:10px;border-radius:50%;background:var(--ui-line);display:inline-block}
+.tabs{display:flex;gap:4px;padding:8px 10px}
+.tabs span{padding:4px 10px;border-radius:6px;color:var(--muted)}
+.tabs span.cur{background:var(--ui-line);color:var(--ink)}
+.wbody{padding:10px 14px 16px;display:flex;flex-direction:column;gap:12px}
+.chip{align-self:flex-start;font:500 12px var(--mono);padding:5px 10px;border-radius:999px;border:1px solid var(--ui-line);background:var(--surface)}
+.msg{background:var(--surface);border:1px solid var(--ui-line);border-radius:10px;padding:10px 12px}
+.msg .who{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.perm{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.perm .bt{font:700 12px var(--body);padding:5px 10px;border-radius:7px;background:var(--ink);color:var(--bg)}
+.finder{background:var(--ui);border:1px solid var(--ui-line);border-radius:10px;padding:8px 8px 10px;font:12.5px/1.4 var(--mono);display:flex;flex-direction:column;gap:3px}
+.finder .tb{font:12px var(--body);color:var(--muted);padding:2px 4px 8px;border-bottom:1px solid var(--ui-line);margin-bottom:4px}
+.fi{padding:4px 6px}
+.fi.d1{padding-left:22px} .fi.d2{padding-left:40px}
+.fi .new{color:var(--loc);font-weight:500}
+
+/* Détail d'étape */
+.detail{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;position:sticky;top:calc(env(safe-area-inset-top, 0px) + 12px)}
+.detail .sn{font:500 13px var(--mono);color:var(--muted)}
+.kv{display:flex;flex-direction:column;gap:4px}
+.kv .k{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.store{font:500 13px var(--mono);padding:8px 10px;border-radius:8px}
+.w-d .store{background:var(--web-soft);color:var(--web)} .l-d .store{background:var(--loc-soft);color:var(--loc)}
+.note{font-size:14px;border-radius:8px;padding:10px 12px;background:var(--warn-soft)}
+.note strong{color:var(--warn)}
+.navb{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.btn{all:unset;cursor:pointer;font:700 14px var(--body);padding:8px 14px;border-radius:9px;border:1px solid var(--ink)}
+.btn:disabled{opacity:.3;cursor:default}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.dots{display:flex;gap:5px}
+.dots span{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.w-d .dots span.on{background:var(--web)} .l-d .dots span.on{background:var(--loc)}
+
+/* Tableau comparatif */
+.tw{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:15px}
+th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font:700 13px var(--body);letter-spacing:.04em;text-transform:uppercase}
+td:first-child{font-weight:700;width:22%}
+
+/* Quiz */
+.quiz{display:flex;flex-direction:column;gap:12px}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;align-items:center}
+.q .choices{display:flex;gap:8px;flex-wrap:wrap}
+.c{all:unset;cursor:pointer;font:700 14px var(--body);padding:8px 14px;border-radius:999px;border:1.5px solid currentColor}
+.c.w{color:var(--web)} .c.l{color:var(--loc)}
+.c:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.c[aria-pressed="true"]{background:currentColor}
+.c[aria-pressed="true"] span{color:var(--surface)}
+.fb{grid-column:1/-1;font-size:14px}
+.fb.ok{color:var(--ok)} .fb.ko{color:var(--ko)}
+.counter{font:500 13px var(--mono);color:var(--muted)}
+
+@media (max-width:900px){
+  .stage,.choice{grid-template-columns:minmax(0,1fr)}
+  .detail{position:static}
+  .q{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){.hs{transition:none}}
+</style>
+
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">Atelier « Repas de la semaine » · Niveau débutant</span>
+  <h1>Deux façons de monter<br>le même projet Claude</h1>
+  <p class="lead">Les ingrédients ne changent pas : des règles (<code>CLAUDE.md</code>), des données (famille, agenda, frigo) et trois méthodes (skills). Ce qui change, c'est l'endroit où ils sont rangés.</p>
+  <div class="choice">
+    <a class="pick w" href="#parcours-1">
+      <span class="tag web"><span class="dot"></span>Parcours 1</span>
+      <h3>Projet dans le navigateur</h3>
+      <p><strong>Tout est en ligne</strong>, sur claude.ai : instructions, contexte, skills, mémoire. Vous remplissez des champs.</p>
+    </a>
+    <a class="pick l" href="#parcours-2">
+      <span class="tag loc"><span class="dot"></span>Parcours 2</span>
+      <h3>Projet Cowork en local</h3>
+      <p><strong>Tout est dans un dossier de votre ordinateur.</strong> Claude vient lire et écrire les fichiers sur place.</p>
+    </a>
+  </div>
+</header>
+
+<!-- PARCOURS 1 -->
+<section id="parcours-1" aria-labelledby="t1">
+  <div class="phead w">
+    <span class="num">1</span>
+    <h2 id="t1">Projet dans le navigateur</h2>
+    <span class="where-all web">☁ Tout est stocké en ligne, sur claude.ai</span>
+    <p style="max-width:65ch">Vous recopiez le contenu de vos fichiers dans les champs du projet. Ensuite, Claude ne travaille que sur ce qui est dans ces champs. Cliquez sur les pastilles numérotées ou suivez les étapes.</p>
+  </div>
+  <div class="stage">
+    <div class="scroll">
+      <div class="zone w">
+        <span class="zlabel">☁ En ligne · claude.ai</span>
+        <div class="ui">
+          <div class="side">
+            <div class="logo">Claude</div>
+            <div class="it"><span class="ic">＋</span>Créer</div>
+            <div class="it"><span class="ic">⌕</span>Rechercher</div>
+            <div class="it hs" data-s="0" tabindex="0" role="button"><span class="ic">☰</span>Projets</div>
+            <div class="it hs" data-s="5" tabindex="0" role="button"><span class="ic">◫</span>Artéfacts</div>
+            <div class="it"><span class="ic">◷</span>Tâches planifiées</div>
+            <div class="it"><span class="ic">◐</span>Design</div>
+            <div class="it hs" data-s="3" tabindex="0" role="button"><span class="ic">▭</span>Personnalisation</div>
+            <div class="sep">Épinglés ▾</div>
+            <div class="it cur"><span class="ic">☰</span>Repas de la semaine</div>
+            <div class="it"><span class="ic">☰</span>demo-marketing</div>
+          </div>
+          <div class="mainui">
+            <div class="crumb">Projets / <b>Repas de la semaine</b> ⌄</div>
+            <div class="cols">
+              <div>
+                <div class="ptitle">Repas de la semaine</div>
+                <div class="composer hs" data-s="4" tabindex="0" role="button">
+                  <span class="ph" id="ph-web">Nouvelle session dans Repas de la semaine</span>
+                  <div class="bar"><span>＋</span><span>Opus 5.5 · Élevé</span></div>
+                </div>
+                <div class="recent">Récents<div><span>Repas de la semaine</span><span style="color:var(--muted)">Hier</span></div></div>
+              </div>
+              <div class="panel">
+                <div class="prow hs" data-s="1" tabindex="0" role="button"><span>Instructions</span><span class="act">Modifier</span></div>
+                <div class="prow hs" data-s="2" tabindex="0" role="button"><span>Contexte <small id="ctx-n">3 fichiers</small></span><span class="act">Ajouter</span></div>
+                <div class="prow hs" data-s="6" tabindex="0" role="button"><span>Mémoire</span><span class="act">Voir</span></div>
+                <div class="prow hs" data-s="7" tabindex="0" role="button"><span>Programmé</span><span class="act">Ajouter</span></div>
+                <div class="priv">Privé</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="detail w-d" id="det-web" aria-live="polite"></aside>
+  </div>
+</section>
+
+<!-- PARCOURS 2 -->
+<section id="parcours-2" aria-labelledby="t2">
+  <div class="phead l">
+    <span class="num">2</span>
+    <h2 id="t2">Projet Cowork en local</h2>
+    <span class="where-all loc">💻 Tout est rangé dans un dossier de votre ordinateur</span>
+    <p style="max-width:65ch">Vous ne recopiez rien : vous désignez un dossier, et Claude y lit vos fichiers puis y enregistre ses résultats. Les champs « Instructions » ou « Contexte » sont remplacés par de vrais fichiers. Maquette simplifiée de l'app Claude sur ordinateur.</p>
+  </div>
+  <div class="stage">
+    <div class="scroll">
+      <div class="zone l">
+        <span class="zlabel">💻 Sur votre ordinateur</span>
+        <div class="local">
+          <div class="win">
+            <div class="tb"><i></i><i></i><i></i>&nbsp; App Claude (ordinateur)</div>
+            <div class="tabs"><span>Chat</span><span class="cur hs" data-s="1" tabindex="0" role="button">Cowork</span><span>Code</span></div>
+            <div class="wbody">
+              <span class="chip hs" data-s="1" tabindex="0" role="button">📁 orchestrateur-repas-zero</span>
+              <div class="msg hs" data-s="5" tabindex="0" role="button"><div class="who">Vous</div>Consulte d'abord CLAUDE.md, puis prépare les dîners de la semaine. Demande-moi avant d'écrire un fichier.</div>
+              <div class="msg"><div class="who">Claude</div>Je lis CLAUDE.md et donnees/… J'utilise orchestrateur-repas → menu-semaine → liste-courses.</div>
+              <div class="msg perm hs" data-s="6" tabindex="0" role="button"><span>Créer 2 fichiers dans sorties/ ?</span><span class="bt">Autoriser</span></div>
+            </div>
+          </div>
+          <div class="finder">
+            <div class="tb">Finder · Documents</div>
+            <div class="fi hs" data-s="0" tabindex="0" role="button">📁 orchestrateur-repas-zero/</div>
+            <div class="fi d1 hs" data-s="2" tabindex="0" role="button">📄 CLAUDE.md</div>
+            <div class="fi d1 hs" data-s="7" tabindex="0" role="button">📄 MEMORY.md</div>
+            <div class="fi d1 hs" data-s="3" tabindex="0" role="button">📁 donnees/<br>&nbsp;&nbsp;famille.md<br>&nbsp;&nbsp;agenda.md<br>&nbsp;&nbsp;frigo.md</div>
+            <div class="fi d1 hs" data-s="4" tabindex="0" role="button">📁 .claude/skills/<br>&nbsp;&nbsp;orchestrateur-repas/<br>&nbsp;&nbsp;menu-semaine/<br>&nbsp;&nbsp;liste-courses/</div>
+            <div class="fi d1 hs" data-s="6" tabindex="0" role="button">📁 sorties/<br>&nbsp;&nbsp;<span class="new">+ menu-semaine.md</span><br>&nbsp;&nbsp;<span class="new">+ liste-courses.md</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="detail l-d" id="det-loc" aria-live="polite"></aside>
+  </div>
+</section>
+
+<!-- COMPARATIF -->
+<section aria-labelledby="t3">
+  <h2 id="t3">Le même ingrédient, rangé à deux endroits</h2>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Ingrédient</th><th class="web">1 · Navigateur (en ligne)</th><th class="loc">2 · Cowork (local)</th></tr></thead>
+      <tbody>
+        <tr><td>Les règles</td><td>Champ <strong>Instructions</strong> : texte collé</td><td>Fichier <code>CLAUDE.md</code> du dossier</td></tr>
+        <tr><td>Les données</td><td>Champ <strong>Contexte</strong> : fichiers téléversés (copies)</td><td>Dossier <code>donnees/</code> (originaux, à jour)</td></tr>
+        <tr><td>Les méthodes</td><td><strong>Personnalisation → Skills</strong> : .zip importés dans le compte</td><td>Dossier <code>.claude/skills/</code></td></tr>
+        <tr><td>La demande</td><td>Champ <strong>Nouvelle session</strong></td><td>Consigne dans Cowork, dossier sélectionné</td></tr>
+        <tr><td>Les résultats</td><td>Dans la conversation / <strong>Artéfacts</strong>, à télécharger</td><td>Fichiers écrits dans <code>sorties/</code></td></tr>
+        <tr><td>La mémoire</td><td><strong>Mémoire</strong> : résumé tenu par Claude</td><td>Fichier <code>MEMORY.md</code> que vous relisez</td></tr>
+        <tr><td>Une mise à jour</td><td>À refaire à la main dans chaque champ</td><td>Modifier le fichier suffit</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- QUIZ -->
+<section aria-labelledby="t4">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <h2 id="t4">À vous : quel parcours choisir ?</h2>
+    <p class="hint">Pour chaque situation, choisissez le parcours le plus adapté.</p>
+  </div>
+  <div class="quiz" id="quiz"></div>
+  <p class="counter" id="score"></p>
+</section>
+
+</div>
+
+<script>
+const P1 = [
+  {t:"Créer le projet", where:"Projets → Nouveau projet",
+   you:"Dans la barre de gauche, ouvrez « Projets » puis créez « Repas de la semaine ».",
+   store:"☁ Un espace vide, en ligne", note:""},
+  {t:"Coller les règles", where:"Instructions → Modifier",
+   you:"Ouvrez le contenu de CLAUDE.md, copiez tout le texte (dont la règle sur l'allergie de Léo) et collez-le dans le champ Instructions.",
+   store:"☁ Le texte collé, lu à chaque nouvelle session",
+   note:"Si vous modifiez CLAUDE.md sur votre ordinateur, le projet ne le sait pas : il faut recoller."},
+  {t:"Ajouter les données", where:"Contexte → Ajouter",
+   you:"Téléversez famille.md, agenda.md et frigo.md. Le compteur affiche « 3 fichiers ».",
+   store:"☁ Trois copies, figées au moment de l'envoi",
+   note:"Le frigo change ? Il faut supprimer l'ancienne copie et téléverser la nouvelle."},
+  {t:"Importer les skills", where:"Personnalisation → Skills",
+   you:"Importez les trois skills en .zip : orchestrateur-repas, menu-semaine, liste-courses (préparés dans export-cloud/).",
+   store:"☁ Dans votre compte Claude",
+   note:"Les skills ne sont pas dans le projet : ils sont disponibles dans toutes vos conversations."},
+  {t:"Lancer la demande", where:"Nouvelle session",
+   you:"Tapez : « Prépare les dîners de la semaine. » Claude lit les Instructions et le Contexte, puis déclenche orchestrateur-repas.",
+   store:"☁ La conversation, dans le projet", note:"", typed:"Prépare les dîners de la semaine."},
+  {t:"Récupérer le résultat", where:"Conversation · Artéfacts",
+   you:"Le menu et la liste de courses s'affichent dans la réponse ou sous forme d'artéfact. Copiez-les ou téléchargez-les.",
+   store:"☁ En ligne, jamais sur votre disque tant que vous ne téléchargez pas", note:""},
+  {t:"Relire la mémoire", where:"Mémoire → Voir",
+   you:"Consultez ce que Claude a retenu des échanges du projet, et corrigez-le si besoin.",
+   store:"☁ Un résumé écrit par Claude",
+   note:"C'est Claude qui choisit quoi retenir : relisez-le de temps en temps."},
+  {t:"Programmer (option)", where:"Programmé → Ajouter",
+   you:"Planifiez la demande chaque dimanche soir pour recevoir le menu de la semaine.",
+   store:"☁ Une tâche qui tourne en ligne", note:""}
+];
+const P2 = [
+  {t:"Préparer le dossier", where:"Finder · Documents",
+   you:"Sur votre ordinateur, rangez tout dans un dossier : orchestrateur-repas-zero/.",
+   store:"💻 Sur votre disque", note:""},
+  {t:"Ouvrir Cowork sur ce dossier", where:"App Claude → Cowork",
+   you:"Ouvrez l'app Claude sur ordinateur, onglet Cowork, et choisissez le dossier orchestrateur-repas-zero.",
+   store:"💻 Claude a accès à ce dossier, et seulement à lui", note:""},
+  {t:"Les règles : CLAUDE.md", where:"orchestrateur-repas-zero/CLAUDE.md",
+   you:"Rien à coller. Les règles sont dans le fichier CLAUDE.md, à la racine du dossier.",
+   store:"💻 Le fichier d'origine",
+   note:"Dites-lui « Consulte d'abord CLAUDE.md » en début de consigne, pour être sûr qu'il le lise."},
+  {t:"Les données : donnees/", where:"donnees/famille.md, agenda.md, frigo.md",
+   you:"Rien à téléverser. Mettez simplement le frigo et l'agenda à jour dans leurs fichiers.",
+   store:"💻 Les originaux, toujours à jour", note:""},
+  {t:"Les skills : .claude/skills/", where:".claude/skills/",
+   you:"Les trois skills sont rangés dans le dossier et voyagent avec lui.",
+   store:"💻 Dans le dossier du projet",
+   note:"À vérifier dans votre version de l'app : si ces skills n'apparaissent pas, importez-les via Personnalisation → Skills."},
+  {t:"Lancer la consigne", where:"Cowork · zone de saisie",
+   you:"Tapez : « Consulte d'abord CLAUDE.md, puis prépare les dîners de la semaine. Demande-moi avant d'écrire un fichier. »",
+   store:"💻 Claude ouvre les fichiers un à un", note:""},
+  {t:"Autoriser l'écriture", where:"sorties/",
+   you:"Claude demande à créer menu-semaine.md et liste-courses.md. Vous cliquez sur « Autoriser ».",
+   store:"💻 Deux nouveaux fichiers sur votre disque",
+   note:"Gardez le réflexe : Claude doit demander avant de créer ou modifier un fichier."},
+  {t:"Tenir la mémoire", where:"MEMORY.md",
+   you:"Demandez à Claude de noter les décisions importantes dans MEMORY.md (ex. « pas de poisson le lundi »).",
+   store:"💻 Un fichier texte que vous relisez et corrigez", note:""}
+];
+
+const esc = s => s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+function parcours(zoneSel, detSel, steps, onStep){
+  const zone = document.querySelector(zoneSel), det = document.querySelector(detSel);
+  const hs = [...zone.querySelectorAll(".hs")];
+  // une pastille par étape, sur le premier élément de l'étape
+  steps.forEach((_, i) => { const el = hs.find(h => +h.dataset.s === i);
+    if (el) el.insertAdjacentHTML("beforeend", `<span class="badge" aria-hidden="true">${i+1}</span>`); });
+  let cur = 0;
+  function go(i){
+    cur = Math.max(0, Math.min(steps.length-1, i));
+    const s = steps[cur];
+    hs.forEach(h => h.classList.toggle("on", +h.dataset.s === cur));
+    det.innerHTML = `<span class="sn">Étape ${cur+1} sur ${steps.length}</span>
+      <h3>${esc(s.t)}</h3>
+      <div class="kv"><span class="k">Où cliquer</span><strong>${esc(s.where)}</strong></div>
+      <div class="kv"><span class="k">Ce que vous faites</span><p>${esc(s.you)}</p></div>
+      <div class="kv"><span class="k">Où c'est rangé</span><span class="store">${esc(s.store)}</span></div>
+      ${s.note ? `<p class="note"><strong>Attention · </strong>${esc(s.note)}</p>` : ""}
+      <div class="navb"><button class="btn" type="button" data-d="-1" ${cur===0?"disabled":""}>←</button>
+        <span class="dots">${steps.map((_,j)=>`<span class="${j===cur?"on":""}"></span>`).join("")}</span>
+        <button class="btn primary" type="button" data-d="1" ${cur===steps.length-1?"disabled":""}>Suivant →</button></div>`;
+    onStep && onStep(cur, s);
+  }
+  det.addEventListener("click", e => { const b = e.target.closest("[data-d]"); if (b) go(cur + +b.dataset.d); });
+  zone.addEventListener("click", e => { const h = e.target.closest(".hs"); if (h) go(+h.dataset.s); });
+  zone.addEventListener("keydown", e => { const h = e.target.closest(".hs");
+    if (h && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); go(+h.dataset.s); } });
+  go(0);
+}
+const ph = document.getElementById("ph-web"), ctx = document.getElementById("ctx-n");
+parcours(".zone.w", "#det-web", P1, (i, s) => {
+  ph.textContent = s.typed || "Nouvelle session dans Repas de la semaine";
+  ph.style.color = s.typed ? "var(--ink)" : "";
+  ctx.textContent = i < 2 ? "0 fichier" : "3 fichiers";
+});
+parcours(".zone.l", "#det-loc", P2);
+
+// Quiz
+const QUIZ = [
+  {q:"Vous voulez tester le projet depuis l'ordinateur d'un collègue, sans rien installer.", a:"w", why:"Le navigateur suffit : tout est en ligne, rien à installer."},
+  {q:"Le contenu du frigo change tous les jours et vous ne voulez pas re-téléverser le fichier.", a:"l", why:"En local, Claude lit frigo.md directement dans votre dossier."},
+  {q:"Vous voulez que la liste de courses soit enregistrée comme fichier dans votre dossier.", a:"l", why:"Seul Cowork en local peut écrire dans sorties/ sur votre disque."},
+  {q:"Vous voulez consulter le menu de la semaine depuis votre téléphone.", a:"w", why:"Un projet claude.ai est accessible partout où vous êtes connecté."}
+];
+const answers = {};
+const quiz = document.getElementById("quiz");
+quiz.innerHTML = QUIZ.map((x,i) => `<div class="q" data-i="${i}"><p>${esc(x.q)}</p>
+  <div class="choices"><button class="c w" type="button" data-a="w" aria-pressed="false"><span>1 · Navigateur</span></button>
+  <button class="c l" type="button" data-a="l" aria-pressed="false"><span>2 · Cowork local</span></button></div>
+  <p class="fb" aria-live="polite"></p></div>`).join("");
+quiz.addEventListener("click", e => {
+  const b = e.target.closest(".c"); if (!b) return;
+  const q = b.closest(".q"), i = +q.dataset.i, x = QUIZ[i], ok = b.dataset.a === x.a;
+  answers[i] = ok;
+  q.querySelectorAll(".c").forEach(c => c.setAttribute("aria-pressed", c === b));
+  const fb = q.querySelector(".fb");
+  fb.className = "fb " + (ok ? "ok" : "ko");
+  fb.textContent = (ok ? "Bien vu. " : "Pas tout à fait. ") + x.why;
+  const n = Object.keys(answers).length, good = Object.values(answers).filter(Boolean).length;
+  document.getElementById("score").textContent = `${good} bonne(s) réponse(s) sur ${n} · ${QUIZ.length} situations`;
+});
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

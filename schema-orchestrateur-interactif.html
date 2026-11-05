@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Qui fait quoi dans l’orchestrateur ?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
+<style>
+/* Layout : deux couloirs (Toi | L’IA) traversés par une ligne de temps centrale ; panneau d’explication au-dessus. Couleurs Akyos. */
+:root{
+  --bg:#f4f6fb; --surface:#ffffff; --ink:#001662; --muted:#4a5580; --line:#d5dbec;
+  --user:#b86a00; --user-soft:#fdf1df; --ai:#0971ce; --ai-soft:#e4f0fc; --warn:#cc3449; --warn-soft:#fbe6e9;
+  --display:'DM Sans', Arial, sans-serif; --body:'DM Sans', Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1640; --surface:#12204f; --ink:#eef1fa; --muted:#a9b4d6; --line:#263670;
+  --user:#f2b25c; --user-soft:#3a2c1a; --ai:#6fb6f5; --ai-soft:#163566; --warn:#f2849a; --warn-soft:#45192a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1640; --surface:#12204f; --ink:#eef1fa; --muted:#a9b4d6; --line:#263670;
+  --user:#f2b25c; --user-soft:#3a2c1a; --ai:#6fb6f5; --ai-soft:#163566; --warn:#f2849a; --warn-soft:#45192a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;margin:0}
+.wrap{max-width:1040px;margin:0 auto;padding-block:32px 48px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));display:flex;flex-direction:column;gap:24px}
+h1{font-family:var(--display);font-size:clamp(28px,4vw,40px);line-height:1.15;margin:0;text-wrap:balance}
+.lead{color:var(--muted);margin:0;max-width:65ch}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:500;padding:8px 16px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.nav{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:500;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 16px;border-radius:999px;cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible{outline:3px solid var(--ai);outline-offset:2px}
+.panel{background:var(--surface);border-radius:16px;padding:20px 24px;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:start;border:1.5px solid var(--line)}
+.panel .who{grid-row:span 3;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;border-radius:999px;white-space:nowrap}
+.panel h2{font-size:22px;margin:0;line-height:1.25}
+.panel p{margin:0;color:var(--muted);min-width:0}
+.panel .why{color:var(--ink)}
+.who.user{background:var(--user-soft);color:var(--user)}
+.who.ai{background:var(--ai-soft);color:var(--ai)}
+.who.warn{background:var(--warn-soft);color:var(--warn)}
+.legend{display:flex;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:14px}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+.flow{display:grid;grid-template-columns:1fr 48px 1fr;row-gap:12px}
+.lane-head{font-family:var(--display);font-weight:700;font-size:18px;padding:12px 16px;border-radius:12px;text-align:center}
+.lane-head.user{background:var(--user-soft);color:var(--user)}
+.lane-head.ai{background:var(--ai-soft);color:var(--ai)}
+.lane-head small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.spine{position:relative}
+.spine::before{content:"";position:absolute;left:50%;top:-12px;bottom:-12px;width:2px;background:var(--line);transform:translateX(-50%)}
+.spine .n{position:relative;margin:18px auto 0;width:28px;height:28px;border-radius:50%;background:var(--surface);border:2px solid var(--line);font-size:13px;font-weight:700;display:grid;place-items:center;color:var(--muted);font-variant-numeric:tabular-nums}
+.step{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;transition:opacity .2s,border-color .2s,transform .2s;min-width:0}
+.step b{font-size:16px}
+.step span{font-size:14px;color:var(--muted)}
+.step .tag{display:none;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.step.user.on{border-color:var(--user);background:var(--user-soft)}
+.step.ai.on{border-color:var(--ai);background:var(--ai-soft)}
+.step.warn.on{border-color:var(--warn);background:var(--warn-soft)}
+.step.decision{border-style:dashed}
+.step.future{opacity:.45}
+.step:focus-visible{outline:3px solid var(--ai);outline-offset:2px}
+.row-on .n{border-color:var(--ink);color:var(--ink)}
+.empty{min-height:1px}
+.tally{display:flex;gap:12px;flex-wrap:wrap}
+.tally div{flex:1 1 200px;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px}
+.tally strong{font-size:28px;font-variant-numeric:tabular-nums;display:block;line-height:1.1}
+.tally .u strong{color:var(--user)} .tally .a strong{color:var(--ai)}
+.tally p{margin:0;color:var(--muted);font-size:14px}
+@media (max-width:640px){
+  .flow{grid-template-columns:1fr}
+  .lane-head,.spine,.empty{display:none}
+  .step .tag{display:block}
+  .step.user .tag{color:var(--user)} .step.ai .tag{color:var(--ai)} .step.warn .tag{color:var(--warn)}
+  .panel{grid-template-columns:1fr}
+  .panel .who{grid-row:auto;justify-self:start}
+}
+@media (prefers-reduced-motion:reduce){.step{transition:none}}
+</style>
+
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:10px">
+    <h1>Qui fait quoi dans l’orchestrateur ?</h1>
+    <p class="lead">Exemple : le reporting trimestriel (Leçon 3.9). Avance étape par étape ou clique sur une case. Tu verras ce qui reste à ta charge et ce que l’IA fait seule.</p>
+  </header>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Scénario">
+      <button type="button" id="sc-ok" aria-pressed="true">Données complètes</button>
+      <button type="button" id="sc-ko" aria-pressed="false">Données manquantes</button>
+    </div>
+    <div class="nav">
+      <button type="button" class="btn" id="prev">← Précédent</button>
+      <button type="button" class="btn primary" id="next">Suivant →</button>
+      <button type="button" class="btn" id="play">Lecture auto</button>
+    </div>
+  </div>
+
+  <section class="panel" aria-live="polite">
+    <span class="who" id="p-who"></span>
+    <h2 id="p-title"></h2>
+    <p id="p-detail"></p>
+    <p class="why" id="p-why"></p>
+  </section>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--user)"></i>Toi : tu décides et tu valides</span>
+    <span><i class="dot" style="background:var(--ai)"></i>L’IA : elle agit seule</span>
+    <span><i class="dot" style="background:var(--warn)"></i>L’IA adapte son plan</span>
+  </div>
+
+  <div class="flow" id="flow"></div>
+
+  <div class="tally">
+    <div class="u"><strong id="t-user">0</strong><p>étapes qui restent à toi</p></div>
+    <div class="a"><strong id="t-ai">0</strong><p>étapes que l’IA fait seule</p></div>
+  </div>
+</div>
+
+<script>
+const S = {
+  start:{lane:'user',t:'Donner l’objectif',s:'« Lance le reporting du T1 »',d:'Tu dis ce que tu veux obtenir en une phrase. Tu n’as pas à lister les étapes ni à nommer les Skills.',w:'C’est toi qui fixes le but. Plus tard, une loop peut lancer cette demande à ta place à une date fixe.'},
+  check:{lane:'ai',t:'Vérifier les prérequis',s:'Données, accès aux outils',d:'L’orchestrateur contrôle que les chiffres du trimestre sont présents et que les outils connectés répondent.',w:'Personne ne lui dit de le faire à chaque fois : la vérification est écrite une fois pour toutes dans l’orchestrateur.'},
+  decide:{lane:'ai',t:'Décider de la suite',s:'Tout est prêt ?',d:'Selon le résultat de la vérification, il choisit lui-même le chemin à suivre.',w:'C’est cette décision qui fait de lui un agent, et pas une simple automatisation.',decision:true},
+  report:{lane:'ai',t:'Skill « rapport »',s:'Analyse et rédaction',d:'Il lance la Skill qui analyse les données et rédige le rapport selon ton format.',w:'L’IA applique la procédure que tu as écrite et testée dans la Skill.'},
+  mail:{lane:'ai',t:'Skill « email »',s:'Résumé pour chaque responsable',d:'Il transmet le rapport à la Skill suivante, qui rédige un email par responsable.',w:'C’est lui qui fait passer le résultat d’une étape à l’autre. Tu n’as rien à copier-coller.'},
+  draft:{lane:'ai',t:'Déposer en brouillon',s:'Rien n’est envoyé',d:'Les emails sont enregistrés en brouillon, avec un court compte rendu de ce qui a été fait.',w:'C’est une limite que tu as fixée : l’IA prépare, elle n’envoie pas.'},
+  review:{lane:'user',t:'Relire et envoyer',s:'Validation humaine',d:'Tu relis le rapport et les brouillons, tu corriges si besoin, puis tu envoies.',w:'La décision finale reste à toi. Tes corrections peuvent être notées dans memory.md pour la prochaine fois.'},
+  alert:{lane:'warn',t:'Te prévenir',s:'« Il manque les chiffres de mars »',d:'Au lieu de produire un rapport faux, l’orchestrateur s’arrête et te dit précisément ce qui manque.',w:'L’IA adapte son plan face à un imprévu. Une automatisation simple aurait continué.'},
+  supply:{lane:'user',t:'Compléter ou reporter',s:'Tu ajoutes le fichier, ou tu dis « demain »',d:'Tu fournis la donnée manquante ou tu acceptes de reporter. L’orchestrateur reprend ensuite à la vérification.',w:'Quand l’IA ne peut pas avancer seule, elle te rend la main.'}
+};
+const PATHS = {
+  ok:['start','check','decide','report','mail','draft','review'],
+  ko:['start','check','decide','alert','supply','check','decide','report','mail','draft','review']
+};
+let sc='ok', cur=0, timer=null;
+const $=id=>document.getElementById(id);
+const label={user:'Toi',ai:'L’IA, seule',warn:'L’IA adapte'};
+
+function render(){
+  const path=PATHS[sc], flow=$('flow');
+  flow.innerHTML='<div class="lane-head user">Toi<small>tu décides, tu valides</small></div><div></div><div class="lane-head ai">L’orchestrateur<small>il agit seul</small></div>';
+  path.forEach((k,i)=>{
+    const s=S[k], left=s.lane==='user';
+    const cls=['step',s.lane,s.decision?'decision':'',i===cur?'on':'',i>cur?'future':''].join(' ');
+    const card=`<button type="button" class="${cls}" data-i="${i}" aria-current="${i===cur?'step':'false'}"><span class="tag">${label[s.lane]}</span><b>${s.t}</b><span>${s.s}</span></button>`;
+    const spine=`<div class="spine ${i===cur?'row-on':''}"><div class="n">${i+1}</div></div>`;
+    flow.insertAdjacentHTML('beforeend', left ? card+spine+'<div class="empty"></div>' : '<div class="empty"></div>'+spine+card);
+  });
+  flow.querySelectorAll('.step').forEach(b=>b.onclick=()=>{stop();cur=+b.dataset.i;render()});
+  const s=S[path[cur]];
+  $('p-who').className='who '+s.lane; $('p-who').textContent=label[s.lane];
+  $('p-title').textContent=`${cur+1}. ${s.t}`; $('p-detail').textContent=s.d; $('p-why').textContent=s.w;
+  $('t-user').textContent=path.filter(k=>S[k].lane==='user').length;
+  $('t-ai').textContent=path.filter(k=>S[k].lane!=='user').length;
+  $('prev').disabled=cur===0; $('next').textContent=cur===path.length-1?'Recommencer':'Suivant →';
+}
+function next(){cur=cur>=PATHS[sc].length-1?0:cur+1;render()}
+function stop(){clearInterval(timer);timer=null;$('play').textContent='Lecture auto'}
+$('next').onclick=()=>{stop();next()};
+$('prev').onclick=()=>{stop();if(cur>0){cur--;render()}};
+$('play').onclick=()=>{if(timer){stop();return}$('play').textContent='Pause';timer=setInterval(()=>{if(cur>=PATHS[sc].length-1){stop();return}next()},2600)};
+function setSc(v){stop();sc=v;cur=0;$('sc-ok').setAttribute('aria-pressed',v==='ok');$('sc-ko').setAttribute('aria-pressed',v==='ko');render()}
+$('sc-ok').onclick=()=>setSc('ok'); $('sc-ko').onclick=()=>setSc('ko');
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){stop();next()} if(e.key==='ArrowLeft'&&cur>0){stop();cur--;render()}});
+render();
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claude.ai ou Desktop ?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+/* Layout : une carte-scénario centrée, trois choix, retour immédiat, bilan final. Couleurs reprises de la slide (web = terracotta, desktop = vert). */
+:root {
+  --bg: #f7f3ee; --surface: #ffffff; --fg: #2b211c; --muted: #6f625a; --line: #e4dbd2;
+  --web: #c2552d; --web-soft: #fbe9e1; --desk: #4f7a3a; --desk-soft: #e6f0df;
+  --both: #7a4a32; --both-soft: #f1e6de; --ok: #2f7d4a; --ko: #b3362b;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1c1715; --surface: #27201d; --fg: #f2ebe5; --muted: #b4a69c; --line: #3b322d;
+  --web: #ec8460; --web-soft: #3a2419; --desk: #8fc072; --desk-soft: #22301b;
+  --both: #d6a487; --both-soft: #342720; --ok: #6fcf8f; --ko: #f0857a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #1c1715; --surface: #27201d; --fg: #f2ebe5; --muted: #b4a69c; --line: #3b322d;
+  --web: #ec8460; --web-soft: #3a2419; --desk: #8fc072; --desk-soft: #22301b;
+  --both: #d6a487; --both-soft: #342720; --ok: #6fcf8f; --ko: #f0857a; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 17px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 48px; }
+main { max-width: 680px; margin: 0 auto; display: grid; gap: 20px; }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.7rem, 5vw, 2.4rem); font-weight: 800; line-height: 1.1; }
+.eyebrow { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.key { margin: 0; color: var(--muted); }
+.key b { color: var(--fg); }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--both); transition: width .3s; }
+.meta { display: flex; justify-content: space-between; font-size: .9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: grid; gap: 18px; }
+.scenario { font-size: 1.2rem; font-weight: 600; margin: 0; }
+.choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 520px) { .choices { grid-template-columns: 1fr; } }
+.choices button { font: 600 1rem var(--body); padding: 14px 10px; border-radius: 10px; cursor: pointer;
+  border: 2px solid var(--c); background: var(--soft); color: var(--fg); }
+.choices button:hover:not(:disabled) { background: var(--c); color: var(--surface); }
+.choices button:focus-visible, .next:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+.choices button:disabled { cursor: default; opacity: .45; }
+.choices button.picked, .choices button.right { opacity: 1; }
+.choices button.right { background: var(--c); color: var(--surface); }
+[data-a="web"] { --c: var(--web); --soft: var(--web-soft); }
+[data-a="desk"] { --c: var(--desk); --soft: var(--desk-soft); }
+[data-a="both"] { --c: var(--both); --soft: var(--both-soft); }
+.feedback { border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 8px; }
+.verdict { font-weight: 700; font-family: var(--display); font-size: 1.15rem; }
+.verdict.ok { color: var(--ok); } .verdict.ko { color: var(--ko); }
+.feedback p { margin: 0; }
+.crit { font-size: .92rem; color: var(--muted); }
+.next { justify-self: end; font: 600 1rem var(--body); padding: 12px 22px; border-radius: 10px; border: 0;
+  background: var(--fg); color: var(--bg); cursor: pointer; }
+.review { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; }
+.review li { display: grid; grid-template-columns: 26px 1fr; gap: 8px; font-size: .95rem; }
+.review .mark { font-weight: 800; }
+.review .ok { color: var(--ok); } .review .ko { color: var(--ko); }
+.review small { display: block; color: var(--muted); }
+.score { font-family: var(--display); font-size: 3rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .bar span { transition: none; } }
+</style>
+
+<main>
+  <header style="display:grid;gap:10px">
+    <span class="eyebrow">Quel point d'entrée choisir ?</span>
+    <h1>Claude.ai ou Claude Desktop ?</h1>
+    <p class="key">Pour chaque situation, choisissez l'outil le plus adapté. La question à se poser : <b>ai-je besoin d'agir sur mon ordinateur ?</b></p>
+  </header>
+
+  <div>
+    <div class="meta"><span id="pos"></span><span id="pts"></span></div>
+    <div class="bar"><span id="fill"></span></div>
+  </div>
+
+  <section class="card" id="quiz" aria-live="polite">
+    <p class="scenario" id="scenario"></p>
+    <div class="choices" id="choices">
+      <button id="btn-web" data-a="web">Claude.ai</button>
+      <button id="btn-desk" data-a="desk">Claude Desktop</button>
+      <button id="btn-both" data-a="both">Les deux conviennent</button>
+    </div>
+    <div class="feedback" id="feedback" hidden>
+      <span class="verdict" id="verdict"></span>
+      <p id="why"></p>
+      <p class="crit" id="crit"></p>
+      <button class="next" id="next">Situation suivante</button>
+    </div>
+  </section>
+
+  <section class="card" id="end" hidden>
+    <span class="eyebrow">Votre bilan</span>
+    <div class="score" id="final"></div>
+    <p id="advice" style="margin:0"></p>
+    <ul class="review" id="review"></ul>
+    <button class="next" id="restart">Recommencer (ordre mélangé)</button>
+  </section>
+</main>
+
+<script>
+const LABEL = { web: "Claude.ai", desk: "Claude Desktop", both: "Les deux conviennent" };
+const Q = [
+  { s: "En formation chez un client, vous utilisez un poste sans droits d'installation. Vous voulez résumer un PDF reçu par e-mail.",
+    a: "web", why: "Aucun logiciel à installer : le navigateur suffit, et vous pouvez joindre le PDF directement dans la conversation.", c: "Avantage Claude.ai : aucun logiciel à installer." },
+  { s: "Vous voulez que Claude renomme et range 200 factures qui se trouvent dans votre dossier Téléchargements.",
+    a: "desk", why: "Il faut agir directement sur des fichiers de votre ordinateur. Seul Desktop peut y accéder, avec votre autorisation.", c: "Avantage Desktop : accès autorisé aux fichiers locaux." },
+  { s: "Dans le train, sur votre téléphone, vous préparez une veille sur les tendances de votre secteur.",
+    a: "web", why: "Recherche et rédaction, depuis n'importe quel appareil : c'est le terrain de Claude.ai.", c: "Avantage Claude.ai : accessible sur tout appareil, idéal pour la recherche." },
+  { s: "Votre service informatique a installé un serveur MCP local qui donne accès à la base clients interne. Vous voulez l'interroger avec Claude.",
+    a: "desk", why: "Un serveur MCP local tourne sur votre machine : Desktop sait s'y brancher, le navigateur non.", c: "Avantage Desktop : extensions et serveurs MCP locaux." },
+  { s: "Hier soir, vous avez commencé le projet « Propositions commerciales » dans le navigateur. Ce matin, vous voulez le reprendre sur l'application de bureau.",
+    a: "both", why: "Même compte, mêmes projets : les conversations et les projets sont synchronisés entre les deux.", c: "Socle commun : conversations et projets synchronisés." },
+  { s: "Vous rédigez un post LinkedIn à partir de quelques notes que vous collez dans la conversation.",
+    a: "web", why: "Rien à faire sur l'ordinateur : de la rédaction pure. Desktop marcherait aussi, mais il n'apporte rien ici. Claude.ai est le choix le plus simple.", c: "Choisir Claude.ai : pour consulter, rédiger, rechercher." },
+  { s: "Vous voulez que Claude remplisse un tableau Excel ouvert sur votre ordinateur à partir d'une page web.",
+    a: "desk", why: "Claude doit interagir avec une application et le navigateur de votre poste. C'est un usage Desktop.", c: "Avantage Desktop : interaction avec navigateur et applications." },
+  { s: "Vous lancez une longue tâche de tri de fichiers sur votre disque dur, puis vous comptez partir déjeuner.",
+    a: "desk", why: "Fichiers locaux, donc Desktop. Mais attention à la limite : certaines actions exigent que l'application reste ouverte. Ne fermez pas l'ordinateur.", c: "Limite Desktop : certaines actions exigent que l'app reste ouverte." },
+  { s: "Vous voulez retrouver un document partagé dans votre Google Drive grâce au connecteur.",
+    a: "both", why: "Les connecteurs cloud ne dépendent pas de votre ordinateur : ils fonctionnent dans le navigateur comme dans l'application.", c: "Avantage Claude.ai : connecteurs cloud disponibles partout (y compris dans Desktop)." },
+  { s: "Vous voulez que Claude modifie le code du site web de l'agence, stocké dans un dossier de votre ordinateur.",
+    a: "desk", why: "Travailler dans un dossier de projet local, c'est le rôle de Claude Code, intégré à Desktop.", c: "Avantage Desktop : Claude Code et Cowork intégrés." },
+  { s: "Vous demandez à Claude de créer un petit quiz interactif à partager avec vos collègues.",
+    a: "both", why: "Les Artifacts sont disponibles des deux côtés : ils font partie du socle commun.", c: "Socle commun : Artifacts et Cowork disponibles." },
+  { s: "Vous êtes en salle informatique sur un poste partagé, et vous ne voulez rien laisser sur la machine après la séance.",
+    a: "web", why: "Le navigateur évite toute installation et toute autorisation locale à gérer sur un poste qui n'est pas le vôtre.", c: "Limite Desktop : installation et autorisations locales à maîtriser." },
+];
+
+const $ = id => document.getElementById(id);
+let order, i, score, answers;
+
+function start() {
+  order = Q.map((_, k) => k).sort(() => Math.random() - .5);
+  i = 0; score = 0; answers = [];
+  $("end").hidden = true; $("quiz").hidden = false;
+  show();
+}
+
+function show() {
+  const q = Q[order[i]];
+  $("scenario").textContent = q.s;
+  $("feedback").hidden = true;
+  document.querySelectorAll("#choices button").forEach(b => { b.disabled = false; b.className = ""; });
+  $("pos").textContent = `Situation ${i + 1} / ${Q.length}`;
+  $("pts").textContent = `${score} point${score > 1 ? "s" : ""}`;
+  $("fill").style.width = `${i / Q.length * 100}%`;
+  $("btn-web").focus({ preventScroll: true });
+}
+
+function pick(choice) {
+  const q = Q[order[i]], ok = choice === q.a;
+  if (ok) score++;
+  answers.push({ q, choice, ok });
+  document.querySelectorAll("#choices button").forEach(b => {
+    b.disabled = true;
+    if (b.dataset.a === q.a) b.classList.add("right");
+    else if (b.dataset.a === choice) b.classList.add("picked");
+  });
+  $("verdict").textContent = ok ? "Bonne réponse" : `Pas tout à fait : la réponse attendue est « ${LABEL[q.a]} »`;
+  $("verdict").className = "verdict " + (ok ? "ok" : "ko");
+  $("why").textContent = q.why;
+  $("crit").textContent = q.c;
+  $("pts").textContent = `${score} point${score > 1 ? "s" : ""}`;
+  $("next").textContent = i + 1 < Q.length ? "Situation suivante" : "Voir mon bilan";
+  $("feedback").hidden = false;
+  $("next").focus({ preventScroll: true });
+}
+
+function end() {
+  $("quiz").hidden = true; $("end").hidden = false;
+  $("fill").style.width = "100%";
+  $("pos").textContent = "Terminé";
+  $("final").textContent = `${score} / ${Q.length}`;
+  const missed = answers.filter(r => !r.ok);
+  const tooMuchDesk = missed.filter(r => r.choice === "desk").length;
+  const tooMuchWeb = missed.filter(r => r.choice === "web").length;
+  $("advice").textContent =
+    score === Q.length ? "Parfait : vous savez choisir selon le niveau d'accès local nécessaire." :
+    tooMuchDesk > tooMuchWeb ? "Vous avez tendance à choisir Desktop par réflexe. Rappel : sans fichier, outil ou processus local, Claude.ai suffit." :
+    tooMuchWeb > tooMuchDesk ? "Vous avez tendance à rester dans le navigateur. Rappel : dès qu'il faut agir sur l'ordinateur (fichiers, MCP local, applications), c'est Desktop." :
+    "Revoyez le socle commun : même compte, projets synchronisés, Artifacts des deux côtés.";
+  $("review").innerHTML = "";
+  answers.forEach(r => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="mark ${r.ok ? "ok" : "ko"}">${r.ok ? "✓" : "✗"}</span><span></span>`;
+    li.lastChild.textContent = r.q.s;
+    const sm = document.createElement("small");
+    sm.textContent = r.ok ? LABEL[r.q.a] : `Votre choix : ${LABEL[r.choice]} · Attendu : ${LABEL[r.q.a]}`;
+    li.lastChild.appendChild(sm);
+    $("review").appendChild(li);
+  });
+  $("restart").focus({ preventScroll: true });
+}
+
+document.querySelectorAll("#choices button").forEach(b => b.addEventListener("click", () => pick(b.dataset.a)));
+$("next").addEventListener("click", () => (++i < Q.length ? show() : end()));
+$("restart").addEventListener("click", start);
+start();
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

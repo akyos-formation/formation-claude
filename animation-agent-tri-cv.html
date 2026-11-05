@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent de tri de CV</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout : schéma du système (à gauche) construit pièce par pièce, pupitre de narration + résultat (à droite) ; même famille visuelle que l'animation « fenêtre de contexte » */
+:root{
+  --bg:#f4f4f1; --surface:#ffffff; --fg:#1d2230; --muted:#5d6475; --line:#dcdcd5;
+  --navy:#0f2a7a; --frame:#3d4a63;
+  --harn:#eeede8; --harn-line:#bdbcb3;
+  --model:#e3f4ec; --model-line:#5ea88a; --model-fg:#1f5a43;
+  --skill:#f9ebe6; --skill-line:#c8826d; --skill-fg:#8a3c25;
+  --tool:#e8f0fa; --tool-line:#7fa3d6; --tool-fg:#2b5694;
+  --rag:#ecebfb; --rag-line:#9890db; --rag-fg:#4b3fae;
+  --instr:#f6f1df; --instr-line:#c5aa55; --instr-fg:#7a5f10;
+  --guard:#fdeaea; --guard-line:#d47777; --guard-fg:#992a2a;
+  --ok:#17784f; --ok-bg:#e4f4ec; --warn:#b4400f; --warn-bg:#fdeee5;
+  --yellow:#f5c400;
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111418; --surface:#1a1e25; --fg:#e8eaef; --muted:#9ca3b2; --line:#2c323d;
+  --navy:#a9bfff; --frame:#9aa8c4;
+  --harn:#1d2129; --harn-line:#3e4554;
+  --model:#16302a; --model-line:#4f9a7c; --model-fg:#8fe0bd;
+  --skill:#35211c; --skill-line:#b0705c; --skill-fg:#f0b6a2;
+  --tool:#1a2638; --tool-line:#5d82b8; --tool-fg:#a9c6f2;
+  --rag:#242242; --rag-line:#7d74c9; --rag-fg:#c3bcff;
+  --instr:#2e2a18; --instr-line:#a68e3e; --instr-fg:#ecd28a;
+  --guard:#3a1c1c; --guard-line:#b35b5b; --guard-fg:#ffb0b0;
+  --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111418; --surface:#1a1e25; --fg:#e8eaef; --muted:#9ca3b2; --line:#2c323d;
+  --navy:#a9bfff; --frame:#9aa8c4;
+  --harn:#1d2129; --harn-line:#3e4554;
+  --model:#16302a; --model-line:#4f9a7c; --model-fg:#8fe0bd;
+  --skill:#35211c; --skill-line:#b0705c; --skill-fg:#f0b6a2;
+  --tool:#1a2638; --tool-line:#5d82b8; --tool-fg:#a9c6f2;
+  --rag:#242242; --rag-line:#7d74c9; --rag-fg:#c3bcff;
+  --instr:#2e2a18; --instr-line:#a68e3e; --instr-fg:#ecd28a;
+  --guard:#3a1c1c; --guard-line:#b35b5b; --guard-fg:#ffb0b0;
+  --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.05;margin:0;color:var(--navy);text-wrap:balance}
+.sub{margin:6px 0 0;color:var(--muted);max-width:70ch}
+.steps{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0;padding:0}
+.steps button{font:inherit;font-size:.82rem;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 12px;cursor:pointer}
+.steps button .n{font-family:var(--f-mono);font-weight:600;margin-right:6px}
+.steps button.done{color:var(--fg)}
+.steps button.on{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:18px;align-items:start}
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;overflow-x:auto}
+svg{display:block;width:100%;min-width:560px;height:auto}
+svg text{font-family:var(--f-body);text-anchor:middle}
+svg .t1{font-family:var(--f-display);font-weight:800;font-size:21px}
+svg .t2{font-size:15px}
+svg .t3{font-size:13px}
+svg .mono{font-family:var(--f-mono);font-size:12px}
+.c{transition:opacity .5s}
+.c.ghost{opacity:.13}
+.c.new rect.box{animation:glow 1.2s ease-in-out 2}
+.c.hot rect.box{stroke-width:4}
+@keyframes glow{50%{stroke-width:6}}
+.arrow{stroke:var(--muted);stroke-width:2;fill:none}
+#dot{transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s}
+.side{display:grid;gap:14px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;min-width:0}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.25rem,2.4vw,1.6rem);margin:4px 0 8px;line-height:1.15;text-wrap:balance}
+.card p{margin:0 0 8px}
+.card ul{margin:0 0 8px;padding-left:18px}
+.ask{font-size:.85rem;color:var(--muted);margin-bottom:6px}
+.bubble{border-radius:10px;padding:10px 14px;background:var(--model);color:var(--fg);border:1px solid var(--model-line);font-size:.95rem}
+.meter{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:.85rem;color:var(--muted)}
+.meter span.d{width:22px;height:8px;border-radius:2px;background:var(--line)}
+.meter span.d.f{background:var(--ok)}
+.miss{margin-top:10px;font-size:.88rem;background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 12px}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+button.b{font:inherit;font-weight:600;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:10px 14px;cursor:pointer;flex:1}
+button.b.primary{background:var(--navy);color:var(--bg);border-color:var(--navy)}
+button.b:disabled{opacity:.4;cursor:default}
+button:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:250px;overflow-y:auto;font-size:.88rem}
+.log li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:start}
+.log .who{font-family:var(--f-mono);font-size:.7rem;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.w-user{background:var(--harn);border:1px solid var(--harn-line)}
+.w-harn{background:var(--harn);border:1px solid var(--harn-line)}
+.w-model{background:var(--model);color:var(--model-fg)}
+.w-tools{background:var(--tool);color:var(--tool-fg)}
+.w-rag,.w-base{background:var(--rag);color:var(--rag-fg)}
+.w-guard{background:var(--guard);color:var(--guard-fg)}
+.w-loop{background:var(--ok-bg);color:var(--ok)}
+.log li.now{font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-height:28px}
+.chip{font-size:.78rem;padding:3px 9px;border-radius:999px;border:1px dashed var(--frame)}
+.chip.instr{background:var(--instr);color:var(--instr-fg)}.chip.skill{background:var(--skill);color:var(--skill-fg)}
+.chip.rag{background:var(--rag);color:var(--rag-fg)}.chip.cv{background:var(--tool);color:var(--tool-fg)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.85rem}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.tag.go{background:var(--ok-bg);color:var(--ok)}.tag.maybe{background:var(--instr);color:var(--instr-fg)}.tag.no{background:var(--harn);color:var(--muted)}
+td.fix{color:var(--warn)}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:12px 0 6px;font-weight:600}
+.eq{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:stretch;margin-top:8px}
+.eq > div{border-radius:10px;padding:10px 12px;font-size:.85rem;min-width:0}
+.eq h3{font-family:var(--f-display);font-size:1rem;margin:0 0 4px}
+.eq .h{background:var(--harn);border:2px solid var(--frame)}
+.eq .x{background:var(--instr);border:1px solid var(--instr-line)}
+.eq .m{background:var(--model);border:1px solid var(--model-line)}
+.eq .arr{align-self:center;font-size:1.3rem;color:var(--muted);padding:0}
+.eq ul{padding-left:16px;margin:0}
+.notes{font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+.notes h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;color:var(--fg)}
+.notes ul{margin:0;padding-left:18px;display:grid;gap:4px;max-width:95ch}
+.hint{font-size:.75rem;color:var(--muted)}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}.eq{grid-template-columns:minmax(0,1fr)}.eq .arr{transform:rotate(90deg);justify-self:center}}
+@media (prefers-reduced-motion:reduce){#dot,.c{transition:none}.c.new rect.box{animation:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Construire un agent de tri de CV</h1>
+    <p class="sub">On part d'un modèle seul, puis on ajoute pièce par pièce ce qui en fait un agent fiable. À chaque étape, regardez ce que le système sait faire.</p>
+  </header>
+  <ol class="steps" id="steps" aria-label="Étapes de construction"></ol>
+
+  <div class="main">
+    <div class="diagram">
+      <svg viewBox="0 0 1000 668" role="img" aria-label="Schéma du système agentique de tri de CV">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--muted)"/></marker>
+        </defs>
+
+        <g class="c" id="c-harn">
+          <rect class="box" x="16" y="104" width="968" height="440" rx="22" style="fill:var(--harn);stroke:var(--harn-line);stroke-width:2"/>
+          <text class="t1" x="500" y="138" style="fill:var(--fg)">Harnais (boucle agent)</text>
+          <text class="t3" x="500" y="160" style="fill:var(--muted)">Fait tourner la boucle, exécute les outils, applique les règles</text>
+          <path class="arrow" d="M480 64V100" marker-end="url(#ah)"/>
+          <path class="arrow" d="M520 104V68" marker-end="url(#ah)"/>
+        </g>
+
+        <g class="c" id="c-user">
+          <rect class="box" x="400" y="8" width="200" height="56" rx="12" style="fill:var(--harn);stroke:var(--harn-line);stroke-width:2"/>
+          <text class="t2" x="500" y="42" style="fill:var(--fg);font-weight:600">Utilisateur (RH)</text>
+        </g>
+
+        <g class="c" id="c-frame">
+          <rect x="320" y="176" width="640" height="290" rx="6" style="fill:none;stroke:var(--frame);stroke-width:3"/>
+          <text class="mono" x="640" y="196" style="fill:var(--frame)">CONTEXTE SÉLECTIONNÉ ET STRUCTURÉ</text>
+          <path class="arrow" d="M320 330H300" marker-end="url(#ah)"/>
+        </g>
+
+        <g class="c" id="c-model">
+          <rect class="box" x="44" y="184" width="250" height="270" rx="16" style="fill:var(--model);stroke:var(--model-line);stroke-width:2"/>
+          <text class="t1" x="169" y="244" style="fill:var(--model-fg)">Modèle (Claude)</text>
+          <text class="t2" x="169" y="276" style="fill:var(--model-fg)">Décide et raisonne</text>
+          <text class="t2" x="169" y="302" style="fill:var(--model-fg)">Choisit l'outil</text>
+          <text class="t2" x="169" y="328" style="fill:var(--model-fg)">Note et justifie</text>
+        </g>
+
+        <g class="c" id="c-loop">
+          <rect class="box" x="104" y="378" width="130" height="40" rx="20" style="fill:var(--ok-bg);stroke:var(--ok);stroke-width:2"/>
+          <text class="t2" x="169" y="404" style="fill:var(--ok);font-weight:600">Terminé ?</text>
+        </g>
+
+        <g class="c" id="c-instr">
+          <rect class="box" x="336" y="212" width="190" height="236" rx="14" style="fill:var(--instr);stroke:var(--instr-line);stroke-width:2"/>
+          <text class="t1" x="431" y="262" style="fill:var(--instr-fg)">Instructions</text>
+          <text class="t3" x="431" y="292" style="fill:var(--instr-fg)">Rôle : assistant RH</text>
+          <text class="t3" x="431" y="314" style="fill:var(--instr-fg)">Poste à pourvoir</text>
+          <text class="t3" x="431" y="336" style="fill:var(--instr-fg)">Entreprise, ton</text>
+          <text class="mono" x="431" y="380" style="fill:var(--instr-fg)">CLAUDE.md</text>
+        </g>
+
+        <g class="c" id="c-skill">
+          <rect class="box" x="540" y="212" width="190" height="236" rx="14" style="fill:var(--skill);stroke:var(--skill-line);stroke-width:2"/>
+          <text class="t1" x="635" y="262" style="fill:var(--skill-fg)">Skill</text>
+          <text class="t3" x="635" y="292" style="fill:var(--skill-fg)">Grille de tri des CV</text>
+          <text class="t3" x="635" y="314" style="fill:var(--skill-fg)">Procédure métier</text>
+          <text class="t3" x="635" y="336" style="fill:var(--skill-fg)">Chargée en contexte</text>
+          <text class="t3" x="635" y="358" style="fill:var(--skill-fg)">Connaissance figée</text>
+          <text class="mono" x="635" y="400" style="fill:var(--skill-fg)">tri-cv/SKILL.md</text>
+        </g>
+
+        <g class="c" id="c-tools">
+          <rect class="box" x="744" y="212" width="200" height="236" rx="14" style="fill:var(--tool);stroke:var(--tool-line);stroke-width:2"/>
+          <text class="t1" x="844" y="252" style="fill:var(--tool-fg)">Outils</text>
+          <text class="t3" x="844" y="274" style="fill:var(--tool-fg)">Tool calling</text>
+          <text class="mono" x="844" y="300" style="fill:var(--tool-fg)">lire_pdf · écrire_tableur</text>
+          <path class="arrow" d="M169 454V478H844V452" marker-end="url(#ah)"/>
+        </g>
+
+        <g class="c" id="c-rag">
+          <rect class="box" x="758" y="318" width="172" height="112" rx="12" style="fill:var(--rag);stroke:var(--rag-line);stroke-width:2"/>
+          <text class="t1" x="844" y="362" style="fill:var(--rag-fg)">RAG</text>
+          <text class="t3" x="844" y="388" style="fill:var(--rag-fg)">Recherche externe</text>
+          <path class="arrow" d="M844 430V596" marker-end="url(#ah)"/>
+          <rect class="box" x="684" y="600" width="300" height="60" rx="12" style="fill:var(--harn);stroke:var(--harn-line);stroke-width:2"/>
+          <text class="t2" x="834" y="626" style="fill:var(--fg);font-weight:600">Base de connaissances</text>
+          <text class="t3" x="834" y="646" style="fill:var(--muted)">Fiches de poste, référentiel de compétences</text>
+        </g>
+
+        <g class="c" id="c-guard">
+          <rect class="box" x="44" y="492" width="620" height="40" rx="10" style="fill:var(--guard);stroke:var(--guard-line);stroke-width:2"/>
+          <text class="t3" x="354" y="517" style="fill:var(--guard-fg);font-weight:600">Garde-fous · l'humain décide · aucun critère discriminatoire · vérification</text>
+        </g>
+
+        <g id="dot" style="opacity:0">
+          <circle r="11" cx="0" cy="0" style="fill:var(--yellow);stroke:var(--fg);stroke-width:2"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="side">
+      <section class="card" id="narr" aria-live="polite"></section>
+      <div class="controls">
+        <button class="b" id="prev" aria-label="Étape précédente">← Précédent</button>
+        <button class="b primary" id="next">Suivant →</button>
+      </div>
+      <div class="hint">Clavier : → ou espace pour avancer, ← pour reculer</div>
+    </div>
+  </div>
+
+  <section class="notes">
+    <h3>Notes pour le formateur</h3>
+    <ul>
+      <li>Les CV, notes et références (fiche RH-2026-14) sont fictifs. Les noms des outils (<code>lire_pdf</code>, <code>écrire_tableur</code>) sont illustratifs : dans Claude Code ou Cowork, ce sont des lectures de fichiers et des connecteurs.</li>
+      <li>Le tri de candidatures par IA est classé « à haut risque » par le règlement européen sur l'IA (AI Act, annexe III). Le calendrier d'application de ces obligations fait l'objet de discussions de report : vérifiez les dates en vigueur avant de les citer.</li>
+      <li>RGPD : informer les candidats du traitement, et ne pas laisser une décision produisant des effets importants reposer uniquement sur un traitement automatisé (article 22). Code du travail : critères discriminatoires interdits (article L1132-1).</li>
+      <li>Ne pas alimenter le RAG avec les recrutements passés sans précaution : l'agent reproduirait les biais des décisions antérieures.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const ALL = ['c-user','c-model','c-harn','c-loop','c-frame','c-instr','c-skill','c-tools','c-rag','c-guard'];
+const ASK = "« Trie les 40 CV reçus pour le poste de chargé·e de recrutement et propose une shortlist. »";
+
+const STEPS = [
+  {name:'Modèle seul', show:['c-user','c-model'],
+   title:'Le point de départ : un modèle seul',
+   body:["Le modèle, c'est le cerveau : il comprend, raisonne, rédige. Mais il n'a ni mains, ni mémoire, ni méthode. Il ne voit que ce qu'on lui écrit."],
+   answer:"Je n'ai pas accès à vos fichiers. Collez le contenu des CV ici et précisez vos critères.",
+   score:0, miss:"Lire les CV, connaître le poste, avoir une méthode."},
+  {name:'Harnais', show:['c-harn','c-loop'],
+   title:'Le harnais : le cadre autour du modèle',
+   body:["Le harnais est le programme qui fait tourner le modèle en boucle : il lui transmet le contexte, exécute ce qu'il demande, et repose la question « Terminé ? » jusqu'à la fin de la tâche.",
+         "Exemples de harnais : Claude Code, Cowork, un agent développé sur mesure. Pour l'instant, il est vide."],
+   answer:"Je peux enchaîner plusieurs étapes, mais je n'ai ni consignes ni moyen d'ouvrir vos CV.",
+   score:1, miss:"Des consignes, une méthode de tri, l'accès aux fichiers."},
+  {name:'Instructions', show:['c-frame','c-instr'],
+   title:'Instructions : le contexte de la mission',
+   body:["Premier élément du contexte : qui est l'agent, pour quelle entreprise, sur quel poste. Ces instructions sont chargées à chaque conversation (fichier CLAUDE.md, instructions du projet)."],
+   answer:"Pour un poste de chargé·e de recrutement, je regarderais l'expérience en recrutement, la maîtrise des outils RH et l'aisance relationnelle. Mais je ne peux toujours pas ouvrir le dossier.",
+   score:1, miss:"Une grille de notation précise, l'accès aux CV."},
+  {name:'Skill', show:['c-skill'],
+   title:'Skill : la procédure métier de tri',
+   body:["La Skill contient votre méthode RH, écrite une fois pour toutes :"],
+   list:["4 critères notés sur 20 : expérience, compétences clés, formation, motivation","Une justification obligatoire, citée du CV, pour chaque note","Le format de sortie : tableau + shortlist"],
+   after:"Elle n'est chargée dans le contexte que quand la tâche le demande. C'est une connaissance figée : elle ne change pas pendant le tri.",
+   answer:"Voici la grille que j'appliquerai : 4 critères sur 20, chaque note justifiée par une citation. Il me faut maintenant les CV.",
+   score:2, miss:"L'accès aux CV et la fiche de poste officielle."},
+  {name:'Outils', show:['c-tools'],
+   title:'Outils : lire les CV, remplir le tableau',
+   body:["Avec le tool calling, le modèle peut demander une action : « lis ce PDF », « écris cette ligne dans le tableur ». Le modèle choisit l'outil, le harnais l'exécute et lui renvoie le résultat."],
+   answer:"J'ai lu les 40 CV et rempli le tableau selon la grille. Pour les compétences attendues, je me suis basé sur ce qu'on attend habituellement de ce poste.",
+   score:3, miss:"La fiche de poste réelle : l'agent a supposé les compétences. Et rien n'empêche encore un critère discriminatoire."},
+  {name:'RAG', show:['c-rag'],
+   title:'RAG : chercher dans la base de connaissances',
+   body:["Le RAG est un outil de recherche : l'agent interroge la base documentaire de l'entreprise et ne récupère que les passages utiles (la fiche de ce poste, pas les 200 fiches).",
+         "Différence avec la Skill : la Skill dit comment trier, toujours de la même façon. Le RAG va chercher des informations qui changent d'un poste à l'autre."],
+   answer:"J'ai comparé chaque CV à la fiche de poste RH-2026-14 et au référentiel de compétences de l'entreprise.",
+   score:4, miss:"Des garde-fous et une vérification du travail."},
+  {name:'Garde-fous', show:['c-guard'],
+   title:'Garde-fous et vérification',
+   body:["Le harnais encadre aussi le comportement de l'agent :"],
+   list:["Âge, photo, adresse, situation familiale : masqués, jamais utilisés","Chaque note doit être justifiée par une citation, sinon l'agent relit le CV","L'agent propose une shortlist, le RH décide"],
+   after:"C'est ce qui rend l'agent fiable, contrôlable et prévisible. En recrutement, c'est aussi une obligation légale.",
+   answer:"Shortlist de 8 candidats, chaque note justifiée par une citation du CV. Critères personnels ignorés. La décision finale vous revient.",
+   score:5, miss:null},
+  {name:'Lancer l\'agent', show:[], run:true,
+   title:'Lancer l\'agent : la boucle en action',
+   body:["Suivez le point jaune : il montre qui agit à chaque instant."]},
+  {name:'Agent = Modèle + Harnais', show:[], recap:true,
+   title:'Agent = Modèle + Harnais'}
+];
+
+// Déroulé de la boucle (étape « Lancer l'agent »)
+const RUN = [
+  {at:'user', who:'RH', log:"Trie les 40 CV du dossier Candidatures et propose une shortlist."},
+  {at:'harn', who:'Harnais', log:"Assemble le contexte : instructions + Skill de tri.", ctx:['instr','skill']},
+  {at:'model', who:'Modèle', log:"Planifie : lister les CV, récupérer la fiche de poste, puis noter chaque CV."},
+  {at:'tools', who:'Outil', log:"lister_dossier(« Candidatures ») → 40 fichiers."},
+  {at:'rag', who:'RAG', log:"Recherche : « fiche de poste chargé·e de recrutement »."},
+  {at:'base', who:'Base', log:"Renvoie 2 extraits pertinents, pas toute la base.", ctx:['instr','skill','rag']},
+  {at:'loop', who:'Boucle', log:"Terminé ? Non : 40 CV à traiter."},
+  {at:'tools', who:'Outil', log:"lire_pdf(CV-01)", ctx:['instr','skill','rag','CV-01']},
+  {at:'model', who:'Modèle', log:"CV-01 : 17/20, justification citée."},
+  {at:'guard', who:'Garde-fou', log:"Âge et photo masqués, aucun critère interdit utilisé."},
+  {at:'tools', who:'Outil', log:"écrire_tableur(ligne CV-01). Le CV sort du contexte : la fenêtre reste légère.", row:0, ctx:['instr','skill','rag']},
+  {at:'loop', who:'Boucle', log:"Terminé ? Non."},
+  {at:'tools', who:'Outil', log:"lire_pdf(CV-02)", ctx:['instr','skill','rag','CV-02']},
+  {at:'model', who:'Modèle', log:"CV-02 : 12/20."},
+  {at:'tools', who:'Outil', log:"écrire_tableur(ligne CV-02)", row:1, ctx:['instr','skill','rag']},
+  {at:'tools', who:'Outil', log:"lire_pdf(CV-03)", ctx:['instr','skill','rag','CV-03']},
+  {at:'model', who:'Modèle', log:"CV-03 : 7/20, justification citée."},
+  {at:'tools', who:'Outil', log:"écrire_tableur(ligne CV-03)", row:2, ctx:['instr','skill','rag']},
+  {at:'loop', who:'Boucle', log:"… 37 autres CV traités de la même façon.", row:3},
+  {at:'guard', who:'Garde-fou', log:"Vérification : la note de CV-02 n'a pas de citation. Retour au CV."},
+  {at:'tools', who:'Outil', log:"lire_pdf(CV-02) : justification ajoutée.", fix:1, ctx:['instr','skill','rag','CV-02']},
+  {at:'loop', who:'Boucle', log:"Terminé ? Oui : 40 CV notés et vérifiés.", ctx:['instr','skill','rag']},
+  {at:'user', who:'Harnais', log:"Shortlist de 8 candidats envoyée au RH, avec justifications. Décision finale : humaine.", done:true}
+];
+const ROWS = [
+  {id:'CV-01', note:'17/20', why:"« 6 ans en cabinet de recrutement »", dec:['go','Entretien']},
+  {id:'CV-02', note:'12/20', why:"—", fixWhy:"« alternance de 2 ans au service RH »", dec:['maybe','À revoir']},
+  {id:'CV-03', note:'7/20', why:"« aucune expérience en recrutement »", dec:['no','Non retenu']},
+  {id:'+37', note:'…', why:"Même méthode, même grille", dec:['go','5 en entretien']}
+];
+const POS = {user:[500,36], harn:[500,150], model:[169,350], loop:[169,398], tools:[844,322], rag:[844,410], base:[834,630], guard:[354,512]};
+const WHO = {user:'w-user', harn:'w-harn', model:'w-model', tools:'w-tools', rag:'w-rag', base:'w-base', loop:'w-loop', guard:'w-guard'};
+const CHIP = {instr:['instr','Instructions'], skill:['skill','Skill : grille de tri'], rag:['rag','Fiche de poste (extrait)']};
+
+const $ = id => document.getElementById(id);
+let idx = 0, runI = -1, timer = null;
+
+function visibleUpTo(i){ const s = new Set(); STEPS.slice(0,i+1).forEach(st=>st.show.forEach(c=>s.add(c))); if (STEPS[i].run||STEPS[i].recap) ALL.forEach(c=>s.add(c)); return s; }
+
+function renderSteps(){
+  $('steps').innerHTML = STEPS.map((s,i)=>`<li><button data-i="${i}" class="${i===idx?'on':i<idx?'done':''}" ${i===idx?'aria-current="step"':''}><span class="n">${i+1}</span>${s.name}</button></li>`).join('');
+  $('steps').querySelectorAll('button').forEach(b=>b.onclick=()=>go(+b.dataset.i));
+}
+
+function setDot(at){
+  const d = $('dot');
+  if (!at) { d.style.opacity = 0; return; }
+  const [x,y] = POS[at]; d.style.opacity = 1; d.style.transform = `translate(${x}px,${y}px)`;
+  ALL.forEach(c=>$(c).classList.remove('hot'));
+  const map = {user:'c-user', harn:'c-harn', model:'c-model', loop:'c-loop', tools:'c-tools', rag:'c-rag', base:'c-rag', guard:'c-guard'};
+  $(map[at]).classList.add('hot');
+}
+
+function renderRun(){
+  const shown = RUN.slice(0, runI+1);
+  const cur = shown.at(-1);
+  setDot(cur && cur.at);
+  const ctx = [...shown].reverse().find(e=>e.ctx)?.ctx || [];
+  const rows = new Set(shown.filter(e=>e.row!==undefined).map(e=>e.row));
+  const fixed = shown.some(e=>e.fix!==undefined);
+  const done = cur && cur.done;
+  $('runlog').innerHTML = shown.map((e,i)=>`<li class="${i===runI?'now':''}"><span class="who ${WHO[e.at]}">${e.who}</span><span>${e.log}</span></li>`).join('') || '<li><span></span><span>Cliquez sur « Lancer la boucle ».</span></li>';
+  const last = $('runlog').lastElementChild; if (last) last.scrollIntoView({block:'nearest'});
+  $('ctx').innerHTML = ctx.length ? ctx.map(c=>CHIP[c] ? `<span class="chip ${CHIP[c][0]}">${CHIP[c][1]}</span>` : `<span class="chip cv">${c}</span>`).join('') : '<span class="hint">Vide pour l\'instant.</span>';
+  $('rows').innerHTML = ROWS.map((r,i)=> rows.has(i) ? `<tr><td class="num">${r.id}</td><td class="num">${r.note}</td><td class="${i===1&&!fixed?'fix':''}">${i===1&&fixed?r.fixWhy:r.why}</td><td><span class="tag ${r.dec[0]}">${r.dec[1]}</span></td></tr>` : '').join('') || '<tr><td colspan="4" class="hint">Le tableau se remplit pendant la boucle.</td></tr>';
+  $('play').textContent = timer ? 'Pause' : done ? 'Rejouer' : runI<0 ? 'Lancer la boucle' : 'Reprendre';
+}
+
+function tick(){ if (runI < RUN.length-1) { runI++; renderRun(); } if (runI >= RUN.length-1) { stopRun(); renderRun(); } }
+function stopRun(){ clearInterval(timer); timer=null; }
+
+function render(){
+  const s = STEPS[idx], vis = visibleUpTo(idx);
+  const added = new Set(s.show);
+  ALL.forEach(c=>{ const el=$(c); el.classList.toggle('ghost', !vis.has(c)); el.classList.toggle('new', added.has(c)); el.classList.remove('hot'); });
+  stopRun(); runI = -1; setDot(null);
+  let h = `<div class="eyebrow">Étape ${idx+1} sur ${STEPS.length}</div><h2>${s.title}</h2>`;
+  (s.body||[]).forEach(t=>h+=`<p>${t}</p>`);
+  if (s.list) h += `<ul>${s.list.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  if (s.after) h += `<p>${s.after}</p>`;
+  if (s.answer!==undefined) {
+    h += `<div class="label">La demande</div><div class="ask">${ASK}</div><div class="label">Ce que le système répond à ce stade</div><div class="bubble">${s.answer}</div>`;
+    h += `<div class="meter">Fiabilité ${[0,1,2,3,4].map(k=>`<span class="d ${k<s.score?'f':''}"></span>`).join('')} ${s.score}/5</div>`;
+    h += s.miss ? `<div class="miss">Ce qui manque encore : ${s.miss}</div>` : `<div class="miss" style="background:var(--ok-bg);color:var(--ok)">Le système est complet. Passez à l'étape suivante pour le voir tourner.</div>`;
+  }
+  if (s.run) {
+    h += `<div class="controls"><button class="b primary" id="play">Lancer la boucle</button><button class="b" id="stepone">Pas à pas</button></div>
+      <div class="label">Journal de la boucle</div><ul class="log" id="runlog"></ul>
+      <div class="label">Dans la fenêtre de contexte</div><div class="chips" id="ctx"></div>
+      <div class="label">Tableau produit</div><div class="tbl"><table><thead><tr><th>CV</th><th>Note</th><th>Justification</th><th>Proposition</th></tr></thead><tbody id="rows"></tbody></table></div>`;
+  }
+  if (s.recap) {
+    h += `<p>Le modèle est le cerveau, interchangeable (Claude, ChatGPT…). Le harnais donne les moyens d'agir et décide ce qui entre dans le contexte. C'est lui qui rend l'agent fiable.</p>
+      <div class="eq">
+        <div class="h"><h3>Harnais</h3><ul><li>Boucle « Terminé ? »</li><li>Outils et RAG</li><li>Garde-fous, vérification</li><li>Context engineering : la stratégie</li></ul></div>
+        <div class="arr" aria-hidden="true">→</div>
+        <div class="x"><h3>Contexte sélectionné</h3><ul><li>Instructions</li><li>Skill : grille de tri</li><li>Extrait de fiche de poste</li><li>Le CV en cours</li></ul></div>
+        <div class="arr" aria-hidden="true">→</div>
+        <div class="m"><h3>Modèle</h3><ul><li>Décide</li><li>Note</li><li>Justifie</li></ul></div>
+      </div>
+      <p style="margin-top:12px">Question pour le groupe : si l'on remplace Claude par un autre modèle, quelles pièces du système faut-il refaire ?</p>`;
+  }
+  $('narr').innerHTML = h;
+  if (s.run) {
+    $('play').onclick = ()=>{ if (timer) { stopRun(); renderRun(); return; } if (runI >= RUN.length-1) runI = -1; timer = setInterval(tick, 1400); tick(); };
+    $('stepone').onclick = ()=>{ stopRun(); if (runI >= RUN.length-1) runI = -1; tick(); renderRun(); };
+    renderRun();
+  }
+  $('prev').disabled = idx===0; $('next').disabled = idx===STEPS.length-1;
+  renderSteps();
+}
+function go(i){ idx = Math.max(0, Math.min(STEPS.length-1, i)); render(); }
+$('next').onclick = ()=>go(idx+1);
+$('prev').onclick = ()=>go(idx-1);
+document.addEventListener('keydown', e=>{
+  if (e.target.tagName==='BUTTON' && (e.key===' '||e.key==='Enter')) return;
+  if (e.key==='ArrowRight' || e.key===' ' || e.key==='PageDown') { e.preventDefault(); go(idx+1); }
+  if (e.key==='ArrowLeft' || e.key==='PageUp') { e.preventDefault(); go(idx-1); }
+});
+go(0);
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

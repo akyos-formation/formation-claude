@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Construire le projet Repas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout : pupitre de narration (prompt + effet) à gauche, architecture en construction à droite (arborescence, fenêtre de contexte, capacités) ; même famille visuelle que « Agent de tri de CV » */
+:root{
+  --bg:#f4f4f1; --surface:#ffffff; --fg:#1d2230; --muted:#5d6475; --line:#dcdcd5;
+  --navy:#0f2a7a; --accent:#d6f000; --accent-fg:#0f2a7a;
+  --code:#f0efe9;
+  --instr:#f6f1df; --instr-line:#c5aa55; --instr-fg:#7a5f10;
+  --mem:#ecebfb; --mem-line:#9890db; --mem-fg:#4b3fae;
+  --skill:#f9ebe6; --skill-line:#c8826d; --skill-fg:#8a3c25;
+  --orch:#e3f4ec; --orch-line:#5ea88a; --orch-fg:#1f5a43;
+  --tool:#e8f0fa; --tool-line:#7fa3d6; --tool-fg:#2b5694;
+  --ok:#17784f; --ok-bg:#e4f4ec; --warn:#b4400f; --warn-bg:#fdeee5;
+  --f-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111418; --surface:#1a1e25; --fg:#e8eaef; --muted:#9ca3b2; --line:#2c323d;
+  --navy:#a9bfff; --accent:#d6f000; --accent-fg:#111418; --code:#14171d;
+  --instr:#2e2a18; --instr-line:#a68e3e; --instr-fg:#ecd28a;
+  --mem:#242242; --mem-line:#7d74c9; --mem-fg:#c3bcff;
+  --skill:#35211c; --skill-line:#b0705c; --skill-fg:#f0b6a2;
+  --orch:#16302a; --orch-line:#4f9a7c; --orch-fg:#8fe0bd;
+  --tool:#1a2638; --tool-line:#5d82b8; --tool-fg:#a9c6f2;
+  --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111418; --surface:#1a1e25; --fg:#e8eaef; --muted:#9ca3b2; --line:#2c323d;
+  --navy:#a9bfff; --accent:#d6f000; --accent-fg:#111418; --code:#14171d;
+  --instr:#2e2a18; --instr-line:#a68e3e; --instr-fg:#ecd28a;
+  --mem:#242242; --mem-line:#7d74c9; --mem-fg:#c3bcff;
+  --skill:#35211c; --skill-line:#b0705c; --skill-fg:#f0b6a2;
+  --orch:#16302a; --orch-line:#4f9a7c; --orch-fg:#8fe0bd;
+  --tool:#1a2638; --tool-line:#5d82b8; --tool-fg:#a9c6f2;
+  --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1320px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+.eyebrow{font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.05;margin:4px 0 0;color:var(--navy);text-wrap:balance}
+.sub{margin:6px 0 0;color:var(--muted);max-width:72ch}
+.steps{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0;padding:0}
+.steps button{font:inherit;font-size:.8rem;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 11px;cursor:pointer}
+.steps button .n{font-family:var(--f-mono);font-weight:600;margin-right:5px}
+.steps button.done{color:var(--fg)}
+.steps button.on{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+button:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:14px;min-width:0}
+.phase{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tag{font-size:.74rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--accent);color:var(--accent-fg)}
+.tag.alt{background:transparent;border:1px solid var(--line);color:var(--muted)}
+h2{font-family:var(--f-display);font-weight:800;font-size:1.5rem;line-height:1.15;margin:0;color:var(--navy);text-wrap:balance}
+h3{font-size:.78rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+p{margin:0}
+.prompt{background:var(--code);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.prompt-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--line);font-size:.78rem;color:var(--muted)}
+.prompt-head b{font-family:var(--f-mono);font-weight:600;color:var(--fg)}
+.prompt pre{margin:0;padding:12px 14px;font-family:var(--f-mono);font-size:.84rem;line-height:1.55;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow:auto}
+.btn{font:inherit;font-size:.8rem;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:4px 10px;cursor:pointer}
+.btn.primary{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.does{margin:0;padding-left:1.1em;display:grid;gap:4px}
+.impact{border-left:3px solid var(--accent);background:var(--code);padding:10px 14px;border-radius:0 8px 8px 0}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:.9rem}
+.log li{padding:7px 11px;border-radius:8px;background:var(--code);border:1px solid var(--line);animation:pop .35s ease both}
+.log li.user{background:var(--navy);color:var(--bg);border-color:var(--navy);font-family:var(--f-mono);font-size:.84rem}
+.log li.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.log li.stop{background:var(--warn-bg);color:var(--warn);border-color:transparent;font-weight:500}
+.log li.mem{background:var(--mem);color:var(--mem-fg);border-color:transparent}
+.nav{display:flex;justify-content:space-between;gap:8px}
+@keyframes pop{from{opacity:.2;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.arch{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.tree{font-family:var(--f-mono);font-size:.82rem;list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.tree li{display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:default}
+.tree li[data-file]{cursor:pointer}
+.tree li[data-file]:hover{background:var(--code)}
+.tree li.new{background:var(--accent);color:var(--accent-fg);animation:pop .4s ease both}
+.tree li.sel{outline:1px solid var(--navy)}
+.tree .ic{width:9px;height:9px;border-radius:2px;flex:none;background:var(--line)}
+.tree .k-instr .ic{background:var(--instr-line)} .tree .k-mem .ic{background:var(--mem-line)}
+.tree .k-skill .ic{background:var(--skill-line)} .tree .k-orch .ic{background:var(--orch-line)}
+.tree .k-data .ic{background:var(--tool-line)} .tree .k-out .ic{background:var(--ok)}
+.tree .k-dir .ic{background:transparent;border:1.5px solid var(--muted)}
+.ctx{display:grid;gap:5px}
+.layer{border:1px dashed var(--line);border-radius:8px;padding:6px 10px;font-size:.82rem;color:var(--muted);transition:background .3s,border-color .3s,color .3s}
+.layer b{display:block;font-size:.84rem}
+.layer small{display:block;font-size:.74rem;line-height:1.35}
+.layer.on{border-style:solid}
+.layer.on.l-sys{background:var(--code);border-color:var(--line);color:var(--fg)}
+.layer.on.l-instr{background:var(--instr);border-color:var(--instr-line);color:var(--instr-fg)}
+.layer.on.l-mem{background:var(--mem);border-color:var(--mem-line);color:var(--mem-fg)}
+.layer.on.l-desc{background:var(--skill);border-color:var(--skill-line);color:var(--skill-fg)}
+.layer.on.l-body{background:var(--orch);border-color:var(--orch-line);color:var(--orch-fg)}
+.layer.on.l-tool{background:var(--tool);border-color:var(--tool-line);color:var(--tool-fg)}
+.layer.on.l-user{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.layer.flash{box-shadow:0 0 0 3px var(--accent)}
+.preview{background:var(--code);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.preview pre{margin:0;padding:10px 12px;font-family:var(--f-mono);font-size:.76rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:230px;overflow:auto}
+.caps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.caps li{display:flex;gap:8px;align-items:flex-start;font-size:.84rem;padding:6px 9px;border-radius:8px;border:1px solid var(--line);color:var(--muted)}
+.caps li::before{content:"";flex:none;width:10px;height:10px;margin-top:5px;border-radius:50%;border:1.5px solid var(--line)}
+.caps li.on{color:var(--fg);border-color:var(--ok)}
+.caps li.on::before{background:var(--ok);border-color:var(--ok)}
+.caps li.new{background:var(--ok-bg)}
+.legend{font-size:.76rem;color:var(--muted)}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+@media (max-width:560px){.arch,.caps{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Méthode étape par étape · projet « Repas de la semaine »</p>
+    <h1>Construire un projet agentique, brique par brique</h1>
+    <p class="sub">Chaque étape montre le prompt à taper dans Claude Code, le fichier qui apparaît, et ce que cela change dans la tête de Claude. Flèches ← → pour avancer.</p>
+  </header>
+
+  <ol class="steps" id="steps"></ol>
+
+  <div class="main">
+    <section class="panel" aria-live="polite">
+      <div class="phase" id="phase"></div>
+      <h2 id="title"></h2>
+      <p id="why"></p>
+      <div class="prompt">
+        <div class="prompt-head"><span>Prompt à taper · <b id="where"></b></span><button class="btn" id="copy" type="button">Copier</button></div>
+        <pre id="prompt"></pre>
+      </div>
+      <div id="doesBox"><h3>Ce que fait Claude</h3><ul class="does" id="does"></ul></div>
+      <div id="runBox" hidden>
+        <h3 style="display:flex;justify-content:space-between;align-items:center">Ce qui se passe dans le terminal <button class="btn" id="replay" type="button">Rejouer</button></h3>
+        <ol class="log" id="log"></ol>
+      </div>
+      <div class="impact"><h3>Incidence sur le système agentique</h3><p id="impact"></p></div>
+      <div class="nav">
+        <button class="btn" id="prev" type="button">← Précédent</button>
+        <button class="btn primary" id="next" type="button">Suivant →</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="arch">
+        <div>
+          <h3>Arborescence du projet</h3>
+          <ul class="tree" id="tree"></ul>
+          <p class="legend" style="margin-top:6px">Cliquez un fichier pour voir son contenu.</p>
+        </div>
+        <div>
+          <h3>Fenêtre de contexte de Claude</h3>
+          <div class="ctx" id="ctx"></div>
+        </div>
+      </div>
+      <div class="preview">
+        <div class="prompt-head"><span>Aperçu · <b id="pvName"></b></span></div>
+        <pre id="pv"></pre>
+      </div>
+      <div>
+        <h3>Ce que le système sait faire</h3>
+        <ul class="caps" id="caps"></ul>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+const NODES = [
+  ["root","repas-semaine/",0,"dir"],
+  ["claude","CLAUDE.md",1,"instr"],
+  ["memory","memory.md",1,"mem"],
+  ["dotclaude",".claude/skills/",1,"dir"],
+  ["sk1d","menu-semaine/",2,"dir"],["sk1","SKILL.md",3,"skill"],
+  ["sk2d","liste-courses/",2,"dir"],["sk2","SKILL.md",3,"skill"],
+  ["sk3d","orchestrateur-repas/",2,"dir"],["sk3","SKILL.md",3,"orch"],
+  ["donnees","donnees/",1,"dir"],
+  ["famille","famille.csv",2,"data"],["agenda","agenda-semaine.csv",2,"data"],["frigo","frigo.csv",2,"data"],
+  ["reserve","_reserve/",1,"dir"],["agendaR","agenda-semaine.csv",2,"data"],
+  ["sorties","sorties/",1,"dir"],["out1","menu-semaine.md",2,"out"],["out2","liste-courses.md",2,"out"]
+];
+
+const FILES = {
+  claude:`# Les repas de la semaine
+
+## Contexte
+- Une famille de quatre : Julie, Marc, Léo (12 ans), Inès (8 ans).
+- Prévoir les dîners du lundi au vendredi, puis les courses.
+- donnees/famille.csv : goûts et allergies
+- donnees/agenda-semaine.csv : présents et temps de cuisine
+- donnees/frigo.csv : ce qu'il reste
+
+## Règles
+- Français, ton simple.
+- Aucun fruit à coque, jamais (allergie de Léo),
+  même les soirs où il est absent.
+- Ne jamais commander : écrire une liste dans sorties/.
+- Ne pas inventer de contrainte.
+- Lire memory.md avant chaque préparation.`,
+  memory:`# Mémoire des repas
+
+Préférences et corrections retenues au fil des semaines.
+L'orchestrateur ajoute une ligne datée quand
+l'utilisateur donne un retour.
+
+- (vide pour l'instant)`,
+  memory2:`# Mémoire des repas
+
+Préférences et corrections retenues au fil des semaines.
+L'orchestrateur ajoute une ligne datée quand
+l'utilisateur donne un retour.
+
+- 2026-11-04 : le mercredi, c'est toujours soirée crêpes.`,
+  famille:`prenom,age,contrainte
+Julie,41,aucune
+Marc,43,n'aime pas les champignons
+Léo,12,allergie aux fruits à coque
+Inès,8,n'aime pas les épinards`,
+  agenda:`jour,presents,temps_cuisine_min
+lundi,"Julie, Marc, Léo, Inès",20
+mardi,"Julie, Marc, Léo, Inès",45
+mercredi,"Julie, Léo, Inès",30
+jeudi,"Julie, Marc, Léo, Inès",20
+vendredi,"Julie, Marc",60`,
+  frigo:`produit,quantite
+œufs,6
+courgettes,3
+filets de poulet,2
+tomates,4
+…`,
+  sk1:`---
+name: menu-semaine
+description: Propose les dîners du lundi au vendredi
+  en tenant compte des présents, du temps, des goûts
+  et du frigo. Appelée par orchestrateur-repas.
+---
+## Entrée : agenda, famille, frigo, memory.md
+## Règles
+1. Un plat par soir.
+2. Temps ≤ temps disponible ; quantités = présents.
+3. Goûts : seulement si la personne est là.
+   Allergies : tous les soirs.
+4. Frigo d'abord, produits frais en priorité.
+5. Pas deux fois le même plat.
+## Sortie : sorties/menu-semaine.md (tableau)`,
+  sk2:`---
+name: liste-courses
+description: Établit la liste de courses à partir
+  de sorties/menu-semaine.md, sans ce qui est déjà
+  au frigo. Appelée après le menu.
+---
+## Règles
+1. Additionne les ingrédients.
+2. Retire ce qui est au frigo.
+3. N'achète que ce qui manque.
+4. Range par rayon.
+## Sortie : sorties/liste-courses.md
+- [ ] 1 kg de pommes de terre …
+Ne commande rien : c'est une liste à relire.`,
+  sk3:`---
+name: orchestrateur-repas
+description: Orchestre la préparation des repas
+  de la semaine. Utiliser quand on demande de
+  « préparer les repas de la semaine ».
+---
+Tu coordonnes. Tu ne rédiges ni le menu ni la liste.
+Étape 1 – Lire memory.md
+Étape 2 – Vérifier les 3 fichiers (✅ / ❌)
+Étape 3 – Décider : un ❌ → s'arrêter, proposer
+          des options, ne lancer aucune Skill
+Étape 4 – Skill menu-semaine + contrôle
+          (temps, fruits à coque, goûts ; 1 relance)
+Étape 5 – Skill liste-courses
+Étape 6 – Rendre compte : « Rien n'a été commandé. »
+Retour de l'utilisateur → ligne datée dans memory.md`,
+  out1:`| Jour     | Plat                     | Pour | Temps |
+|----------|--------------------------|------|-------|
+| Lundi    | Omelette aux courgettes  | 4    | 20 min|
+| Mardi    | Poulet rôti, tomates     | 4    | 45 min|
+| Mercredi | Risotto aux champignons  | 3    | 30 min|
+| Jeudi    | Pâtes sauce tomate       | 4    | 20 min|
+| Vendredi | Quiche aux épinards      | 2    | 60 min|
+
+Contraintes appliquées : champignons seulement
+mercredi (Marc absent), épinards seulement vendredi
+(Inès absente), aucun fruit à coque.
+(Exemple : le menu change à chaque exécution.)`,
+  out2:`# Courses de la semaine
+
+## Fruits et légumes
+- [ ] 300 g de champignons
+- [ ] 1 sachet d'épinards
+## Épicerie
+- [ ] 500 g de pâtes
+- [ ] 250 g de riz arborio
+## Frais
+- [ ] 1 pâte brisée
+
+Déjà à la maison : œufs, courgettes,
+filets de poulet, tomates.`
+};
+FILES.agendaR = FILES.agenda;
+
+const LAYERS = [
+  ["sys","l-sys","Prompt système de Claude Code","Toujours là : comment se comporter, quels outils."],
+  ["tool","l-tool","Outils : lire, écrire, lister les fichiers","Ce qui permet d'agir sur le dossier."],
+  ["instr","l-instr","CLAUDE.md","Chargé automatiquement à chaque session."],
+  ["mem","l-mem","memory.md","Lu parce que CLAUDE.md le demande."],
+  ["desc","l-desc","Descriptions des Skills","Nom + une phrase seulement : le menu des savoir-faire."],
+  ["body","l-body","Contenu d'une Skill","Chargé seulement quand la Skill est appelée."],
+  ["user","l-user","Votre message","La consigne de la session."]
+];
+
+const CAPS = [
+  ["know","Connaît la famille et les règles"],
+  ["remember","Garde les retours d'une session à l'autre"],
+  ["checked","Compréhension du projet vérifiée"],
+  ["menu","Sait composer un menu"],
+  ["list","Sait faire une liste de courses"],
+  ["chain","Enchaîne les étapes seul"],
+  ["stop","S'arrête quand une info manque"],
+  ["learn","Apprend de vos corrections"]
+];
+
+const BASE = ["root","donnees","famille","agenda","frigo","reserve","sorties"];
+const S = [
+ {phase:"Méthode · étape 1",title:"Créer un dossier de test",
+  why:"On commence par un dossier simple : qui mange, quand, et ce qu'il y a dans le frigo.",
+  where:"terminal, dans un dossier vide · claude",
+  prompt:`Crée un dossier repas-semaine avec :
+- donnees/famille.csv (prenom, age, contrainte) : Julie 41 aucune ; Marc 43 n'aime pas les champignons ; Léo 12 allergie aux fruits à coque ; Inès 8 n'aime pas les épinards
+- donnees/agenda-semaine.csv (jour, presents, temps_cuisine_min) du lundi au vendredi : Marc absent mercredi, enfants absents vendredi
+- donnees/frigo.csv (produit, quantite) : œufs, courgettes, filets de poulet, tomates
+- deux dossiers vides : sorties/ et _reserve/
+
+Montre-moi l'arborescence et le contenu des 3 fichiers avant de les créer, et attends ma confirmation.`,
+  does:["Propose l'arborescence et le contenu des fichiers.","Attend votre « oui », puis crée les dossiers et les 3 CSV."],
+  impact:"Claude voit des fichiers, mais ne sait pas à quoi ils servent. À ce stade, c'est un assistant généraliste : il faudrait tout lui réexpliquer à chaque session.",
+  nodes:BASE,newN:BASE,layers:["sys","tool"],caps:[],pv:"agenda"},
+ {phase:"Méthode · étape 2",title:"Écrire un CLAUDE.md minimal",
+  why:"Un fichier texte qui porte le contexte et les règles : qui, quoi, comment travailler. Claude le lit à chaque ouverture de session.",
+  where:"Claude Code, dans repas-semaine/",
+  prompt:`Rédige un CLAUDE.md minimal pour ce dossier. Il doit dire :
+- ce qu'est le projet (famille de 4, dîners du lundi au vendredi puis courses) ;
+- à quoi sert chaque fichier de donnees/ ;
+- les règles : français simple ; aucun fruit à coque, jamais (allergie de Léo, même s'il est absent) ; ne jamais commander, écrire seulement une liste dans sorties/ ; ne pas inventer de contrainte ; lire memory.md avant chaque préparation.
+
+20 lignes maximum. Propose le texte avant d'écrire le fichier.`,
+  does:["Propose un CLAUDE.md court.","L'écrit à la racine après validation."],
+  impact:"Nouvelle couche permanente dans le contexte : chaque session démarre en connaissant la famille et les interdits. La règle « aucun fruit à coque » s'applique désormais sans qu'on la répète.",
+  nodes:[...BASE,"claude"],newN:["claude"],layers:["sys","tool","instr"],caps:["know"],pv:"claude"},
+ {phase:"Méthode · étape 3",title:"Créer un MEMORY.md",
+  why:"La mémoire garde les décisions et les préférences au fil des sessions. Vide au départ, elle se remplit avec vos retours.",
+  where:"Claude Code",
+  prompt:`Crée memory.md, la mémoire des repas : un titre, deux lignes qui expliquent qu'on y note les préférences et corrections au fil des semaines (une ligne datée par retour), puis « (vide pour l'instant) ».
+
+Montre-le-moi avant de l'écrire.`,
+  does:["Crée memory.md avec sa règle d'usage.","Ne remplit rien : la mémoire viendra de l'usage."],
+  impact:"Claude ne lit pas memory.md tout seul : il le lit parce que CLAUDE.md le lui demande. Les deux fichiers travaillent ensemble. CLAUDE.md fixe les règles, memory.md garde ce qui a été appris.",
+  nodes:[...BASE,"claude","memory"],newN:["memory"],layers:["sys","tool","instr","mem"],caps:["know","remember"],pv:"memory"},
+ {phase:"Méthode · étape 4",title:"Faire lire et résumer la structure",
+  why:"C'est le test de contrôle. Si le résumé est faux ou flou, le problème est dans CLAUDE.md, pas dans Claude.",
+  where:"Claude Code, nouvelle session",
+  prompt:`Sans rien modifier, parcours ce dossier et résume-moi : le projet, le rôle de chaque fichier, et les règles que tu appliqueras. Signale tout ce qui te paraît flou ou manquant.`,
+  does:["Liste les fichiers et lit leur contenu.","Reformule le projet et les règles.","Ne crée ni ne modifie rien."],
+  impact:"Aucun fichier nouveau, mais un acquis : vous savez que Claude a compris. Règle d'or de Boris Cherny : s'il se trompe, demandez-lui de corriger CLAUDE.md pour qu'il ne répète pas l'erreur.",
+  nodes:[...BASE,"claude","memory"],newN:[],layers:["sys","tool","instr","mem","user"],caps:["know","remember","checked"],pv:"claude"},
+ {phase:"Méthode · étape 5",tag2:"Principe : répétitif → skill",title:"Première Skill : menu-semaine",
+  why:"Le menu se refait chaque semaine. Ce qui est répétitif devient une Skill, pas une règle de plus dans CLAUDE.md.",
+  where:"Claude Code",
+  prompt:`Crée une Skill .claude/skills/menu-semaine/SKILL.md.
+Rôle : proposer les dîners du lundi au vendredi.
+Entrées : les 3 fichiers de donnees/ et memory.md (ses habitudes passent avant le reste).
+Règles : un plat par soir ; temps de préparation ≤ temps disponible ; quantités pour les présents ; goûts seulement les soirs où la personne est là, allergies tous les soirs ; utiliser d'abord le frigo ; pas deux fois le même plat.
+Sortie : sorties/menu-semaine.md, tableau Jour | Plat | Pour | Temps | Ingrédients | Déjà au frigo, puis une ligne « Contraintes appliquées ».
+Soigne la description : elle doit dire quand utiliser la Skill.
+
+Propose le fichier avant de l'écrire.`,
+  does:["Rédige le SKILL.md avec son en-tête name / description.","Range les règles en étapes numérotées."],
+  impact:"Au démarrage, Claude ne charge que la description (une phrase). Le contenu complet n'entre dans le contexte que lorsqu'on l'appelle. C'est pour cela que la description doit être précise.",
+  nodes:[...BASE,"claude","memory","dotclaude","sk1d","sk1"],newN:["dotclaude","sk1d","sk1"],layers:["sys","tool","instr","mem","desc"],desc:1,caps:["know","remember","checked","menu"],pv:"sk1"},
+ {phase:"Méthode · étape 5",title:"Deuxième Skill : liste-courses",
+  why:"Une Skill fait une seule chose. La liste de courses part du menu déjà écrit et retire ce qui est au frigo.",
+  where:"Claude Code",
+  prompt:`Crée la Skill .claude/skills/liste-courses/SKILL.md.
+Entrées : sorties/menu-semaine.md et donnees/frigo.csv.
+Règles : additionne les ingrédients ; retire ce qui est déjà au frigo ; n'achète que ce qui manque ; range par rayon (Fruits et légumes · Boucherie et poisson · Frais · Épicerie).
+Sortie : sorties/liste-courses.md avec une case à cocher par article, et en bas « Déjà à la maison ».
+Elle ne commande rien.
+
+Propose le fichier avant de l'écrire.`,
+  does:["Rédige le second SKILL.md.","Relie son entrée à la sortie de menu-semaine."],
+  impact:"Deux savoir-faire indépendants, chacun testable seul (/menu-semaine, /liste-courses). Mais personne ne les enchaîne encore : il faudrait les lancer un par un.",
+  nodes:[...BASE,"claude","memory","dotclaude","sk1d","sk1","sk2d","sk2"],newN:["sk2d","sk2"],layers:["sys","tool","instr","mem","desc"],desc:2,caps:["know","remember","checked","menu","list"],pv:"sk2"},
+ {phase:"Méthode · étape 5",title:"L'orchestrateur : orchestrateur-repas",
+  why:"L'orchestrateur ne cuisine rien. Il contient un ordre d'étapes et une règle de décision : continuer, ou s'arrêter.",
+  where:"Claude Code",
+  prompt:`Crée la Skill .claude/skills/orchestrateur-repas/SKILL.md, à utiliser quand on demande de « préparer les repas de la semaine ». Elle ne rédige rien elle-même : elle enchaîne.
+1. Lire memory.md.
+2. Vérifier les 3 fichiers de donnees/ (✅ ou ❌ par fichier).
+3. Décider : si un fichier manque, s'arrêter, ne lancer aucune Skill et proposer des options (famille absente : aucun repli ; agenda absent : menu standard 4 personnes, 20 min ; frigo absent : tout acheter).
+4. Appeler menu-semaine, puis contrôler temps, fruits à coque et goûts (une seule relance).
+5. Appeler liste-courses.
+6. Rendre compte et rappeler que rien n'est commandé.
+Si je donne un retour, ajouter une ligne datée dans memory.md.
+Annonce chaque étape en une ligne.
+
+Propose le fichier avant de l'écrire.`,
+  does:["Rédige l'orchestrateur avec ses 6 étapes.","Place la règle d'arrêt à l'étape 3."],
+  impact:"Le système passe d'outils isolés à un agent : une phrase déclenche une chaîne, avec des contrôles et un point de décision. L'orchestrateur vérifie aussi le travail de la Skill menu.",
+  nodes:[...BASE,"claude","memory","dotclaude","sk1d","sk1","sk2d","sk2","sk3d","sk3"],newN:["sk3d","sk3"],layers:["sys","tool","instr","mem","desc"],desc:3,caps:["know","remember","checked","menu","list","chain"],pv:"sk3"},
+ {phase:"Méthode · étape 6",tag2:"Acte 1",title:"Lancer : une phrase, cinq étapes",
+  why:"Tapez d'abord / pour vérifier que les trois Skills apparaissent. Puis une seule consigne.",
+  where:"Claude Code, nouvelle session",
+  prompt:`Prépare les repas de la semaine`,
+  run:[
+   ["user","Prépare les repas de la semaine",{layer:"user"}],
+   ["","Claude reconnaît la description d'orchestrateur-repas et charge la Skill.",{layer:"body"}],
+   ["","Étape 1 – Je lis memory.md : aucune préférence notée.",{layer:"mem"}],
+   ["ok","Étape 2 – famille.csv ✅ · agenda-semaine.csv ✅ · frigo.csv ✅",{layer:"tool"}],
+   ["","Étape 3 – Tout est présent, je continue."],
+   ["","Étape 4 – J'appelle la Skill menu-semaine.",{add:"out1",layer:"body"}],
+   ["ok","Contrôle : temps ✅ · fruits à coque ✅ · goûts ✅"],
+   ["","Étape 5 – J'appelle la Skill liste-courses.",{add:"out2",layer:"body"}],
+   ["ok","Étape 6 – 2 fichiers produits. Rien n'a été commandé. Relisez la liste avant de faire les courses."]
+  ],
+  impact:"Vous avez fait 2 gestes (lancer, relire), l'agent en a fait 5. Le menu change à chaque exécution, mais les règles tiennent : 20 min lundi et jeudi, champignons seulement mercredi, épinards seulement vendredi.",
+  nodes:[...BASE,"claude","memory","dotclaude","sk1d","sk1","sk2d","sk2","sk3d","sk3"],endNodes:["out1","out2"],layers:["sys","tool","instr","mem","desc"],desc:3,caps:["know","remember","checked","menu","list","chain"],pv:"out1"},
+ {phase:"Méthode · étape 6",tag2:"Acte 2",title:"L'information manque : l'agent s'arrête",
+  why:"Déplacez agenda-semaine.csv dans _reserve/, videz sorties/, puis relancez la même phrase. Que va faire l'IA ?",
+  where:"Claude Code",
+  prompt:`Prépare les repas de la semaine`,
+  run:[
+   ["","Vous déplacez donnees/agenda-semaine.csv dans _reserve/.",{del:"agenda",add:"agendaR"}],
+   ["user","Prépare les repas de la semaine",{layer:"user"}],
+   ["","Étape 1 – Je lis memory.md.",{layer:"mem"}],
+   ["stop","Étape 2 – famille.csv ✅ · agenda-semaine.csv ❌ absent · frigo.csv ✅",{layer:"tool"}],
+   ["stop","Étape 3 – Je m'arrête. Je ne sais ni qui dîne à la maison, ni combien de temps vous avez pour cuisiner. Aucune Skill lancée."],
+   ["","Options : A) remettre l'agenda puis relancer · B) menu standard, 4 personnes, 20 min chaque soir."],
+   ["user","C'est bon, j'ai remis l'agenda",{del:"agendaR",add:"agenda"}],
+   ["ok","Reprise à l'étape 2 : tout est ✅. Menu puis liste.",{add:"out1"}],
+   ["ok","2 fichiers produits. Rien n'a été commandé.",{add:"out2"}]
+  ],
+  impact:"C'est la différence entre un agent et une automatisation : il constate le manque, rend la main et reprend. Variante : sans famille.csv, aucune option de repli, car l'allergie de Léo serait inconnue.",
+  nodes:[...BASE,"claude","memory","dotclaude","sk1d","sk1","sk2d","sk2","sk3d","sk3"],endNodes:["out1","out2"],layers:["sys","tool","instr","mem","desc"],desc:3,caps:["know","remember","checked","menu","list","chain","stop"],pv:"sk3"},
+ {phase:"Principe Boris Cherny",tag2:"Acte 3",title:"Corriger = documenter",
+  why:"Un retour donné une fois ne doit pas être répété. L'orchestrateur l'écrit dans memory.md.",
+  where:"Claude Code, même session",
+  prompt:`Le mercredi, c'est toujours soirée crêpes chez nous.`,
+  run:[
+   ["user","Le mercredi, c'est toujours soirée crêpes chez nous.",{layer:"user"}],
+   ["mem","J'ajoute dans memory.md : « 2026-11-04 : le mercredi, c'est toujours soirée crêpes. »",{mem2:true,layer:"mem"}],
+   ["","Je refais le menu : mercredi → crêpes.",{add:"out1",layer:"body"}],
+   ["","Je refais la liste : + farine ; les œufs viennent du frigo.",{add:"out2"}],
+   ["user","(nouvelle session) Prépare les repas de la semaine"],
+   ["ok","Étape 1 – memory.md : mercredi = crêpes. Appliqué sans qu'on le redise."]
+  ],
+  impact:"La boucle se ferme : usage → retour → mémoire → meilleur usage. Même règle pour CLAUDE.md : quand Claude fait une erreur de règle, demandez-lui explicitement de mettre CLAUDE.md à jour. C'est un fichier vivant.",
+  nodes:[...BASE,"claude","memory","dotclaude","sk1d","sk1","sk2d","sk2","sk3d","sk3"],endNodes:["out1","out2"],layers:["sys","tool","instr","mem","desc"],desc:3,caps:["know","remember","checked","menu","list","chain","stop","learn"],pv:"memory2"},
+ {phase:"Méthode · étape 6",title:"Transposer sur votre vraie activité",
+  why:"Même architecture, autre métier : données, règles, Skills, orchestrateur, règle d'arrêt. Toujours avec confirmation.",
+  where:"Claude Code, dans votre vrai dossier",
+  prompt:`Voici une tâche que je fais chaque semaine : [décris-la en 3 lignes].
+Aide-moi à la découper comme le projet « Repas de la semaine » :
+- quels fichiers de données ;
+- quelles règles pour CLAUDE.md ;
+- quelles Skills (une par savoir-faire répétitif) ;
+- quel orchestrateur, et quand il doit s'arrêter si une information manque.
+Ne crée aucun fichier : propose l'architecture et attends ma validation.`,
+  does:["Propose une architecture adaptée à votre activité.","Ne crée rien avant votre accord."],
+  impact:"Le CLAUDE.md est portable, les Skills sont réutilisables. Ce que vous avez construit sur les repas se transpose à une revue de contrats, un suivi de prospects ou des comptes rendus.",
+  nodes:[...BASE,"claude","memory","dotclaude","sk1d","sk1","sk2d","sk2","sk3d","sk3","out1","out2"],newN:[],layers:["sys","tool","instr","mem","desc"],desc:3,caps:CAPS.map(c=>c[0]),pv:"sk3"}
+];
+
+const $=id=>document.getElementById(id);
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+let cur=0,timers=[],state={nodes:new Set(),newN:new Set(),layers:new Set(),flash:null,mem2:false,pv:"claude"},prevCaps=new Set();
+
+const CHIPS=["Dossier de test","CLAUDE.md","memory.md","Contrôle","Skill menu","Skill courses","Orchestrateur","Lancer","Info manquante","Il apprend","Transposer"];
+$("steps").innerHTML=S.map((s,i)=>`<li><button type="button" data-i="${i}"><span class="n">${i+1}</span>${CHIPS[i]}</button></li>`).join("");
+$("steps").onclick=e=>{const b=e.target.closest("button");if(b)go(+b.dataset.i)};
+
+function drawTree(){
+  $("tree").innerHTML=NODES.filter(n=>state.nodes.has(n[0])).map(([id,label,d,k])=>{
+    const f=(id==="memory"&&state.mem2)?"memory2":id;
+    const file=FILES[f]?` data-file="${f}" tabindex="0"`:"";
+    const cls=`k-${k}${state.newN.has(id)?" new":""}${state.pv===f?" sel":""}`;
+    return `<li class="${cls}"${file} style="padding-left:${6+d*16}px"><span class="ic"></span>${label}</li>`;
+  }).join("");
+}
+function drawCtx(s){
+  $("ctx").innerHTML=LAYERS.map(([id,cl,name,note])=>{
+    let n=name; if(id==="desc"&&s.desc) n+=` (${s.desc})`;
+    const on=state.layers.has(id);
+    return `<div class="layer ${cl}${on?" on":""}${state.flash===id?" flash":""}"><b>${n}</b><small>${on?note:"Pas encore présent"}</small></div>`;
+  }).join("");
+}
+function drawCaps(s){
+  const now=new Set(s.caps);
+  $("caps").innerHTML=CAPS.map(([id,t])=>`<li class="${now.has(id)?"on":""}${now.has(id)&&!prevCaps.has(id)?" new":""}">${t}</li>`).join("");
+}
+function showPv(f){
+  state.pv=f;
+  const names={memory2:"memory.md",sk1:"menu-semaine/SKILL.md",sk2:"liste-courses/SKILL.md",sk3:"orchestrateur-repas/SKILL.md",agendaR:"_reserve/agenda-semaine.csv"};
+  const n=NODES.find(x=>x[0]===f);
+  $("pvName").textContent=names[f]||(n?n[1]:f);
+  $("pv").textContent=FILES[f];
+  drawTree();
+}
+$("tree").addEventListener("click",e=>{const li=e.target.closest("[data-file]");if(li)showPv(li.dataset.file)});
+$("tree").addEventListener("keydown",e=>{if(e.key==="Enter"){const li=e.target.closest("[data-file]");if(li)showPv(li.dataset.file)}});
+
+function go(i){
+  timers.forEach(clearTimeout);timers=[];
+  prevCaps=new Set(i>0?S[i-1].caps:[]);
+  cur=i;const s=S[i];
+  document.querySelectorAll("#steps button").forEach((b,j)=>{b.classList.toggle("on",j===i);b.classList.toggle("done",j<i)});
+  $("phase").innerHTML=`<span class="tag">${s.phase}</span>`+(s.tag2?`<span class="tag alt">${s.tag2}</span>`:"");
+  $("title").textContent=s.title;$("why").textContent=s.why;$("where").textContent=s.where;
+  $("prompt").textContent=s.prompt;$("impact").textContent=s.impact;
+  $("prev").disabled=i===0;$("next").disabled=i===S.length-1;
+  state.nodes=new Set(s.nodes);state.newN=new Set(s.newN||[]);state.layers=new Set(s.layers);state.flash=null;
+  state.mem2=i>=9;
+  $("doesBox").hidden=!!s.run;$("runBox").hidden=!s.run;
+  if(s.does)$("does").innerHTML=s.does.map(d=>`<li>${d}</li>`).join("");
+  drawCaps(s);
+  showPv(s.pv);drawCtx(s);
+  if(s.run)play();
+}
+
+function play(){
+  timers.forEach(clearTimeout);timers=[];
+  const s=S[cur];
+  state.nodes=new Set(s.nodes);state.newN=new Set();state.layers=new Set(s.layers);state.mem2=cur>9;
+  $("log").innerHTML="";drawTree();drawCtx(s);
+  const step=(k)=>{
+    const [cls,txt,fx={}]=s.run[k];
+    const li=document.createElement("li");if(cls)li.className=cls;li.textContent=txt;$("log").appendChild(li);
+    state.newN=new Set();state.flash=null;
+    if(fx.del)state.nodes.delete(fx.del);
+    if(fx.add){state.nodes.add(fx.add);state.newN.add(fx.add);if(FILES[fx.add])state.pv=fx.add}
+    if(fx.mem2){state.mem2=true;state.newN.add("memory");state.pv="memory2"}
+    if(fx.layer){state.layers.add(fx.layer);state.flash=fx.layer}
+    showPv(state.pv);drawCtx(s);
+  };
+  if(reduce){s.run.forEach((_,k)=>step(k));return}
+  s.run.forEach((_,k)=>timers.push(setTimeout(()=>step(k),300+k*1100)));
+}
+$("replay").onclick=play;
+$("prev").onclick=()=>cur>0&&go(cur-1);
+$("next").onclick=()=>cur<S.length-1&&go(cur+1);
+document.addEventListener("keydown",e=>{if(e.target.closest("pre,input,textarea"))return;if(e.key==="ArrowRight")$("next").click();if(e.key==="ArrowLeft")$("prev").click()});
+$("copy").onclick=()=>{
+  const t=$("prompt").textContent,b=$("copy");
+  const done=()=>{b.textContent="Copié";setTimeout(()=>b.textContent="Copier",1500)};
+  navigator.clipboard?.writeText(t).then(done).catch(()=>{const r=document.createRange();r.selectNodeContents($("prompt"));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);b.textContent="Texte sélectionné"});
+};
+go(0);
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>

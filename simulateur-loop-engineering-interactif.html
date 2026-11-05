@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La Boucle de vérification</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout : bandeau de boucle en haut (où en est-on), brouillon cliquable au centre, relevé des problèmes à droite (dessous sur mobile) */
+:root{
+  --bg:#f7f8fb; --surface:#ffffff; --ink:#151a33; --muted:#5b6180; --line:#e2e5ef;
+  --brand:#1474d4; --lime:#dcff1f; --lime-ink:#151a33;
+  --err:#b4232c; --err-bg:#fbeaeb; --vague:#9a5b00; --vague-bg:#fdf1dc; --proof:#6b3fc4; --proof-bg:#efe8fb;
+  --ok:#14804a; --ok-bg:#e6f5ec;
+  --display:"Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1224; --surface:#181c33; --ink:#eef0f8; --muted:#a2a8c6; --line:#2b3052;
+  --brand:#5aa8ff; --lime:#d4f51c; --lime-ink:#151a33;
+  --err:#ff8a91; --err-bg:#3a161b; --vague:#f3bd5e; --vague-bg:#3a2a10; --proof:#c3a6ff; --proof-bg:#2a1f45;
+  --ok:#5fd69a; --ok-bg:#12321f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1224; --surface:#181c33; --ink:#eef0f8; --muted:#a2a8c6; --line:#2b3052;
+  --brand:#5aa8ff; --lime:#d4f51c; --lime-ink:#151a33;
+  --err:#ff8a91; --err-bg:#3a161b; --vague:#f3bd5e; --vague-bg:#3a2a10; --proof:#c3a6ff; --proof-bg:#2a1f45;
+  --ok:#5fd69a; --ok-bg:#12321f; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 48px;overflow-x:hidden}
+.wrap{max-width:1040px;margin:0 auto;display:grid;gap:22px;position:relative}
+.deco{position:absolute;top:-40px;right:-50px;width:200px;height:150px;pointer-events:none;z-index:0}
+header{position:relative;z-index:1;display:grid;gap:6px;max-width:720px}
+.eyebrow{font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,6vw,44px);line-height:1.05;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:600;font-size:18px;margin:0}
+.lede{color:var(--muted);margin:0;max-width:62ch}
+.card{position:relative;z-index:1;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;display:grid;gap:12px;min-width:0}
+.label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+
+/* brief */
+.brief{display:grid;gap:4px;font-size:15px}
+.brief b{font-weight:600}
+
+/* boucle */
+.loop{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.step{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1.5px solid var(--line);font-weight:600;font-size:14px;color:var(--muted);background:var(--surface)}
+.step .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--bg);border:1px solid var(--line)}
+.step.on{background:var(--lime);color:var(--lime-ink);border-color:var(--lime)}
+.step.on .n{background:var(--surface);border-color:var(--lime-ink)}
+.step.done{color:var(--ink)}
+.arrow{color:var(--muted)}
+.tour{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600;font-size:14px}
+.pips{display:inline-flex;gap:4px;vertical-align:middle;margin-left:6px}
+.pip{width:18px;height:6px;border-radius:3px;background:var(--line)} .pip.on{background:var(--ink)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+
+/* brouillon */
+.doc{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:18px 20px;display:grid;gap:10px}
+.doc h3{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.2;margin:0}
+.doc p{margin:0}
+.doc ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.seg{font:inherit;color:inherit;background:none;border:0;padding:1px 2px;margin:0 -2px;border-radius:4px;cursor:pointer;text-align:left;line-height:inherit;letter-spacing:inherit}
+.seg:hover{background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+.seg:focus-visible,.btn:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.seg:disabled{cursor:default}
+.seg:disabled:hover{background:none;box-shadow:none}
+.seg.chg{text-decoration:underline dashed var(--brand) 2px;text-underline-offset:4px}
+.seg.t-err{background:var(--err-bg);box-shadow:inset 0 -2px 0 var(--err)}
+.seg.t-vague{background:var(--vague-bg);box-shadow:inset 0 -2px 0 var(--vague)}
+.seg.t-proof{background:var(--proof-bg);box-shadow:inset 0 -2px 0 var(--proof)}
+.seg.missed{outline:2px dashed var(--muted);outline-offset:1px}
+.seg.nope{animation:nope .35s}
+@keyframes nope{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.note{font-size:14px;color:var(--muted);margin:0}
+.note.hl{color:var(--ink);background:var(--bg);border-radius:8px;padding:10px 12px;border-left:4px solid var(--brand)}
+
+/* relevé */
+.legend{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px}
+.tag.t-err{background:var(--err-bg);color:var(--err)} .tag.t-vague{background:var(--vague-bg);color:var(--vague)} .tag.t-proof{background:var(--proof-bg);color:var(--proof)}
+.tag.t-ok{background:var(--ok-bg);color:var(--ok)} .tag.t-miss{background:var(--bg);color:var(--muted);border:1px dashed var(--muted)}
+.finds{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.finds li{display:grid;gap:4px;font-size:14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.finds li:last-child{border-bottom:0;padding-bottom:0}
+.finds q{font-weight:600;quotes:"« " " »"}
+.empty{font-size:14px;color:var(--muted);margin:0}
+.stats{display:flex;gap:16px;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.stats b{color:var(--ink)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;border:0;border-radius:10px;padding:12px 18px;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.alt{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.toast{font-size:14px;min-height:1.4em;margin:0;color:var(--muted)}
+
+/* livraison */
+.final{display:grid;gap:18px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.checks{margin:0;padding-left:18px;display:grid;gap:6px;font-size:15px}
+.kit{margin:0;white-space:pre-wrap;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto}
+.lessons{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.lesson{background:var(--bg);border-radius:10px;padding:14px;display:grid;gap:4px;font-size:15px}
+.lesson b{font-family:var(--display);font-weight:600;font-size:16px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <svg class="deco" viewBox="0 0 200 150" aria-hidden="true">
+    <circle cx="80" cy="70" r="44" fill="none" stroke="var(--lime)" stroke-width="24"/>
+    <path d="M150 12 l-18 120" fill="none" stroke="var(--lime)" stroke-width="24" stroke-linecap="round"/>
+  </svg>
+  <header>
+    <span class="eyebrow">Atelier · Loop Engineering</span>
+    <h1>La Boucle de vérification</h1>
+    <p class="lede">Claude a produit une première version. Vous jouez l'étape de vérification : repérez les erreurs, les imprécisions et les affirmations sans preuve, puis lancez la correction. Trois tours au maximum.</p>
+  </header>
+
+  <section class="card">
+    <p class="label">Le prompt envoyé à Claude</p>
+    <div class="brief">
+      <span><b>Réalise cette tâche :</b> rédige le texte de présentation de la formation « Claude au quotidien » pour la plaquette commerciale.</span>
+      <span><b>Contexte :</b> dirigeants de PME ; objectif : donner envie de s'inscrire ; formation d'une journée, en présentiel à Lyon, 690 € HT ; aucune promesse chiffrée sans source.</span>
+      <span><b>Format attendu :</b> un titre, une phrase d'accroche, 3 puces, une ligne d'infos pratiques.</span>
+      <span class="note">Puis : produis, vérifie, corrige, vérifie à nouveau. Trois fois maximum. N'invente aucun fait. Livre avec un bilan.</span>
+    </div>
+  </section>
+
+  <div class="loop" id="loop" aria-label="Étapes de la boucle"></div>
+  <main id="stage" aria-live="polite"></main>
+</div>
+
+<script>
+const TYPES={err:"Erreur",vague:"Imprécision",proof:"Sans preuve"};
+// Trois versions successives du brouillon. issue = problème à repérer ; chg = passage modifié par la dernière correction.
+const V=[
+ [
+  {k:"h",s:[{id:"a1",t:"Claude au quotidien : maîtrisez l'IA en 2 jours",issue:["err","Le brief indique une formation d'une journée."]}]},
+  {k:"p",s:[{id:"a2",t:"Une formation pensée pour les dirigeants de PME qui veulent gagner du temps sans devenir experts."},{id:"a3",t:" Recommandée par Anthropic.",issue:["proof","Rien ne l'atteste : c'est un fait inventé pour rassurer."]}]},
+  {k:"li",s:[{id:"a4",t:"Rédiger mails, comptes rendus et propositions avec Claude"}]},
+  {k:"li",s:[{id:"a5",t:"98 % des participants doublent leur productivité",issue:["proof","Chiffre sans source, alors que le brief interdit les promesses chiffrées non sourcées."]}]},
+  {k:"li",s:[{id:"a6",t:"Des outils avancés pour optimiser vos processus",issue:["vague","Quels outils ? Quels processus ? Le lecteur ne sait pas ce qu'il apprendra."]}]},
+  {k:"p",s:[{id:"a7",t:"Formation à distance",issue:["err","Le brief indique : en présentiel à Lyon."]},{id:"a8",t:", 690 € HT."}]},
+ ],
+ [
+  {k:"h",s:[{id:"b1",t:"Claude au quotidien : maîtrisez l'IA en une journée",chg:1}]},
+  {k:"p",s:[{id:"b2",t:"Une formation pensée pour les dirigeants de PME qui veulent gagner du temps sans devenir experts."}]},
+  {k:"li",s:[{id:"b4",t:"Rédiger mails, comptes rendus et propositions avec Claude"}]},
+  {k:"li",s:[{id:"b5",t:"Travailler sur vos propres documents, avec des cas pratiques",chg:1}]},
+  {k:"li",s:[{id:"b6",t:"Créer un projet Claude avec vos consignes et vos modèles",chg:1}]},
+  {k:"p",s:[{id:"b7",t:"En présentiel à Lyon, 690 € HT.",chg:1},{id:"b8",t:" Places limitées à 8 participants.",chg:1,issue:["proof","Ce chiffre n'est pas dans le brief : la correction a ajouté un fait inventé. C'est pour cela qu'on vérifie à nouveau après chaque correction."]}]},
+ ],
+ [
+  {k:"h",s:[{id:"c1",t:"Claude au quotidien : maîtrisez l'IA en une journée"}]},
+  {k:"p",s:[{id:"c2",t:"Une formation pensée pour les dirigeants de PME qui veulent gagner du temps sans devenir experts."}]},
+  {k:"li",s:[{id:"c4",t:"Rédiger mails, comptes rendus et propositions avec Claude"}]},
+  {k:"li",s:[{id:"c5",t:"Travailler sur vos propres documents, avec des cas pratiques"}]},
+  {k:"li",s:[{id:"c6",t:"Créer un projet Claude avec vos consignes et vos modèles"}]},
+  {k:"p",s:[{id:"c7",t:"En présentiel à Lyon, 690 € HT.",chg:1}]},
+ ],
+];
+const ISSUES=V.map(v=>v.flatMap(l=>l.s).filter(s=>s.issue));
+const TOTAL=ISSUES.flat().length;
+const TOUR_NOTE=[
+ "Première version produite par Claude. Cliquez sur chaque passage qui pose problème.",
+ "Les passages soulignés en pointillé ont été modifiés par la correction. Vérifiez-les en priorité : une correction peut introduire une nouvelle erreur.",
+ "Tour 3 sur 3 : c'est le dernier passage autorisé. S'il restait un problème, Claude devrait le signaler dans son bilan plutôt que de boucler encore."
+];
+
+let st={tour:0,phase:"verify",found:[[],[],[]],falses:0};
+const $=s=>document.querySelector(s);
+const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+function loop(){
+  const steps=["Produire","Vérifier","Corriger","Livrer"];
+  const cur=st.phase==="deliver"?3:st.phase==="review"?(ISSUES[st.tour].length?2:3):1;
+  $("#loop").innerHTML=steps.map((s,k)=>`<span class="step ${k===cur?"on":k<cur?"done":""}"><span class="n">${k+1}</span>${s}</span>${k<3?'<span class="arrow" aria-hidden="true">→</span>':""}`).join("")
+   +`<span class="tour">Tour ${Math.min(st.tour+1,3)} / 3 max<span class="pips">${[0,1,2].map(k=>`<span class="pip ${k<=st.tour?"on":""}"></span>`).join("")}</span></span>`;
+}
+
+function docHTML(v,interactive){
+  const found=st.found[st.tour];
+  const seg=s=>{
+    const f=found.includes(s.id), missed=st.phase==="review"&&s.issue&&!f;
+    const cls=["seg",s.chg&&st.phase!=="deliver"?"chg":"",(f||missed)&&s.issue?"t-"+s.issue[0]:"",missed?"missed":""].join(" ");
+    return interactive?`<button class="${cls}" data-id="${s.id}" ${st.phase!=="verify"||f?"disabled":""}>${esc(s.t)}</button>`:esc(s.t);
+  };
+  let out="",ul=[];
+  const flush=()=>{if(ul.length){out+=`<ul>${ul.join("")}</ul>`;ul=[];}};
+  v.forEach(l=>{const h=l.s.map(seg).join("");
+    if(l.k==="li") ul.push(`<li>${h}</li>`); else {flush(); out+=l.k==="h"?`<h3>${h}</h3>`:`<p>${h}</p>`;}});
+  flush(); return out;
+}
+
+function findsHTML(){
+  const found=st.found[st.tour], list=ISSUES[st.tour];
+  const items=list.filter(s=>found.includes(s.id)||st.phase==="review").map(s=>{
+    const f=found.includes(s.id);
+    return `<li><span class="legend"><span class="tag t-${s.issue[0]}">${TYPES[s.issue[0]]}</span>${f?'<span class="tag t-ok">Repéré</span>':'<span class="tag t-miss">Manqué</span>'}</span><q>${esc(s.t.trim())}</q><span>${esc(s.issue[1])}</span></li>`;});
+  return items.length?`<ul class="finds">${items.join("")}</ul>`:`<p class="empty">${st.phase==="review"?"Aucun problème dans cette version.":"Rien de relevé pour l'instant."}</p>`;
+}
+
+function render(){
+  loop();
+  if(st.phase==="deliver") return deliver();
+  const v=V[st.tour], n=ISSUES[st.tour].length, got=st.found[st.tour].length;
+  let action;
+  if(st.phase==="verify") action=`<button class="btn" id="go">J'ai fini de vérifier</button>`;
+  else if(n) action=`<p class="note hl">${got===n?"Tout est repéré.":`${n-got} problème${n-got>1?"s":""} vous ${n-got>1?"ont":"a"} échappé (encadré${n-got>1?"s":""} en pointillé). Dans la vraie boucle, c'est Claude qui vérifie : votre prompt doit nommer ces trois types de problèmes pour qu'il les cherche.`}</p><button class="btn" id="go">Lancer la correction</button>`;
+  else action=`<p class="note hl">La vérification ne trouve plus rien : la boucle s'arrête avant la limite des trois tours.</p><button class="btn" id="go">Livrer le résultat</button>`;
+  $("#stage").innerHTML=`<div class="grid">
+    <section class="card">
+      <p class="label">Version ${st.tour+1} · ${st.tour?"après correction":"première version"}</p>
+      <p class="note">${TOUR_NOTE[st.tour]}</p>
+      <div class="doc">${docHTML(v,true)}</div>
+      <p class="toast" id="toast"></p>
+    </section>
+    <section class="card">
+      <h2>Problèmes relevés</h2>
+      <div class="legend"><span class="tag t-err">Erreur</span><span class="tag t-vague">Imprécision</span><span class="tag t-proof">Sans preuve</span></div>
+      ${findsHTML()}
+      <div class="stats"><span>Repérés : <b>${got}</b>${st.phase==="review"?` / ${n}`:""}</span><span>Fausses alertes : <b id="falses">${st.falses}</b></span></div>
+      <div class="row" style="flex-direction:column;align-items:flex-start">${action}</div>
+    </section>
+  </div>`;
+  document.querySelectorAll(".seg").forEach(b=>b.onclick=()=>clickSeg(b));
+  $("#go").onclick=next;
+}
+
+function clickSeg(b){
+  const s=V[st.tour].flatMap(l=>l.s).find(x=>x.id===b.dataset.id);
+  if(s.issue){st.found[st.tour].push(s.id); render();}
+  else{st.falses++; b.classList.remove("nope"); void b.offsetWidth; b.classList.add("nope");
+    $("#toast").textContent="Rien à signaler sur ce passage : il respecte le brief."; $("#falses").textContent=st.falses;}
+}
+
+function next(){
+  if(st.phase==="verify"){st.phase="review";}
+  else if(ISSUES[st.tour].length){st.tour++; st.phase="verify";}
+  else st.phase="deliver";
+  render(); window.scrollTo({top:$("#loop").offsetTop-20,behavior:"smooth"});
+}
+
+const KIT=`Réalise cette tâche : [décrire le besoin].
+Contexte : [public, objectif, contraintes].
+Format attendu : [préciser].
+
+1. Produis une première version.
+2. Vérifie qu'elle répond à la demande et repère les erreurs, les imprécisions et les affirmations sans preuve.
+3. Corrige les problèmes, puis vérifie à nouveau.
+
+Recommence si nécessaire, au maximum trois fois. N'invente aucun fait et signale ce que tu ne peux pas vérifier.
+
+Livre le résultat final avec un bref bilan des corrections et des points restant à confirmer.`;
+
+function deliver(){
+  const got=st.found.flat().length;
+  $("#stage").innerHTML=`<div class="final">
+   <div class="grid">
+    <section class="card"><p class="label">Résultat livré · après ${st.tour+1} tours</p><div class="doc">${docHTML(V[2],false)}</div></section>
+    <section class="card">
+      <h2>Bilan livré par Claude</h2>
+      <p class="label">Corrections</p>
+      <ul class="checks">
+        <li>Durée : « 2 jours » corrigé en « une journée ».</li>
+        <li>Lieu : « à distance » corrigé en « en présentiel à Lyon ».</li>
+        <li>Recommandation d'Anthropic retirée (non vérifiable).</li>
+        <li>Statistique de 98 % retirée (sans source).</li>
+        <li>Puce « outils avancés » remplacée par un contenu précis.</li>
+        <li>Mention « 8 participants » retirée (ajoutée par erreur au tour 2).</li>
+      </ul>
+      <p class="label">Points à confirmer</p>
+      <ul class="checks"><li>Nombre maximum de participants.</li><li>Date de la prochaine session.</li></ul>
+    </section>
+   </div>
+   <section class="card">
+     <h2>Votre score de vérificateur : ${got} / ${TOTAL} problèmes repérés, ${st.falses} fausse${st.falses>1?"s":""} alerte${st.falses>1?"s":""}</h2>
+     <div class="lessons">
+       <div class="lesson"><b>Vérifier, c'est nommer quoi chercher</b>Erreurs, imprécisions, affirmations sans preuve : sans ces trois mots dans le prompt, la relecture reste superficielle.</div>
+       <div class="lesson"><b>Toute correction se revérifie</b>Au tour 2, la correction a ajouté un chiffre inventé. Sans deuxième vérification, il partait sur la plaquette.</div>
+       <div class="lesson"><b>Une limite et un bilan</b>Trois tours maximum évitent la boucle sans fin. Ce qui reste incertain va dans le bilan, pas dans le texte.</div>
+     </div>
+   </section>
+   <section class="card">
+     <h2>Le prompt de la boucle, prêt à copier</h2>
+     <pre class="kit" id="kit">${esc(KIT)}</pre>
+     <div class="row"><button class="btn alt" id="copy">Copier le prompt</button><button class="btn" id="again">Recommencer</button></div>
+   </section>
+  </div>`;
+  $("#again").onclick=()=>{st={tour:0,phase:"verify",found:[[],[],[]],falses:0};render();window.scrollTo(0,0)};
+  $("#copy").onclick=async e=>{
+    try{await navigator.clipboard.writeText(KIT); e.target.textContent="Copié";}
+    catch{const s=getSelection(),rg=document.createRange();rg.selectNodeContents($("#kit"));s.removeAllRanges();s.addRange(rg);e.target.textContent="Texte sélectionné, faites Cmd/Ctrl+C";}
+  };
+}
+
+function start(d){ if(d&&d.st) st=d.st; render(); }
+window.claude?.hot?.snapshot?.(()=>({st}));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>
