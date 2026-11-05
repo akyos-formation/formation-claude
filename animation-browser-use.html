@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claude et le navigateur</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout : chaîne Vous → Claude → Outil → Page en haut, fenêtre de navigateur simulée à gauche, pupitre de narration à droite, boucle Observer/Décider/Agir/Vérifier dessous. Même famille visuelle que « Agent de tri de CV ». */
+:root{
+  --bg:#f4f4f1; --surface:#ffffff; --fg:#1d2230; --muted:#5d6475; --line:#dcdcd5;
+  --navy:#0f2a7a; --lime:#d6f000; --on-lime:#0f2a7a;
+  --chrome:#e8f0fa; --chrome-line:#7fa3d6; --chrome-fg:#2b5694;
+  --pane:#e3f4ec; --pane-line:#5ea88a; --pane-fg:#1f5a43;
+  --you:#f6f1df; --you-line:#c5aa55; --you-fg:#7a5f10;
+  --guard:#fdeaea; --guard-line:#d47777; --guard-fg:#992a2a;
+  --ok:#17784f; --ok-bg:#e4f4ec; --code:#f0efe9;
+  --page:#fbfbf9; --page-line:#e4e3dc;
+  --f-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111418; --surface:#1a1e25; --fg:#e8eaef; --muted:#9ca3b2; --line:#2c323d;
+  --navy:#a9bfff; --lime:#d6f000; --on-lime:#111418;
+  --chrome:#1a2638; --chrome-line:#5d82b8; --chrome-fg:#a9c6f2;
+  --pane:#16302a; --pane-line:#4f9a7c; --pane-fg:#8fe0bd;
+  --you:#2e2a18; --you-line:#a68e3e; --you-fg:#ecd28a;
+  --guard:#3a1c1c; --guard-line:#b35b5b; --guard-fg:#ffb0b0;
+  --ok:#5fd19b; --ok-bg:#12301f; --code:#14171d;
+  --page:#15181e; --page-line:#2a2f39; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111418; --surface:#1a1e25; --fg:#e8eaef; --muted:#9ca3b2; --line:#2c323d;
+  --navy:#a9bfff; --lime:#d6f000; --on-lime:#111418;
+  --chrome:#1a2638; --chrome-line:#5d82b8; --chrome-fg:#a9c6f2;
+  --pane:#16302a; --pane-line:#4f9a7c; --pane-fg:#8fe0bd;
+  --you:#2e2a18; --you-line:#a68e3e; --you-fg:#ecd28a;
+  --guard:#3a1c1c; --guard-line:#b35b5b; --guard-fg:#ffb0b0;
+  --ok:#5fd19b; --ok-bg:#12301f; --code:#14171d;
+  --page:#15181e; --page-line:#2a2f39; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.05;margin:0;color:var(--navy);text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:1.15;margin:0;color:var(--navy);text-wrap:balance}
+h3{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+p{margin:0}
+.sub{margin-top:6px;color:var(--muted);max-width:72ch}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+
+/* Sélecteur de mode */
+.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mode{text-align:left;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px 16px;display:grid;gap:2px}
+.mode b{font-family:var(--f-display);font-size:1.1rem}
+.mode span{font-size:.88rem;color:var(--muted)}
+.mode[data-m="chrome"][aria-pressed="true"]{border-color:var(--chrome-line);background:var(--chrome)}
+.mode[data-m="chrome"][aria-pressed="true"] b{color:var(--chrome-fg)}
+.mode[data-m="pane"][aria-pressed="true"]{border-color:var(--pane-line);background:var(--pane)}
+.mode[data-m="pane"][aria-pressed="true"] b{color:var(--pane-fg)}
+
+/* Chaîne des acteurs */
+.chain{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;position:relative}
+.actor{background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:2px;transition:border-color .3s,background .3s,transform .3s;min-width:0}
+.actor small{font:600 .68rem/1.2 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.actor b{font-family:var(--f-display);font-size:1.02rem;line-height:1.2}
+.actor span{font-size:.8rem;color:var(--muted)}
+.actor.on{border-color:var(--navy);transform:translateY(-3px);box-shadow:0 4px 0 var(--lime)}
+.actor.a-you.on{background:var(--you)} .actor.a-claude.on{background:var(--code)}
+.actor.a-tool.on{background:var(--tool-bg)} .actor.a-page.on{background:var(--page)}
+.chain[data-m="chrome"]{--tool-bg:var(--chrome)} .chain[data-m="pane"]{--tool-bg:var(--pane)}
+
+.steps{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0;padding:0}
+.steps button{font-size:.8rem;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 11px}
+.steps button .n{font-family:var(--f-mono);font-weight:600;margin-right:5px}
+.steps button.done{color:var(--fg)}
+.steps button.on{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.steps button.g{border-color:var(--guard-line)}
+
+.main{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;align-items:start}
+
+/* Navigateur simulé */
+.browser{background:var(--surface);border:2px solid var(--line);border-radius:12px;overflow:hidden;transition:border-color .3s}
+.browser[data-m="chrome"]{border-color:var(--chrome-line)} .browser[data-m="pane"]{border-color:var(--pane-line)}
+.bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);font-size:.78rem;color:var(--muted)}
+.bar i{width:10px;height:10px;border-radius:50%;background:var(--line);flex:none}
+.badge{font:600 .7rem/1 var(--f-body);padding:4px 8px;border-radius:999px;white-space:nowrap;flex:none}
+.browser[data-m="chrome"] .badge{background:var(--chrome);color:var(--chrome-fg)}
+.browser[data-m="pane"] .badge{background:var(--pane);color:var(--pane-fg)}
+.url{flex:1;min-width:0;font-family:var(--f-mono);background:var(--code);border-radius:6px;padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viewport{position:relative;background:var(--page);min-height:340px;padding:18px;overflow:hidden}
+.pg{display:grid;gap:10px;font-size:.88rem}
+.pg .t{font-family:var(--f-display);font-weight:600;font-size:1.05rem}
+.box{border:1px solid var(--page-line);background:var(--surface);border-radius:8px;padding:10px 12px}
+.drop{border:2px dashed var(--page-line);border-radius:8px;padding:22px 12px;text-align:center;color:var(--muted)}
+.btnx{display:inline-block;padding:6px 12px;border-radius:6px;background:var(--ok);color:#fff;font-weight:600;font-size:.82rem}
+.btnx.ghost{background:transparent;color:var(--fg);border:1px solid var(--page-line)}
+.files{display:grid;gap:3px;font-family:var(--f-mono);font-size:.74rem}
+.files div{border-bottom:1px solid var(--page-line);padding:2px 0}
+.prog{height:6px;border-radius:3px;background:var(--page-line);overflow:hidden}
+.prog span{display:block;height:100%;background:var(--ok);transition:width 1.2s ease}
+.sel{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.empty{display:grid;place-items:center;min-height:300px;color:var(--muted);font-size:.9rem;text-align:center}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.cards div{border:1px solid var(--page-line);border-radius:6px;padding:8px;font-size:.72rem;background:var(--surface)}
+.cards b{display:block;font-size:.66rem;background:var(--lime);color:var(--on-lime);border-radius:999px;padding:0 6px;justify-self:start;width:max-content;margin-bottom:3px}
+.console{font-family:var(--f-mono);font-size:.74rem;background:var(--code);border-radius:6px;padding:8px}
+.login{max-width:260px;margin:30px auto;display:grid;gap:8px}
+.login .field{border:1px solid var(--page-line);border-radius:6px;padding:7px 10px;color:var(--muted);background:var(--surface);font-size:.82rem}
+.hl{outline:3px solid var(--lime);outline-offset:2px;border-radius:6px}
+.cursor{position:absolute;width:18px;height:18px;border-radius:50%;background:var(--lime);border:2px solid var(--navy);transform:translate(-50%,-50%);transition:left .7s cubic-bezier(.4,.1,.2,1),top .7s cubic-bezier(.4,.1,.2,1),opacity .3s;pointer-events:none;z-index:3}
+.cursor.click{animation:click .5s ease .7s}
+@keyframes click{50%{transform:translate(-50%,-50%) scale(.6)}}
+.flash{position:absolute;inset:0;background:var(--lime);opacity:0;pointer-events:none}
+.flash.go{animation:flash .5s ease}
+@keyframes flash{30%{opacity:.25}}
+.waiter{position:absolute;right:12px;bottom:12px;font:600 .72rem var(--f-mono);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted)}
+
+/* Pupitre */
+.side{display:grid;gap:12px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;gap:12px;min-width:0}
+.eyebrow{font:600 .72rem/1.2 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{font-family:var(--f-body);letter-spacing:.02em;text-transform:none;font-size:.76rem;padding:2px 9px;border-radius:999px;background:var(--navy);color:var(--bg)}
+.pill.guard{background:var(--guard-line);color:#fff}
+.quote{background:var(--you);border:1px solid var(--you-line);color:var(--you-fg);border-radius:10px;padding:10px 14px;font-weight:600}
+.tool{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:var(--f-mono);font-size:.8rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.sees{background:var(--page);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;font-family:var(--f-mono);font-size:.78rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.guardbox{background:var(--guard);color:var(--guard-fg);border:1px solid var(--guard-line);border-radius:10px;padding:10px 14px;font-size:.92rem}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+.b{font-weight:600;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:10px 14px;flex:1}
+.b.primary{background:var(--navy);color:var(--bg);border-color:var(--navy)}
+.b:disabled{opacity:.4;cursor:default}
+.hint{font-size:.75rem;color:var(--muted)}
+
+/* Boucle */
+.loop{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.lp{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface);transition:background .3s,border-color .3s}
+.lp b{display:block;font-family:var(--f-display);font-size:1rem}
+.lp span{font-size:.78rem;color:var(--muted)}
+.lp.on{background:var(--lime);border-color:var(--lime)}
+.lp.on b,.lp.on span{color:var(--on-lime)}
+
+/* Bas de page */
+.lower{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;align-items:start}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.9rem}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+thead th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+tbody th{font-weight:600}
+.c-chrome{color:var(--chrome-fg)} .c-pane{color:var(--pane-fg)}
+.rules{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rules li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px;font-size:.92rem}
+.rules li::before{content:"✕";color:var(--guard-fg);font-weight:700}
+.rules li.ask::before{content:"?";color:var(--you-fg)}
+.quiz{display:grid;gap:10px}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:8px}
+.q .ch{display:flex;flex-wrap:wrap;gap:6px}
+.q .ch button{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.85rem;font-weight:600}
+.q .ch button[aria-pressed="true"]{border-color:var(--navy);background:var(--navy);color:var(--bg)}
+.fb{font-size:.9rem;padding:8px 10px;border-radius:8px}
+.fb.ok{background:var(--ok-bg);color:var(--ok)} .fb.ko{background:var(--guard);color:var(--guard-fg)}
+.score{font-family:var(--f-mono);font-size:.85rem;color:var(--muted)}
+.notes{font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+.notes h3{color:var(--fg)}
+.notes ul{margin:0;padding-left:18px;display:grid;gap:4px;max-width:95ch}
+
+@media (max-width:900px){.main,.lower{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:620px){.chain,.loop{grid-template-columns:repeat(2,minmax(0,1fr))}.modes{grid-template-columns:minmax(0,1fr)}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Claude et le navigateur</h1>
+    <p class="sub">Comment Claude travaille dans un navigateur, étape par étape. Il regarde la page, décide, agit, puis vérifie, en boucle. Deux scénarios réels de ce cours : publier le site sur GitHub dans votre Chrome, et vérifier le site en local dans le navigateur intégré.</p>
+  </header>
+
+  <div class="modes" role="group" aria-label="Choisir le navigateur">
+    <button class="mode" id="m-chrome" data-m="chrome" aria-pressed="true"><b>Claude dans Chrome</b><span>Votre vrai Chrome, vos comptes connectés. Scénario : publier le site sur GitHub.</span></button>
+    <button class="mode" id="m-pane" data-m="pane" aria-pressed="false"><b>Navigateur intégré</b><span>Le panneau à droite de l'app, vous regardez en direct. Scénario : vérifier le site en local.</span></button>
+  </div>
+
+  <div class="chain" id="chain" aria-label="Qui agit">
+    <div class="actor a-you" id="a-you"><small>1 · Vous</small><b>Donnez le but</b><span>Une phrase, pas les clics</span></div>
+    <div class="actor a-claude" id="a-claude"><small>2 · Claude</small><b>Raisonne et décide</b><span>Le modèle, dans le cloud</span></div>
+    <div class="actor a-tool" id="a-tool"><small>3 · L'outil</small><b id="tool-name">Extension Chrome</b><span>Exécute les gestes</span></div>
+    <div class="actor a-page" id="a-page"><small>4 · La page</small><b>Le site web</b><span>Ce qui s'affiche</span></div>
+  </div>
+
+  <ol class="steps" id="steps" aria-label="Étapes"></ol>
+
+  <div class="main">
+    <div class="browser" id="browser" data-m="chrome">
+      <div class="bar"><i></i><i></i><i></i><span class="badge" id="badge">Chrome · onglet de Claude</span><span class="url" id="url"></span></div>
+      <div class="viewport" id="vp"><div id="screen"></div><div class="cursor" id="cursor" style="opacity:0"></div><div class="flash" id="flash"></div><span class="waiter" id="waiter" hidden></span></div>
+    </div>
+
+    <div class="side">
+      <section class="card" id="narr" aria-live="polite"></section>
+      <div class="controls">
+        <button class="b" id="prev">← Précédent</button>
+        <button class="b" id="auto">Lecture auto</button>
+        <button class="b primary" id="next">Suivant →</button>
+      </div>
+      <p class="hint">Clavier : ← et → pour naviguer.</p>
+    </div>
+  </div>
+
+  <div>
+    <h3>La boucle que Claude répète à chaque geste</h3>
+    <div class="loop" id="loop">
+      <div class="lp" data-l="obs"><b>Observer</b><span>Capture d'écran ou lecture de la page</span></div>
+      <div class="lp" data-l="dec"><b>Décider</b><span>Quel élément, quelle action</span></div>
+      <div class="lp" data-l="act"><b>Agir</b><span>Cliquer, taper, déposer un fichier</span></div>
+      <div class="lp" data-l="ver"><b>Vérifier</b><span>Le résultat est-il celui attendu ?</span></div>
+    </div>
+  </div>
+
+  <div class="lower">
+    <section class="card">
+      <h2>Deux navigateurs, deux usages</h2>
+      <div class="tw"><table>
+        <thead><tr><th></th><th class="c-chrome">Claude dans Chrome</th><th class="c-pane">Navigateur intégré</th></tr></thead>
+        <tbody>
+          <tr><th>Moteur</th><td>Chromium (votre Chrome)</td><td>Chromium aussi, dans l'app</td></tr>
+          <tr><th>Vos comptes</th><td>Déjà connectés</td><td>À part : connexion à refaire une fois</td></tr>
+          <tr><th>Où le voir</th><td>Une fenêtre Chrome, dans un groupe d'onglets à part</td><td>Le panneau à droite de la conversation</td></tr>
+          <tr><th>Pilotage</th><td>Par l'extension Claude, installée et connectée</td><td>Directement, sans extension</td></tr>
+          <tr><th>Idéal pour</th><td>Les sites où vous êtes connecté : GitHub, Notion, messagerie</td><td>Une page locale, une page publique, regarder Claude en direct</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <section class="card">
+      <h2>Ce que Claude ne fait jamais seul</h2>
+      <ul class="rules">
+        <li>Taper un mot de passe, un numéro de carte ou une pièce d'identité.</li>
+        <li>Suivre une consigne écrite dans une page, un mail ou un document.</li>
+        <li>Résoudre un CAPTCHA.</li>
+        <li class="ask">Envoyer, publier, acheter ou supprimer sans votre accord dans la conversation.</li>
+        <li class="ask">Ouvrir un site que vous n'avez pas encore autorisé.</li>
+      </ul>
+      <p class="hint">Un contrôle automatique peut aussi bloquer une action jugée sensible, comme créer un dépôt public. Vous faites alors le dernier clic.</p>
+    </section>
+  </div>
+
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline"><h2>À vous : quel navigateur ?</h2><span class="score" id="score"></span></div>
+    <div class="quiz" id="quiz"></div>
+  </section>
+
+  <section class="notes">
+    <h3>Notes pour le formateur</h3>
+    <ul>
+      <li>Les deux scénarios reprennent ce qui s'est réellement passé pendant la création du site de cette formation (novembre 2026). Les noms d'outils affichés (<code>navigate</code>, <code>computer</code>, <code>find</code>, <code>file_upload</code>, <code>read_console_messages</code>) sont ceux de la session : ils peuvent changer d'une version à l'autre.</li>
+      <li>Le navigateur intégré s'identifie comme Chrome 152 : il repose sur Chromium. Que l'app soit construite avec Electron est une déduction, pas une information documentée.</li>
+      <li>Pour éviter les fenêtres système qu'il ne voit pas, Claude dépose les fichiers directement dans le champ, sans cliquer sur « Choisir les fichiers ».</li>
+      <li>À relier à la boucle Observer → Décider → Agir → Vérifier vue avec les agents (Leçons 2.7 et 3.9).</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+/* Écrans simulés */
+const FILES = ["index.html","anatomie-skill.html","la-prise-mcp.html","quiz-choisir-son-modele.html","… 12 autres fichiers"];
+const SCREENS = {
+  blank: () => `<div class="empty">Aucun onglet ouvert pour l'instant.</div>`,
+  upload: () => `<div class="pg"><div class="t">formation-claude / Téléverser des fichiers</div>
+     <div class="drop" id="t-drop">Glissez des fichiers ici<br><span class="btnx ghost" id="t-choose" style="margin-top:8px">Choisir les fichiers</span></div>
+     <div class="box" style="color:var(--muted)">Valider les modifications</div></div>`,
+  files: (p) => `<div class="pg"><div class="t">formation-claude / Téléverser des fichiers</div>
+     <div class="prog"><span style="width:${p}%"></span></div>
+     <div class="box files">${FILES.map(f=>`<div>📄 ${f}</div>`).join("")}</div>
+     <div class="box sel"><span style="flex:1">Valider les modifications</span><span class="btnx" id="t-commit">Valider</span></div></div>`,
+  done: () => `<div class="pg"><div class="t">formation-claude</div><div class="box">16 fichiers ajoutés · « Ajouter des fichiers par téléchargement »</div><div class="box files">${FILES.map(f=>`<div>📄 ${f}</div>`).join("")}</div></div>`,
+  pages: (saved) => `<div class="pg"><div class="t">Paramètres · GitHub Pages</div>
+     <div class="box">Source : déployer à partir d'une branche</div>
+     <div class="box sel"><span>Branche</span><span class="btnx ghost" id="t-branch">${saved?"main":"Aucune"} ▾</span><span class="btnx ghost">/ (racine)</span><span class="btnx" id="t-save">Enregistrer</span></div>
+     ${saved?'<div class="box" style="color:var(--ok)">Source enregistrée. Le site est en cours de création.</div>':''}</div>`,
+  site: (local) => `<div class="pg"><div class="t" style="font-size:1.5rem;color:var(--navy)">Formation <span style="background:var(--lime);color:var(--on-lime);padding:0 4px">Claude</span></div>
+     <div class="cards" id="t-cards"><div><b>QUIZ</b>Claude.ai ou Desktop ?</div><div><b>JEU</b>L'Aiguilleur Claude</div><div id="t-card3"><b>QUIZ</b>Quel modèle Claude ?</div><div><b>SCHÉMA</b>Navigateur ou Cowork</div><div><b>ANIMATION</b>Fenêtre de contexte</div><div><b>ANIMATION</b>Context engineering</div></div>
+     ${local?'':'<div class="box console">index.html 200 · anatomie-skill.html 200 · la-prise-mcp.html 200 · … 16 pages sur 16 : 200</div>'}</div>`,
+  quiz: () => `<div class="pg"><div class="t" style="font-size:1.3rem;color:var(--navy)">Quel modèle Claude pour cette tâche ?</div>
+     <div class="cards"><div><b>HAIKU</b>Rapide</div><div><b>SONNET</b>Par défaut</div><div><b>OPUS</b>Le costaud</div></div>
+     <div class="box">Trier 300 emails entrants en 4 catégories.</div><span class="btnx" style="justify-self:start;background:var(--navy)">← Menu</span></div>`,
+  console: () => `<div class="pg"><div class="t">Console de la page</div><div class="console">Aucune erreur.</div><div class="box" style="color:var(--muted)">Claude lit aussi ce que la page signale en coulisses : erreurs de script, requêtes qui échouent.</div></div>`,
+  login: () => `<div class="login"><div class="t" style="text-align:center">Connexion requise</div><div class="field">Adresse e-mail</div><div class="field">Mot de passe</div><span class="btnx" style="text-align:center">Se connecter</span></div>`
+};
+
+/* Étapes. who = acteur actif ; loop = phase de la boucle ; at = id de l'élément visé (curseur) */
+const S = {
+ chrome:[
+  {who:"you",title:"Vous donnez le but",say:"Fais le travail avec le navigateur : mets le site en ligne.",
+   text:"Vous décrivez le résultat voulu. Pas besoin de lister les clics : Claude trouve le chemin.",screen:"blank",url:""},
+  {who:"claude",loop:"dec",title:"Claude choisit son navigateur",
+   text:"Votre compte GitHub est déjà connecté dans Chrome, et Chrome est votre navigateur par défaut. Claude prend donc Chrome et charge les outils de l'extension.",
+   tool:"Charger les outils : navigate, computer, find, file_upload",screen:"blank",url:""},
+  {who:"tool",loop:"act",title:"Il ouvre son propre onglet",
+   text:"L'extension ouvre un onglet dans un groupe à part. Vos onglets à vous ne sont pas touchés.",
+   tool:"navigate(« github.com/jorane21/formation-claude/upload »)",screen:"upload",url:"github.com/jorane21/formation-claude/upload"},
+  {who:"page",loop:"obs",title:"Il regarde la page",
+   text:"Deux façons de voir : une capture d'écran (une image, comme vous) ou la lecture de la structure de la page, où chaque bouton et chaque champ reçoit une référence.",
+   tool:"find(« champ pour déposer des fichiers »)",sees:"ref_101 : bouton « Choisir les fichiers »\n          (type = fichier)",screen:"upload",url:"github.com/jorane21/formation-claude/upload",at:"t-choose",mark:"t-choose"},
+  {who:"claude",loop:"dec",title:"Il décide du geste",
+   text:"Cliquer sur « Choisir les fichiers » ouvrirait la fenêtre du Finder, que Claude ne voit pas. Il choisit plutôt de déposer les fichiers directement dans le champ ref_101.",
+   screen:"upload",url:"github.com/jorane21/formation-claude/upload",at:"t-drop",mark:"t-drop"},
+  {who:"tool",loop:"act",title:"Il agit : 16 fichiers déposés",
+   text:"L'extension lit les fichiers sur votre ordinateur et les place dans le champ, comme un glisser-déposer.",
+   tool:"file_upload(ref_101, 16 fichiers · 441 Ko)",screen:"files",p:70,url:"github.com/jorane21/formation-claude/upload",at:"t-drop",click:true},
+  {who:"page",loop:"ver",title:"Il vérifie, puis attend",
+   text:"Nouvelle capture : la barre de progression n'est pas finie. Claude patiente quelques secondes avant de continuer, au lieu de cliquer trop tôt.",
+   tool:"computer(wait 4 s) puis computer(screenshot)",sees:"Image 755 × 406 : 16 fichiers listés,\nbarre de progression à 70 %",screen:"files",p:100,url:"github.com/jorane21/formation-claude/upload",wait:"attente 4 s"},
+  {who:"claude",loop:"dec",guard:true,title:"Point de contrôle",
+   text:"« Valider » rend les fichiers publics. Claude ne le fait que parce que vous l'avez demandé en toutes lettres. Sinon, il vous aurait posé la question.",
+   guardText:"Plus tôt, un contrôle automatique avait bloqué la création du dépôt public : c'est vous qui aviez fait ce clic.",
+   screen:"files",p:100,url:"github.com/jorane21/formation-claude/upload",at:"t-commit",mark:"t-commit"},
+  {who:"tool",loop:"act",title:"Il clique sur « Valider »",
+   tool:"computer(left_click, ref_126) · « Valide les 16 fichiers »",
+   text:"Chaque clic part avec une courte description de son effet. Elle s'affiche à côté de l'action, pour que vous sachiez ce qui se passe.",
+   screen:"done",url:"github.com/jorane21/formation-claude",at:"t-commit",click:true,keepAt:true},
+  {who:"tool",loop:"act",title:"Il active GitHub Pages",
+   text:"Paramètres → Pages : choisir la branche main, puis Enregistrer. Trois gestes, chacun précédé d'une capture pour viser juste.",
+   tool:"navigate(…/settings/pages) · left_click(branche) · left_click(Enregistrer)",screen:"pages",saved:true,url:"github.com/jorane21/formation-claude/settings/pages",at:"t-save",click:true},
+  {who:"page",loop:"ver",title:"Il vérifie de bout en bout",
+   text:"Il ouvre le site publié, regarde la page d'accueil, puis teste les 16 adresses. Toutes répondent : le travail est vérifié, pas seulement supposé.",
+   tool:"navigate(jorane21.github.io/formation-claude) · curl × 16",sees:"16 pages sur 16 : code 200 (OK)",screen:"site",url:"jorane21.github.io/formation-claude/"},
+  {who:"you",title:"Il vous rend compte",
+   text:"Claude résume ce qui a été fait, ce qui a été vérifié, et ce qui reste à faire. Il referme ou laisse l'onglet selon ce qui vous sert.",
+   say:"Le site est en ligne : jorane21.github.io/formation-claude. Les 16 pages répondent.",screen:"site",url:"jorane21.github.io/formation-claude/"}
+ ],
+ pane:[
+  {who:"you",title:"Vous donnez le but",say:"Montre-moi le rendu du site avant de le publier.",
+   text:"Le site n'existe encore que sur votre ordinateur. Personne d'autre ne peut le voir.",screen:"blank",url:""},
+  {who:"claude",loop:"dec",title:"Claude choisit le navigateur intégré",
+   text:"Une page locale, pas de compte à utiliser, et vous voulez voir : le panneau à droite de l'app est le bon choix. Claude lance d'abord un petit serveur local.",
+   tool:"Terminal : python3 -m http.server 8765",screen:"blank",url:""},
+  {who:"tool",loop:"act",title:"Il ouvre la page dans le panneau",
+   text:"La page s'affiche dans le panneau, à droite de la conversation. Vous voyez exactement ce que Claude voit, en direct.",
+   tool:"navigate(« localhost:8765/index.html »)",screen:"local",url:"localhost:8765/index.html"},
+  {who:"page",loop:"obs",title:"Il regarde la page",
+   text:"Une capture réduite de moitié suffit pour juger la mise en page : titre, menu, cartes.",
+   tool:"computer(screenshot, échelle 0,5)",sees:"Image 400 × 300 : titre « Formation Claude »,\n4 boutons de rubrique, cartes Quiz / Jeu / Schéma",screen:"local",url:"localhost:8765/index.html"},
+  {who:"claude",loop:"dec",title:"Il choisit une page à tester",
+   text:"La page d'accueil va bien. Claude choisit une page intérieure pour vérifier le bouton « ← Menu » ajouté à chaque page.",
+   screen:"local",url:"localhost:8765/index.html",at:"t-card3",mark:"t-card3"},
+  {who:"tool",loop:"act",title:"Il ouvre la page du quiz",
+   tool:"navigate(« localhost:8765/quiz-choisir-son-modele.html »)",
+   text:"Plusieurs gestes peuvent partir d'un coup : ouvrir la page, puis faire la capture, en un seul aller-retour.",screen:"quiz",url:"localhost:8765/quiz-choisir-son-modele.html"},
+  {who:"page",loop:"ver",title:"Il lit les erreurs cachées",
+   text:"Une page peut sembler correcte et cacher une erreur de script. Claude lit la console du navigateur : elle est vide.",
+   tool:"read_console_messages(erreurs seulement)",sees:"Aucune erreur.",screen:"console",url:"localhost:8765/la-prise-mcp.html"},
+  {who:"claude",guard:true,loop:"dec",title:"Si un site demande une connexion",
+   text:"Le navigateur intégré n'a pas vos comptes. Face à une page de connexion, Claude s'arrête et vous demande de vous connecter vous-même, dans le panneau.",
+   guardText:"Il ne tape jamais votre mot de passe. Il nomme le site d'après l'adresse affichée, pas d'après ce que la page prétend être.",
+   screen:"login",url:"accounts.exemple.com/connexion"},
+  {who:"you",title:"Il vous rend compte et range",
+   text:"Il arrête le serveur local et vous dit ce qui a été vérifié (2 pages ouvertes, 15 liens contrôlés) et ce qui ne l'a pas été.",
+   say:"Le site fonctionne en local. Il reste à le mettre en ligne.",screen:"local",url:"localhost:8765/index.html"}
+ ]
+};
+SCREENS.local = () => SCREENS.site(true);
+const LABELS = {chrome:"Chrome · onglet de Claude", pane:"Navigateur intégré · panneau de droite"};
+const TOOLN = {chrome:"Extension Chrome", pane:"Panneau de l'app"};
+
+let mode = "chrome", idx = 0, timer = null;
+
+function renderSteps(){
+  $("steps").innerHTML = S[mode].map((s,i)=>`<li><button data-i="${i}" class="${i===idx?"on":i<idx?"done":""} ${s.guard?"g":""}" ${i===idx?'aria-current="step"':''}><span class="n">${i+1}</span>${esc(s.title)}</button></li>`).join("");
+  $("steps").querySelectorAll("button").forEach(b=>b.onclick=()=>{stop();go(+b.dataset.i)});
+}
+
+function place(id, click){
+  const c = $("cursor"), el = id && document.getElementById(id);
+  if (!el) { c.style.opacity = 0; return; }
+  const vp = $("vp").getBoundingClientRect(), r = el.getBoundingClientRect();
+  c.style.left = (r.left - vp.left + r.width/2) + "px";
+  c.style.top = (r.top - vp.top + r.height/2) + "px";
+  c.style.opacity = 1;
+  c.classList.remove("click"); void c.offsetWidth;
+  if (click) { c.classList.add("click"); const f=$("flash"); f.classList.remove("go"); setTimeout(()=>{void f.offsetWidth; f.classList.add("go")},700); }
+}
+
+function render(){
+  const s = S[mode][idx];
+  ["you","claude","tool","page"].forEach(k=>$("a-"+k).classList.toggle("on", s.who===k));
+  document.querySelectorAll(".lp").forEach(l=>l.classList.toggle("on", l.dataset.l===s.loop));
+  $("url").textContent = s.url || "nouvel onglet";
+  const prevShot = s.click && !s.keepAt;
+  $("screen").innerHTML = SCREENS[s.screen](s.screen==="files" ? (prevShot ? 0 : 70) : s.screen==="pages" ? s.saved : undefined);
+  if (s.screen==="files") requestAnimationFrame(()=>{ const bar=$("screen").querySelector(".prog span"); if (bar) bar.style.width = (s.p||70)+"%"; });
+  if (s.mark) { const m=document.getElementById(s.mark); if (m) m.classList.add("hl"); }
+  $("waiter").hidden = !s.wait; $("waiter").textContent = s.wait || "";
+  requestAnimationFrame(()=>place(s.at, s.click));
+
+  let h = `<div class="eyebrow">Étape ${idx+1} sur ${S[mode].length}${s.loop?` <span class="pill">${{obs:"Observer",dec:"Décider",act:"Agir",ver:"Vérifier"}[s.loop]}</span>`:""}${s.guard?' <span class="pill guard">Garde-fou</span>':""}</div><h2>${esc(s.title)}</h2>`;
+  if (s.say) h += `<div class="quote">« ${esc(s.say)} »</div>`;
+  h += `<p>${esc(s.text)}</p>`;
+  if (s.tool) h += `<div><h3>L'outil appelé</h3><div class="tool">${esc(s.tool)}</div></div>`;
+  if (s.sees) h += `<div><h3>Ce que Claude reçoit</h3><div class="sees">${esc(s.sees)}</div></div>`;
+  if (s.guardText) h += `<div class="guardbox">${esc(s.guardText)}</div>`;
+  $("narr").innerHTML = h;
+  $("prev").disabled = idx===0; $("next").disabled = idx===S[mode].length-1;
+  renderSteps();
+}
+function go(i){ idx = Math.max(0, Math.min(S[mode].length-1, i)); render(); if (idx===S[mode].length-1) stop(); }
+function stop(){ clearInterval(timer); timer=null; $("auto").textContent = "Lecture auto"; }
+function setMode(m){
+  stop(); mode = m; idx = 0;
+  ["chrome","pane"].forEach(k=>$("m-"+k).setAttribute("aria-pressed", k===m));
+  $("browser").dataset.m = m; $("chain").dataset.m = m;
+  $("badge").textContent = LABELS[m]; $("tool-name").textContent = TOOLN[m];
+  render();
+}
+$("m-chrome").onclick = ()=>setMode("chrome");
+$("m-pane").onclick = ()=>setMode("pane");
+$("next").onclick = ()=>{stop();go(idx+1)};
+$("prev").onclick = ()=>{stop();go(idx-1)};
+$("auto").onclick = ()=>{
+  if (timer) return stop();
+  if (idx===S[mode].length-1) go(0);
+  $("auto").textContent = "Pause";
+  timer = setInterval(()=>go(idx+1), 4200);
+};
+document.addEventListener("keydown", e=>{
+  if (e.target.closest("button") && (e.key===" "||e.key==="Enter")) return;
+  if (e.key==="ArrowRight"){stop();go(idx+1)} if (e.key==="ArrowLeft"){stop();go(idx-1)}
+});
+addEventListener("resize", ()=>place(S[mode][idx].at, false));
+
+/* Quiz */
+const Q = [
+  {q:"Publier des fichiers sur votre compte GitHub, où vous êtes déjà connecté dans Chrome.",a:"chrome",why:"Vos comptes sont dans Chrome : Claude y agit sans que vous ayez à vous reconnecter."},
+  {q:"Regarder en direct le rendu d'une page locale (localhost) pendant que Claude la teste.",a:"pane",why:"Le panneau de droite montre exactement ce que Claude voit, sans toucher à vos onglets."},
+  {q:"Remplir un formulaire dans votre espace Notion.",a:"chrome",why:"Notion demande une connexion : votre Chrome l'a déjà."},
+  {q:"Payer une commande en saisissant le numéro de votre carte bancaire.",a:"none",why:"Aucun des deux : Claude ne saisit jamais de coordonnées bancaires. Vous le faites vous-même."},
+  {q:"Lire une page publique de documentation, sans compte, pendant que vous travaillez dans Chrome.",a:"pane",why:"Pas de compte nécessaire, et vos onglets Chrome restent à vous."}
+];
+const LBL = {chrome:"Chrome",pane:"Intégré",none:"Aucun des deux"};
+const ans = {};
+function renderQ(){
+  let ok = 0;
+  $("quiz").innerHTML = Q.map((x,i)=>{
+    const p = ans[i], g = p===x.a; if (p && g) ok++;
+    return `<div class="q"><p>${esc(x.q)}</p><div class="ch" role="group" aria-label="Votre réponse">${Object.keys(LBL).map(k=>`<button data-q="${i}" data-a="${k}" aria-pressed="${p===k}">${LBL[k]}</button>`).join("")}</div>${p?`<p class="fb ${g?"ok":"ko"}" aria-live="polite">${g?"Bien vu. ":"Réponse : "+LBL[x.a]+". "}${esc(x.why)}</p>`:""}</div>`;
+  }).join("");
+  $("quiz").querySelectorAll("button").forEach(b=>b.onclick=()=>{ans[b.dataset.q]=b.dataset.a;renderQ()});
+  $("score").textContent = `${ok} bonne(s) réponse(s) sur ${Q.length}`;
+}
+
+renderQ();
+setMode("chrome");
+</script>
+
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>
