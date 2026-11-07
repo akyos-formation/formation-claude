@@ -311,7 +311,7 @@ button:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
           <h3>CLAUDE.md</h3>
           <div class="role">La notice</div>
           <ul><li>Les règles du jeu pour Claude</li><li>Écrite une fois, change rarement</li><li>À la main ou avec <code>/init</code></li></ul>
-          <div class="ex">Avant de répondre :<br><b>1. Consulte MEMORY.md.</b><br>2. Consulte le dossier connaissances.<br>…</div>
+          <div class="ex">Avant de répondre :<br><b>1. Consulte MEMORY.md.</b><br>2. Consulte le dossier connaissances.<br>3. Vérifie et corrige chaque livrable avant de me le rendre.<br>…</div>
         </div>
         <div class="link a" style="--d:1.2s"><span class="arr">→</span>la notice demande de lire le carnet</div>
         <div class="card a" style="--d:.8s">
@@ -335,6 +335,7 @@ button:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
           <div class="item a" style="--d:2.2s">N'invente jamais de référence client ni de chiffre.<i>encore vrai ensuite ? oui</i></div>
           <div class="item a" style="--d:3.2s">Ton factuel, phrases courtes, vocabulaire de l'acheteur.<i>encore vrai ensuite ? oui</i></div>
           <div class="item a" style="--d:4.2s">Signale toute exigence du CCTP restée sans réponse.<i>encore vrai ensuite ? oui</i></div>
+          <div class="item a" style="--d:5.2s">Relis et corrige chaque livrable (3 tours max), puis liste les points à confirmer.<i>encore vrai ensuite ? oui</i></div>
         </div>
         <div class="col mem">
           <h3 class="a" style="--d:.7s">MEMORY.md <small>valable pour cet appel d'offres</small></h3>
@@ -452,7 +453,7 @@ Ensuite, indique-moi : mon profil, mes objectifs, les fichiers utiles, ce qui te
       <p class="big a" style="--d:.1s">La mise en place prend <em>10 minutes</em>.</p>
       <div class="todo">
         <div class="card a" style="--d:.3s"><span class="num">1</span><div><b>Crée un dossier de projet</b><p>Par exemple <code>claude_debutant/</code>, avec tes sous-dossiers.</p></div></div>
-        <div class="card a" style="--d:.5s"><span class="num">2</span><div><b>Crée CLAUDE.md</b><p>À la main ou avec <code>/init</code>. Écris la règle : « Consulte MEMORY.md avant de répondre. »</p></div></div>
+        <div class="card a" style="--d:.5s"><span class="num">2</span><div><b>Crée CLAUDE.md</b><p>À la main ou avec <code>/init</code>. Écris la règle : « Consulte MEMORY.md avant de répondre. », puis colle la boucle de vérification (ci-dessous).</p></div></div>
         <div class="card a" style="--d:.7s"><span class="num">3</span><div><b>Crée MEMORY.md</b><p>Les 5 rubriques, avec 2 ou 3 lignes chacune. Il sera complété au fil des sessions.</p></div></div>
         <div class="card a" style="--d:.9s"><span class="num">4</span><div><b>Prends le rituel</b><p>Prompt de démarrage au début, prompt de mise à jour à la fin. Tu relis avant d'enregistrer.</p></div></div>
       </div>
@@ -505,11 +506,25 @@ Aide-moi à les créer. Procède ainsi :
 3. Range chaque réponse dans le bon fichier avec ce test : « Sera-t-elle encore vraie au prochain projet ? » Oui → CLAUDE.md. Non → MEMORY.md.
 4. Propose-moi les deux fichiers complets :
    - dans CLAUDE.md, ajoute la règle « Avant de répondre, consulte MEMORY.md » ;
+   - dans CLAUDE.md, ajoute aussi la boucle de vérification : pour chaque livrable, produis, vérifie (erreurs, imprécisions, affirmations sans preuve), corrige et revérifie, trois tours au maximum ; n'invente aucun fait ; termine par un bilan des corrections et des points à confirmer ;
    - dans MEMORY.md, utilise les rubriques Profil, Objectifs, Préférences, Difficultés actuelles, Décisions prises.
 5. N'enregistre rien avant que je dise « je valide ».
 
 Ne me demande aucun mot de passe ni aucune donnée confidentielle.</pre>
       <button class="ctl" type="button" data-copy="p0">Copier</button>
+    </div>
+    <div class="panel wide">
+      <span class="step0">À coller une fois dans CLAUDE.md · pour ne plus vérifier à la main</span>
+      <h3>La boucle de vérification</h3>
+      <p class="when">Avec ce bloc dans CLAUDE.md (ou dans les instructions de votre projet), Claude relit et corrige chaque livrable avant de vous le rendre. Votre seul travail : lire la ligne « points à confirmer » du bilan.</p>
+      <pre id="pv">Pour chaque livrable (texte, tableau, synthèse) :
+1. Produis une première version.
+2. Vérifie-la par rapport à ma demande : erreurs, imprécisions, affirmations sans preuve.
+3. Corrige, puis revérifie ta correction. Trois tours au maximum.
+4. N'invente aucun fait. Si une information n'est pas dans ce que je t'ai fourni, signale-la.
+5. Termine par un bilan de trois lignes : corrections faites, points à confirmer.
+Affiche-moi seulement la version finale et le bilan.</pre>
+      <button class="ctl" type="button" data-copy="pv">Copier</button>
     </div>
     <div class="panel">
       <h3>Prompt de démarrage</h3>

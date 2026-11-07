@@ -200,7 +200,14 @@ const FILES = {
   même les soirs où il est absent.
 - Ne jamais commander : écrire une liste dans sorties/.
 - Ne pas inventer de contrainte.
-- Lire memory.md avant chaque préparation.`,
+- Lire memory.md avant chaque préparation.
+
+## Vérification avant de livrer
+- Pour chaque fichier de sorties/ : produire, vérifier
+  (erreurs, imprécisions, affirmations sans preuve),
+  corriger, revérifier. 3 tours maximum.
+- N'inventer aucun fait.
+- Finir par un bilan : corrections, points à confirmer.`,
   memory:`# Mémoire des repas
 
 Préférences et corrections retenues au fil des semaines.
@@ -347,11 +354,12 @@ Montre-moi l'arborescence et le contenu des 3 fichiers avant de les créer, et a
   prompt:`Rédige un CLAUDE.md minimal pour ce dossier. Il doit dire :
 - ce qu'est le projet (famille de 4, dîners du lundi au vendredi puis courses) ;
 - à quoi sert chaque fichier de donnees/ ;
-- les règles : français simple ; aucun fruit à coque, jamais (allergie de Léo, même s'il est absent) ; ne jamais commander, écrire seulement une liste dans sorties/ ; ne pas inventer de contrainte ; lire memory.md avant chaque préparation.
+- les règles : français simple ; aucun fruit à coque, jamais (allergie de Léo, même s'il est absent) ; ne jamais commander, écrire seulement une liste dans sorties/ ; ne pas inventer de contrainte ; lire memory.md avant chaque préparation ;
+- une section « Vérification avant de livrer » : pour chaque livrable, produire, vérifier (erreurs, imprécisions, affirmations sans preuve), corriger et revérifier, 3 tours au maximum ; n'inventer aucun fait ; finir par un bilan (corrections faites, points à confirmer).
 
-20 lignes maximum. Propose le texte avant d'écrire le fichier.`,
+25 lignes maximum. Propose le texte avant d'écrire le fichier.`,
   does:["Propose un CLAUDE.md court.","L'écrit à la racine après validation."],
-  impact:"Nouvelle couche permanente dans le contexte : chaque session démarre en connaissant la famille et les interdits. La règle « aucun fruit à coque » s'applique désormais sans qu'on la répète.",
+  impact:"Nouvelle couche permanente dans le contexte : chaque session démarre en connaissant la famille et les interdits. La règle « aucun fruit à coque » s'applique désormais sans qu'on la répète, tout comme la boucle de vérification : chaque livrable est relu et corrigé avant de vous être rendu.",
   nodes:[...BASE,"claude"],newN:["claude"],layers:["sys","tool","instr"],caps:["know"],pv:"claude"},
  {phase:"Méthode · étape 3",title:"Créer un MEMORY.md",
   why:"La mémoire garde les décisions et les préférences au fil des sessions. Vide au départ, elle se remplit avec vos retours.",
