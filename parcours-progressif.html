@@ -108,6 +108,15 @@ svg .tr{font-size:15px}
 .ar.off{opacity:.05}
 .ar.lit{opacity:1;stroke:var(--navy);stroke-width:2.6}
 #adot{fill:var(--lime);stroke:var(--navy);stroke-width:2.5}
+#acps{display:none}
+#asvg.cps #acps{display:inline}
+.cp{cursor:pointer}
+.cp rect{fill:var(--t-verif);stroke:var(--surface);stroke-width:2.5}
+.cp text{fill:#fff;font:800 13px var(--body)}
+.cp.sel rect{stroke:var(--ink);stroke-width:3}
+.cp:focus-visible{outline:none}.cp:focus-visible rect{stroke:var(--ink);stroke-width:4}
+.ab.cpb[aria-pressed="true"]{background:var(--t-verif);border-color:var(--t-verif);color:#fff}
+.cplist{margin:0;padding-left:20px;display:grid;gap:4px;font-size:15px}
 .apanel{display:grid;gap:12px}
 .acard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:8px}
 .acard .tag{justify-self:start;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--lime);color:var(--on-lime);border-radius:999px;padding:2px 9px}
@@ -153,6 +162,7 @@ svg .tr{font-size:15px}
         <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--navy)"/></marker></defs>
         <g id="aels"></g><g id="aars"></g>
         <circle id="adot" r="8" cx="-20" cy="-20"/>
+        <g id="acps"></g>
       </svg>
     </div>
     <div class="apanel">
@@ -161,6 +171,7 @@ svg .tr{font-size:15px}
         <button type="button" class="ab" id="aprev">← Précédent</button>
         <button type="button" class="ab p" id="anext">Suivant →</button>
         <button type="button" class="ab" id="aplay">▶ Lecture</button>
+        <button type="button" class="ab cpb" id="acpb" aria-pressed="false">◆ Points de contrôle</button>
       </div>
       <div class="achips" id="achips" aria-label="Aller au temps"></div>
       <div class="acard" id="ainfo" aria-live="polite"><p class="hintc">Cliquez sur une pièce du schéma pour voir son rôle et les fiches qui l'expliquent.</p></div>
@@ -287,7 +298,7 @@ const INFO={
  win:{t:"La fenêtre de contexte",st:"Étape 4",x:"Tout ce que Claude voit à un instant donné, relu en entier à chaque tour. Sa taille est limitée : ce qu'on y met se choisit.",f:[["animation-fenetre-contexte.html","La fenêtre de contexte"],["animation-context-engineering.html","Context engineering"]]},
  claude:{t:"CLAUDE.md",st:"Étape 4",x:"La notice : les règles de travail, écrites une fois, relues à chaque session.",f:[["animation-memory-md.html","Le carnet MEMORY.md"],["animation-construction-projet-repas.html","Construire un projet"]]},
  mem:{t:"MEMORY.md",st:"Étape 4",x:"Le carnet : ce qu'on sait du projet. Claude propose une mise à jour, vous la validez. Rien n'est retenu s'il n'est pas écrit.",f:[["animation-memory-md.html","Le carnet MEMORY.md"]]},
- loop:{t:"La boucle qualité",st:"Étape 5",x:"Produire, vérifier, corriger, revérifier, avec une règle d'arrêt. Version simple : la boucle de vérification. Version notée à plusieurs rôles : le Loop Engineering.",f:[["jeu-discussion-socratique.html","Le Défi Socrate"],["simulateur-loop-engineering.html","La boucle de vérification"],["simulateur-loop-engineering-interactif.html","La boucle de vérification, à vous"],["animation-loop-engineering.html","Loop Engineering"]]},
+ loop:{t:"La boucle de vérification",st:"Étape 5 · la technique unique de vérification",x:"Produire, vérifier, corriger, revérifier, 3 tours au maximum, puis signaler ce qui reste à confirmer. C'est la seule boucle à retenir : elle se réutilise à chacun des 6 points de contrôle. Pour un contenu à fort enjeu, on la note sur des critères : c'est sa variante, le Loop Engineering.",f:[["jeu-discussion-socratique.html","Le Défi Socrate"],["simulateur-loop-engineering.html","La boucle de vérification"],["simulateur-loop-engineering-interactif.html","La boucle de vérification, à vous"],["animation-loop-engineering.html","Loop Engineering"]]},
  docs:{t:"Les documents longs",st:"Étape 5",x:"Ce qui ne tient pas dans la fenêtre entre par segments (Map), est assemblé (Reduce), puis passe dans la boucle qualité.",f:[["analyse-document-long-map-reduce.html","Analyser un document long"]]},
  skill:{t:"Les skills",st:"Étape 6",x:"Des méthodes réutilisables. Claude connaît leur description en permanence et n'ouvre le contenu que lorsque la tâche le demande.",f:[["anatomie-skill.html","Anatomie d'un skill"],["animation-construction-projet-repas.html","Construire un projet"]]},
  tools:{t:"Les outils",st:"Étape 6",x:"Connecteurs MCP, navigateur, fichiers : ils permettent à Claude d'agir. Le modèle demande, le harnais exécute, le résultat revient dans la fenêtre.",f:[["la-prise-mcp.html","La prise MCP"],["animation-browser-use.html","Claude et le navigateur"]]},
@@ -306,7 +317,7 @@ const EL=[
  ["r_skill",215,278,460,32,8,6,"Skill chargée seulement quand la tâche la demande","","row","skill"],
  ["r_ext",215,318,460,32,7,5,"Extraits de documents, résultats d'outils","","row","docs"],
  ["model",770,160,200,130,3,3,"Modèle","Haiku · Sonnet · Opus · Fable"],
- ["loop",770,320,200,110,6,5,"Boucle qualité","produire · vérifier · corriger"],
+ ["loop",770,320,200,110,6,5,"Boucle de","vérification","two"],
  ["docs",200,440,180,100,7,5,"Documents longs","découpés : Map-Reduce"],
  ["tools",420,440,300,100,8,6,"Outils","MCP · navigateur · fichiers"]
 ];
@@ -323,8 +334,8 @@ const S=[
  {ch:3,t:"Le modèle lit et répond",x:"Le modèle ne voit que ce qu'il reçoit. Vous choisissez l'outil d'accès et le modèle selon la tâche et l'enjeu.",lit:["vp","wm"],hot:["model"]},
  {ch:4,t:"La fenêtre a une taille limitée",x:"À chaque tour, Claude relit toute la fenêtre. Quand elle se remplit, il résume ou oublie le début : des informations se perdent.",lit:["wm"],hot:["win"]},
  {ch:4,t:"Deux fichiers donnent une mémoire",x:"CLAUDE.md (les règles) et MEMORY.md (ce qu'on sait) sont relus à chaque session. Ce qui n'est pas écrit est oublié.",lit:["cw","mw","wm"],hot:["claude","mem","r_instr"]},
- {ch:5,t:"La réponse passe par une boucle",x:"Produire, vérifier, corriger, revérifier, trois tours au maximum. Le Loop Engineering y ajoute des notes et des rôles ; le Défi Socrate fait poser les questions avant de produire.",lit:["ml","lm"],hot:["loop","model"]},
- {ch:5,t:"Un document trop long est découpé",x:"Ce qui ne tient pas dans la fenêtre y entre par morceaux : chaque segment est analysé, puis tout est assemblé et repasse dans la boucle.",lit:["dw","wm","ml","lm"],hot:["docs","r_ext"]},
+ {ch:5,t:"La réponse passe par la boucle de vérification",x:"Produire, vérifier, corriger, revérifier, trois tours au maximum. C'est la seule technique de vérification du parcours ; le Loop Engineering en est la variante notée, pour les contenus à fort enjeu.",lit:["ml","lm"],hot:["loop","model"]},
+ {ch:5,t:"Un document trop long est découpé",x:"Ce qui ne tient pas dans la fenêtre y entre par morceaux : chaque segment est analysé, puis tout est assemblé et repasse dans la boucle de vérification.",lit:["dw","wm","ml","lm"],hot:["docs","r_ext"]},
  {ch:6,t:"Méthodes et outils s'ajoutent",x:"Les skills apportent une méthode chargée au besoin. Les outils permettent d'agir ; leurs résultats reviennent dans la fenêtre.",lit:["sw","wm","mt","tw"],hot:["skill","tools","r_skill"]},
  {ch:6,t:"Le harnais fait tourner l'ensemble",x:"Agent = modèle + harnais. Le harnais enchaîne les tours, applique les garde-fous et décide ce qui entre dans la fenêtre : c'est le context engineering.",lit:["cw","sw","dw","tw","wm","ml","lm"],hot:["harn"]},
  {ch:0,t:"Vous fermez la boucle",x:"Le livrable vous revient avec ce qui a été vérifié et ce qui reste à confirmer. Vous validez, et ce qui a été appris rejoint MEMORY.md pour la prochaine fois.",lit:["lv","vm"],hot:["vous","mem"]}
@@ -341,7 +352,7 @@ EL.forEach(([id,x,y,w,h,s,ch,t,sub,kind,info])=>{
     const tx=kind==="frame"?x+20:kind==="win"?x+16:x+w/2, an=(kind==="frame"||kind==="win")?"start":"middle";
     const ty=kind==="frame"?y+h-14:kind==="win"?y+24:y+h/2-4;
     mk("text",{class:"tt",x:tx,y:ty,"text-anchor":an},g).textContent=t;
-    if(sub&&kind!=="win"&&kind!=="frame") mk("text",{class:"ts",x:tx,y:ty+18,"text-anchor":an},g).textContent=sub;
+    if(sub&&kind!=="win"&&kind!=="frame") mk("text",{class:kind==="two"?"tt":"ts",x:tx,y:ty+(kind==="two"?22:18),"text-anchor":an},g).textContent=sub;
     if(kind==="frame") mk("text",{class:"ts",x:tx+175,y:ty,"text-anchor":"start"},g).textContent=sub;
   }
   if(kind!=="row"&&kind!=="stairs"){const b=mk("g",{class:"badge"},g);const bx=kind==="frame"?x+w-24:x+w-14,by=kind==="frame"?y+h-20:y+14;mk("circle",{cx:bx,cy:by,r:10},b);mk("text",{x:bx,y:by+4,"text-anchor":"middle"},b).textContent=ch;}
@@ -380,6 +391,33 @@ function showInfo(g){
   const d=INFO[g.dataset.info];
   $("ainfo").innerHTML=`<span class="tag">${esc(d.st)}</span><h3>${esc(d.t)}</h3><p>${esc(d.x)}</p><ul>${d.f.map(([h,t])=>`<li><a href="${h}">${esc(t)}</a></li>`).join("")}</ul>`;
 }
+/* Couche : les 6 points de contrôle de la vérification */
+const CP=[
+ {how:"Vérifier l'entrée → compléter (questions, fichier manquant) → revérifier. Si elle reste incomplète : s'arrêter et demander.",x:186,y:226,t:"Avant de produire : l'entrée",who:"Claude pose ses questions ; l'orchestrateur s'arrête s'il manque une donnée",what:"Le contexte est-il complet ? Les fichiers sont-ils présents et lisibles ?",f:[["jeu-discussion-socratique.html","Le Défi Socrate"],["analyse-document-long-map-reduce.html","Analyser un document long (phase 0)"],["animation-construction-projet-repas.html","Construire un projet (l'agent s'arrête)"]]},
+ {how:"Tester sur un vrai cas → corriger le prompt ou CLAUDE.md → retester.",x:275,y:136,t:"Le cadre de travail",who:"Vous, une seule fois",what:"Claude a-t-il compris les règles ? Le prompt fonctionne-t-il sur un vrai cas ?",f:[["animation-meta-prompting.html","Le meta-prompting (étape test)"],["animation-construction-projet-repas.html","Construire un projet (résumer la structure)"]]},
+ {how:"Produire → vérifier → corriger → revérifier, 3 tours au maximum. Fort enjeu : variante notée, le Loop Engineering.",x:872,y:305,t:"Après chaque production",who:"Claude, en boucle, 3 tours au maximum",what:"Respect de la demande, erreurs, imprécisions, affirmations sans preuve. La correction est revérifiée.",f:[["simulateur-loop-engineering-interactif.html","La boucle de vérification, à vous"],["animation-loop-engineering.html","Loop Engineering"]]},
+ {how:"La même boucle sur chaque segment, skill ou résultat d'outil, avec une relance avant d'assembler.",x:570,y:410,t:"À chaque morceau, avant l'assemblage",who:"Un contrôle local : orchestrateur ou garde-fou",what:"La fiche d'un segment, le travail d'une skill, le résultat d'un outil, contrôlés avant d'être assemblés.",f:[["analyse-document-long-map-reduce.html","Analyser un document long (phase 4)"],["animation-agent-tri-cv.html","Construire un système agentique (garde-fous)"]]},
+ {how:"La même boucle confiée à un vérificateur qui n'a pas produit, en comparant à la source.",x:870,y:470,t:"Après l'assemblage",who:"Un vérificateur indépendant : autre agent ou nouvelle conversation",what:"Rien d'oublié ? Chiffres et citations confirmés dans la source d'origine, jamais dans un résumé.",f:[["analyse-document-long-map-reduce.html","Analyser un document long (phases 6 et 7)"],["animation-context-engineering.html","Context engineering (sous-agent vérificateur)"]]},
+ {how:"Vous relisez → vous demandez une correction ciblée → vous validez. Rien ne part sans votre accord.",x:85,y:470,t:"Avant d'agir ou de livrer",who:"Vous",what:"Envoyer, publier, mettre à jour MEMORY.md, décider : la dernière validation reste humaine.",f:[["animation-memory-md.html","Le carnet MEMORY.md"],["la-prise-mcp.html","La prise MCP"],["animation-browser-use.html","Claude et le navigateur"]]}
+];
+const cpG=$("acps");
+CP.forEach((c,i)=>{
+  const g=mk("g",{class:"cp",tabindex:"-1",role:"button","aria-label":`Point de contrôle ${i+1} : ${c.t}`},cpG);
+  mk("rect",{x:c.x-13,y:c.y-13,width:26,height:26,rx:4,transform:`rotate(45 ${c.x} ${c.y})`},g);
+  mk("text",{x:c.x,y:c.y+5,"text-anchor":"middle"},g).textContent=i+1;
+  const show=()=>{if(selEl)selEl.classList.remove("sel");selEl=g;g.classList.add("sel");
+    $("ainfo").innerHTML=`<span class="tag" style="background:var(--t-verif);color:#fff">Point de contrôle ${i+1} sur 6 · Boucle de vérification</span><h3>${esc(c.t)}</h3><p><b>La boucle ici :</b> ${esc(c.how)}</p><p><b>Ce qu'on vérifie :</b> ${esc(c.what)}</p><p><b>Qui vérifie :</b> ${esc(c.who)}</p><ul>${c.f.map(([h,t])=>`<li><a href="${h}">${esc(t)}</a></li>`).join("")}</ul>`;};
+  g.addEventListener("click",show);
+  g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();show();}});
+});
+$("acpb").onclick=()=>{
+  const on=!$("asvg").classList.contains("cps");
+  $("asvg").classList.toggle("cps",on);$("acpb").setAttribute("aria-pressed",on);
+  cpG.querySelectorAll(".cp").forEach(g=>g.setAttribute("tabindex",on?"0":"-1"));
+  if(on){stop();go(S.length-1);
+    $("ainfo").innerHTML=`<span class="tag" style="background:var(--t-verif);color:#fff">La vérification à 6 niveaux</span><h3>Une seule technique : la boucle de vérification</h3><p>Elle se branche à chaque passage de relais. Au plus près de l'endroit où l'erreur peut naître : plus on vérifie tard, plus elle est noyée dans le résultat. L'indépendance du vérificateur augmente avec le niveau, et l'effort suit l'enjeu.</p><ol class="cplist">${CP.map(c=>`<li>${esc(c.t)}</li>`).join("")}</ol><p class="hintc">Cliquez sur un losange pour le détail. Le minimum : vérifier l'entrée, après chaque production, et avant de livrer.</p>`;}
+  else $("ainfo").innerHTML=`<p class="hintc">Cliquez sur une pièce du schéma pour voir son rôle et les fiches qui l'expliquent.</p>`;
+};
 function stop(){clearInterval(timer);timer=null;$("aplay").textContent="▶ Lecture";}
 $("aprev").onclick=()=>{stop();go(cur-1);};
 $("anext").onclick=()=>{stop();go(cur+1);};
