@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cartographie du parcours</title>
+<meta name="description" content="Comment les fiches de la formation Claude s'emboîtent : six étapes, chacune répond à la limite de la précédente, et quatre fils rouges qui les relient.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout : en-tête, sélecteur de fils rouges, puis une frise verticale de 6 étapes reliées par des « ponts » (la limite qui mène à l'étape suivante), puis le récapitulatif des fils. */
+:root{
+  --bg:#f7f8fb; --surface:#fff; --ink:#151a33; --muted:#5b6180; --line:#e2e5ef; --navy:#0f2a7a; --lime:#dcff1f; --on-lime:#151a33;
+  --t-ctx:#1a63c9; --t-verif:#c8304a; --t-reuse:#17784f; --t-human:#b35a00;
+  --display:"Bricolage Grotesque","Arial Black",system-ui,sans-serif; --body:"Figtree",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1224; --surface:#181c33; --ink:#eef0f8; --muted:#a2a8c6; --line:#2b3052; --navy:#a9bfff;
+  --t-ctx:#8cbcff; --t-verif:#ff8a9c; --t-reuse:#6fe0a6; --t-human:#ffb870; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1224; --surface:#181c33; --ink:#eef0f8; --muted:#a2a8c6; --line:#2b3052; --navy:#a9bfff;
+  --t-ctx:#8cbcff; --t-verif:#ff8a9c; --t-reuse:#6fe0a6; --t-human:#ffb870; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1040px;margin:0 auto;padding-block:40px 80px;display:grid;gap:36px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+h1{font-weight:800;font-size:clamp(32px,6vw,52px);line-height:1.05;color:var(--navy)}
+h1 mark{background:var(--lime);color:var(--on-lime);padding:0 .12em}
+h2{font-weight:800;font-size:clamp(22px,3vw,28px);line-height:1.15}
+h3{font-weight:600;font-size:17px}
+p{margin:0}
+.lede{color:var(--muted);max-width:64ch;font-size:18px;margin-top:10px}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+
+/* Principe */
+.rule{background:var(--navy);color:var(--bg);border-radius:16px;padding:18px 22px;display:grid;gap:6px}
+:root[data-theme="dark"] .rule{background:#1d2660;color:var(--ink)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rule{background:#1d2660;color:var(--ink)}}
+.rule b{color:var(--lime)}
+
+/* Fils rouges */
+.threads{display:grid;gap:10px}
+.tbtns{display:flex;flex-wrap:wrap;gap:8px}
+.tbtn{font:inherit;font-weight:600;font-size:15px;cursor:pointer;border:2px solid var(--c);color:var(--ink);background:var(--surface);border-radius:999px;padding:7px 14px;display:flex;gap:8px;align-items:center}
+.tbtn i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.tbtn[aria-pressed="true"]{background:var(--c);color:var(--bg)}
+.tbtn[aria-pressed="true"] i{background:var(--bg)}
+.tbtn.off{border-color:var(--line);color:var(--muted)}
+.tbtn.off[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tinfo{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--c,var(--line));border-radius:12px;padding:14px 16px;display:grid;gap:8px;min-height:64px}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}
+.chain span{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.chain em{font-style:normal;color:var(--muted)}
+
+/* Frise */
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.step{display:grid;grid-template-columns:56px minmax(0,1fr);gap:0 18px}
+.rail{display:flex;flex-direction:column;align-items:center}
+.num{width:48px;height:48px;border-radius:50%;background:var(--lime);color:var(--on-lime);font:800 22px var(--display);display:grid;place-items:center;flex:none}
+.line{flex:1;width:3px;background:var(--line);margin:6px 0}
+.body{display:grid;gap:14px;padding-bottom:28px;min-width:0}
+.head{display:grid;gap:4px}
+.head .q{font-weight:700;color:var(--navy)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.card{position:relative;display:grid;gap:4px;align-content:start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-decoration:none;transition:opacity .25s,border-color .25s,box-shadow .25s}
+.card:hover{border-color:var(--ink)}
+.card .ord{font-size:12px;font-weight:700;color:var(--muted)}
+.card b{font-family:var(--display);font-weight:600;font-size:16px;line-height:1.2}
+.card span.d{font-size:14px;color:var(--muted)}
+.dots{display:flex;gap:4px;margin-top:4px}
+.dots i{width:8px;height:8px;border-radius:50%}
+.d-ctx{background:var(--t-ctx)}.d-verif{background:var(--t-verif)}.d-reuse{background:var(--t-reuse)}.d-human{background:var(--t-human)}
+.gain{font-size:15px;border-radius:10px;padding:10px 14px;background:var(--surface);border:1px dashed var(--line)}
+.gain b{color:var(--navy)}
+.bridge{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;font-size:15px;background:color-mix(in srgb,var(--lime) 35%,var(--surface));color:var(--ink);border-radius:10px;padding:10px 14px}
+.bridge .arr{font:800 18px var(--display)}
+body[data-t] .card{opacity:.28}
+body[data-t="ctx"] .card.t-ctx,body[data-t="verif"] .card.t-verif,body[data-t="reuse"] .card.t-reuse,body[data-t="human"] .card.t-human{opacity:1;border-color:var(--tc);box-shadow:0 0 0 1px var(--tc)}
+body[data-t="ctx"]{--tc:var(--t-ctx)}body[data-t="verif"]{--tc:var(--t-verif)}body[data-t="reuse"]{--tc:var(--t-reuse)}body[data-t="human"]{--tc:var(--t-human)}
+
+/* Architecture */
+.arch{display:grid;gap:14px}
+.archgrid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:16px;align-items:start}
+.svgbox{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px;overflow-x:auto}
+.svgbox svg{display:block;width:100%;min-width:620px;height:auto}
+svg text{font-family:var(--body);fill:var(--ink)}
+svg .tt{font-family:var(--display);font-weight:600;font-size:19px}
+svg .ts{font-size:14px;fill:var(--muted)}
+svg .tr{font-size:15px}
+.el{cursor:pointer;transition:opacity .45s}
+.el rect.b{fill:var(--surface);stroke:var(--muted);stroke-width:1.5;transition:fill .3s,stroke .3s,stroke-width .3s}
+.el.row rect.b{fill:var(--bg);stroke:var(--line)}
+.el.frame rect.b{fill:none;stroke:var(--navy);stroke-width:2;stroke-dasharray:8 6}
+.el.win rect.b{fill:none;stroke:var(--navy);stroke-width:2.5}
+.el.hot rect.b{fill:var(--lime);stroke:var(--navy);stroke-width:2.5}
+.el.hot text{fill:var(--on-lime)}
+.el.frame.hot rect.b,.el.win.hot rect.b{fill:color-mix(in srgb,var(--lime) 14%,transparent)}
+.el.frame.hot text,.el.win.hot text{fill:var(--ink)}
+.el.ghost{opacity:.1}
+.el.sel rect.b{stroke:var(--navy);stroke-width:3.5}
+.el:focus-visible{outline:none}.el:focus-visible rect.b{stroke:var(--navy);stroke-width:4}
+.badge circle{fill:var(--navy)}.badge text{fill:var(--bg);font:700 11px var(--body)}
+.stair{fill:var(--line)}.el.hot .stair{fill:var(--navy)}
+.ar{fill:none;stroke:var(--muted);stroke-width:2;opacity:.3;transition:opacity .4s,stroke .3s}
+.ar.off{opacity:.05}
+.ar.lit{opacity:1;stroke:var(--navy);stroke-width:2.6}
+#adot{fill:var(--lime);stroke:var(--navy);stroke-width:2.5}
+.apanel{display:grid;gap:12px}
+.acard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:8px}
+.acard .tag{justify-self:start;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--lime);color:var(--on-lime);border-radius:999px;padding:2px 9px}
+.acard h3{font-size:19px}
+.acard ul{margin:0;padding-left:18px;display:grid;gap:3px;font-size:15px}
+.actl{display:flex;flex-wrap:wrap;gap:8px}
+.ab{font:inherit;font-weight:600;font-size:15px;cursor:pointer;border:1.5px solid var(--ink);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px}
+.ab.p{background:var(--ink);color:var(--bg)}
+.ab:disabled{opacity:.35;cursor:default}
+.achips{display:flex;flex-wrap:wrap;gap:5px}
+.achips button{font:600 13px var(--body);width:30px;height:30px;border-radius:50%;cursor:pointer;border:1.5px solid var(--line);background:var(--surface);color:var(--muted)}
+.achips button[aria-current="step"]{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.hintc{font-size:13px;color:var(--muted)}
+@media (max-width:860px){.archgrid{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.el,.el rect.b,.ar{transition:none}}
+
+/* Fin */
+.end{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.end > div{border-top:4px solid var(--c);padding-top:10px;display:grid;gap:4px}
+.end p{font-size:15px;color:var(--muted)}
+.menu{position:fixed;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9;background:#0f2a7a;color:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+@media (max-width:560px){.step{grid-template-columns:40px minmax(0,1fr);gap:0 12px}.num{width:36px;height:36px;font-size:17px}}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
+</style>
+</head>
+<body>
+<a class="menu" href="index.html">← Menu</a>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Formation Claude · Mode d'emploi du parcours</p>
+  <h1><mark>Cartographie technique</mark> du parcours Claude</h1>
+  <p class="lede">Les fiches ne sont pas une liste de techniques à piocher. Chaque étape répond à une limite de la précédente. Suivez-les dans l'ordre : vous partez d'une simple question à Claude et vous arrivez à un agent qui travaille seul, sous votre contrôle.</p>
+</header>
+
+<section class="arch" aria-labelledby="t-arch">
+  <p class="eyebrow">Vue d'ensemble</p>
+  <h2 id="t-arch">L'architecture complète, en 10 temps</h2>
+  <p class="lede" style="margin:0;font-size:16px">Toutes les fiches décrivent une pièce de ce même schéma. Avancez pas à pas : chaque pièce apparaît à l'étape du parcours où elle est enseignée (le numéro dans la pastille), et le point jaune montre comment l'information circule. Cliquez sur une pièce pour voir les fiches qui l'expliquent.</p>
+  <div class="archgrid">
+    <div class="svgbox">
+      <svg id="asvg" viewBox="0 0 1000 600" role="img" aria-label="Architecture : vous, le prompt, la fenêtre de contexte alimentée par CLAUDE.md, MEMORY.md, les skills, les documents et les outils, le modèle, la boucle de vérification et le harnais qui fait tourner l'ensemble.">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--navy)"/></marker></defs>
+        <g id="aels"></g><g id="aars"></g>
+        <circle id="adot" r="8" cx="-20" cy="-20"/>
+      </svg>
+    </div>
+    <div class="apanel">
+      <div class="acard" id="astep" aria-live="polite"></div>
+      <div class="actl">
+        <button type="button" class="ab" id="aprev">← Précédent</button>
+        <button type="button" class="ab p" id="anext">Suivant →</button>
+        <button type="button" class="ab" id="aplay">▶ Lecture</button>
+      </div>
+      <div class="achips" id="achips" aria-label="Aller au temps"></div>
+      <div class="acard" id="ainfo" aria-live="polite"><p class="hintc">Cliquez sur une pièce du schéma pour voir son rôle et les fiches qui l'expliquent.</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="rule">
+  <p><b>Le principe du parcours</b></p>
+  <p>À chaque étape, vous apprenez quelque chose, puis vous butez sur une limite. Le <b>pont</b> en bas de chaque étape nomme cette limite : c'est précisément ce que l'étape suivante vient résoudre.</p>
+</div>
+
+<section class="threads" aria-labelledby="t-fils">
+  <h2 id="t-fils">Quatre fils rouges traversent le parcours</h2>
+  <p class="lede" style="margin:0;font-size:16px">Une même idée revient d'une étape à l'autre, de plus en plus outillée. Choisissez un fil : les fiches qui le portent restent en couleur.</p>
+  <div class="tbtns" role="group" aria-label="Choisir un fil rouge" id="tbtns"></div>
+  <div class="tinfo" id="tinfo" aria-live="polite"></div>
+</section>
+
+<ol class="steps" id="steps"></ol>
+
+<section aria-labelledby="t-end" style="display:grid;gap:14px">
+  <h2 id="t-end">Ce qu'il faut retenir du parcours</h2>
+  <div class="end" id="end"></div>
+</section>
+
+</div>
+
+<script>
+const THREADS = {
+  ctx:{name:"Le contexte", c:"var(--t-ctx)",
+    idea:"Claude ne sait que ce qu'on lui donne. On commence par l'écrire dans le prompt, puis on le range dans des fichiers, puis on choisit ce qui entre dans la fenêtre.",
+    chain:["Contexte dans le prompt","Claude pose ses questions (Socrate)","Ce que la fenêtre contient","CLAUDE.md et MEMORY.md","Context engineering","Contexte trié par le harnais de l'agent"]},
+  verif:{name:"La vérification", c:"var(--t-verif)",
+    idea:"Une réponse n'est pas une preuve. On apprend d'abord à affiner, puis à faire vérifier en boucle, puis à confier cette vérification à l'agent lui-même.",
+    chain:["Affiner la réponse","Tester le prompt (meta-prompting)","Boucle de vérification","Loop Engineering noté","Boucle sur un document long","Observer, décider, agir, vérifier","Garde-fous de l'agent"]},
+  reuse:{name:"La réutilisation", c:"var(--t-reuse)",
+    idea:"Ce qui sert deux fois s'écrit une fois. Le gabarit devient un prompt réutilisable, puis un fichier d'instructions, puis une skill, puis une chaîne de skills.",
+    chain:["Gabarit des 5 composants","Prompt réutilisable à variables","Prompt Loop Engineering prêt à copier","CLAUDE.md, MEMORY.md","Skill","Orchestrateur qui enchaîne les skills"]},
+  human:{name:"L'humain décide", c:"var(--t-human)",
+    idea:"Plus Claude devient autonome, plus vos points de validation doivent être nets : vous jugez le test, validez la mémoire, fixez la règle d'arrêt et gardez la décision finale.",
+    chain:["Juger le résultat du test","Valider la mise à jour de MEMORY.md","Plafond de 3 tours, critères signalés","Droits des connecteurs","Aucun envoi sans accord","L'agent propose, le RH décide"]}
+};
+const ORDER = ["ctx","verif","reuse","human"];
+
+const STEPS = [
+ {t:"Pourquoi monter en niveau", q:"Où en suis-je, et jusqu'où puis-je aller ?",
+  cards:[["schema-escalier-ia.html","Schéma","L'escalier de l'IA","La carte du voyage : 5 marches, du curieux au système agentique. Repérez votre marche avant de commencer.",[]]],
+  gain:"Vous savez situer chaque fiche sur l'escalier : les étapes 2 à 5 couvrent le Niv 1, l'étape 6 les Niv 2 et 2+.",
+  bridge:"La première marche à franchir, c'est d'arrêter de poser des questions sans contexte."},
+ {t:"Écrire un bon prompt", q:"Comment obtenir une réponse utile du premier coup ?",
+  cards:[["anatomie-prompt-complet.html","Atelier","Anatomie d'un prompt complet","Rôle, contexte, tâche, format, contraintes. Le contexte est le composant qui pèse le plus.",["ctx","reuse","verif"]],
+         ["animation-meta-prompting.html","Animation","Le meta-prompting","Vous ne savez pas quoi mettre dans les 5 cases ? Claude écrit le prompt, vous le testez et le corrigez.",["reuse","verif","human"]]],
+  gain:"Vous écrivez un prompt complet, ou vous le faites écrire, et vous corrigez le prompt plutôt que la réponse.",
+  bridge:"Un bon prompt ne suffit pas s'il est envoyé au mauvais outil ou au mauvais modèle."},
+ {t:"Choisir son outil", q:"Où et avec quel modèle travailler ?",
+  cards:[["quiz-claude-ai-vs-desktop.html","Quiz","Claude.ai ou Claude Desktop ?","Le critère : avez-vous besoin d'agir sur votre ordinateur ?",[]],
+         ["jeu-aiguillage-outils-claude.html","Jeu","L'Aiguilleur Claude","Chat, Cowork, Docs, Slides, Design ou Code, selon la tâche.",[]],
+         ["quiz-choisir-son-modele.html","Quiz","Quel modèle Claude ?","Partir de Sonnet, descendre ou monter selon l'enjeu, et chaîner les modèles sur un dossier.",["reuse"]]],
+  gain:"Vous choisissez le bon point d'entrée et le bon modèle. Le chaînage des modèles préfigure déjà l'orchestrateur de l'étape 6.",
+  bridge:"Quel que soit l'outil, la conversation s'allonge, et Claude finit par perdre des informations."},
+ {t:"Le contexte", q:"Que voit vraiment Claude, et que retient-il ?",
+  cards:[["animation-fenetre-contexte.html","Animation","La fenêtre de contexte","Claude relit tout à chaque tour. Quand c'est plein, il résume ou oublie le début.",["ctx"]],
+         ["animation-memory-md.html","Animation","Le carnet MEMORY.md","D'une session à l'autre, rien n'est retenu sauf ce qui est écrit. CLAUDE.md = la notice, MEMORY.md = le carnet.",["ctx","reuse","human"]],
+         ["animation-context-engineering.html","Animation","Context engineering","Pour un agent : écrire, sélectionner, compresser, isoler. Le moins d'informations possible, mais les bonnes.",["ctx"]]],
+  gain:"Vous savez ce que Claude voit, comment lui donner une mémoire contrôlée, et quoi laisser hors de la fenêtre.",
+  bridge:"Claude a maintenant le bon contexte. Mais une réponse bien informée peut encore contenir des erreurs."},
+ {t:"Méthodes de travail", q:"Comment fiabiliser ce que Claude produit ?",
+  cards:[["jeu-discussion-socratique.html","Jeu","Le Défi Socrate","Avant de produire, Claude pose ses questions : il comble lui-même le contexte manquant.",["ctx"]],
+         ["simulateur-loop-engineering.html","Démo","La boucle de vérification","Produire, vérifier, corriger, revérifier : la démonstration pas à pas, à projeter.",["verif","human"]],
+         ["simulateur-loop-engineering-interactif.html","Atelier","La boucle de vérification, à vous","Vous jouez la vérification et découvrez qu'une correction peut créer une nouvelle erreur.",["verif","human"]],
+         ["animation-loop-engineering.html","Animation","Loop Engineering","La même boucle, enrichie : un Stratège avant, 5 critères notés, des rôles séparés.",["verif","reuse","human"]],
+         ["analyse-document-long-map-reduce.html","Méthode","Analyser un document long","Le document dépasse la fenêtre : on découpe (Map), on assemble (Reduce), puis on boucle.",["verif","ctx"]]],
+  gain:"Vous faites travailler Claude en boucle avec une règle d'arrêt, du texte court jusqu'au document de 80 pages.",
+  bridge:"Toutes ces méthodes se relancent à la main à chaque fois. L'étape suivante les installe une fois pour toutes."},
+ {t:"Construire un agent", q:"Comment faire travailler Claude seul, de façon fiable ?",
+  cards:[["schema-projet-navigateur-vs-cowork.html","Schéma","Navigateur ou Cowork local","Où ranger règles, données et méthodes : en ligne ou dans un dossier.",["reuse"]],
+         ["animation-construction-projet-repas.html","Animation","Construire un projet","CLAUDE.md, mémoire, skills, orchestrateur, règle d'arrêt : tout le parcours réuni sur un cas simple.",["ctx","reuse","human"]],
+         ["anatomie-skill.html","Schéma","Anatomie d'un skill","Une méthode réutilisable, ouverte seulement quand la tâche la demande.",["reuse","ctx"]],
+         ["la-prise-mcp.html","Schéma","La prise MCP","Brancher Claude sur vos outils, et garder la main sur ce qu'il peut faire.",["human"]],
+         ["animation-browser-use.html","Animation","Claude et le navigateur","Observer, décider, agir, vérifier : la boucle de vérification appliquée à chaque geste.",["verif","human"]],
+         ["animation-agent-tri-cv.html","Animation","Construire un système agentique","Agent = modèle + harnais. Instructions, skill, outils, RAG et garde-fous, pièce par pièce.",["ctx","verif","human"]],
+         ["schema-orchestrateur-interactif.html","Schéma","Qui fait quoi dans l'orchestrateur ?","Ce que l'IA fait seule, ce qui reste à vous, et ce qui change quand une donnée manque.",["human","reuse"]]],
+  gain:"Vous assemblez un agent avec ce que vous avez appris : contexte, mémoire, méthodes réutilisables, boucle de vérification et points de validation.",
+  bridge:null}
+];
+
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+let n=0;
+$("steps").innerHTML=STEPS.map((s,i)=>`<li class="step">
+  <div class="rail"><span class="num">${i+1}</span>${i<STEPS.length-1?'<span class="line"></span>':''}</div>
+  <div class="body">
+    <div class="head"><h2>${esc(s.t)}</h2><p class="q">${esc(s.q)}</p></div>
+    <div class="cards">${s.cards.map(([href,type,title,d,th])=>{n++;return `<a class="card ${th.map(t=>'t-'+t).join(' ')}" href="${href}">
+      <span class="ord">${n} · ${esc(type)}</span><b>${esc(title)}</b><span class="d">${esc(d)}</span>
+      ${th.length?`<span class="dots" aria-label="Fils rouges : ${th.map(t=>THREADS[t].name).join(', ')}">${th.map(t=>`<i class="d-${t}"></i>`).join('')}</span>`:''}</a>`;}).join('')}</div>
+    <p class="gain"><b>Ce que vous savez faire après :</b> ${esc(s.gain)}</p>
+    ${s.bridge?`<p class="bridge"><span class="arr" aria-hidden="true">↓</span><span><b>Pont vers l'étape ${i+2} :</b> ${esc(s.bridge)}</span></p>`:''}
+  </div></li>`).join('');
+
+let cur=null;
+function renderThreads(){
+  $("tbtns").innerHTML=`<button type="button" class="tbtn off" data-t="" aria-pressed="${cur===null}">Toutes les fiches</button>`+
+    ORDER.map(k=>`<button type="button" class="tbtn" data-t="${k}" style="--c:${THREADS[k].c}" aria-pressed="${cur===k}"><i></i>${THREADS[k].name}</button>`).join('');
+  $("tbtns").querySelectorAll("button").forEach(b=>b.onclick=()=>{cur=b.dataset.t||null;renderThreads();});
+  if(cur){document.body.dataset.t=cur;}else{delete document.body.dataset.t;}
+  const t=cur&&THREADS[cur];
+  $("tinfo").style.setProperty("--c",t?t.c:"var(--line)");
+  $("tinfo").innerHTML=t?`<p>${esc(t.idea)}</p><div class="chain">${t.chain.map(x=>`<span>${esc(x)}</span>`).join('<em aria-hidden="true">→</em>')}</div>`
+    :`<p>Chaque fiche porte des pastilles de couleur : ce sont les fils rouges qu'elle fait avancer.</p>`;
+}
+renderThreads();
+
+/* ---------- Schéma d'architecture ---------- */
+(function(){
+const NS="http://www.w3.org/2000/svg";
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const INFO={
+ vous:{t:"Vous",st:"Étape 1, puis à chaque étape",x:"Vous fixez le but, choisissez l'outil, jugez les résultats et validez ce qui entre en mémoire. Plus l'agent est autonome, plus vos points de validation comptent.",f:[["schema-escalier-ia.html","L'escalier de l'IA"],["schema-orchestrateur-interactif.html","Qui fait quoi dans l'orchestrateur ?"]]},
+ esc:{t:"L'escalier",st:"Étape 1",x:"Les 5 marches d'usage : il situe où vous en êtes et ce que chaque pièce du schéma vous fait gagner.",f:[["schema-escalier-ia.html","L'escalier de l'IA"]]},
+ prompt:{t:"Le prompt",st:"Étape 2",x:"Rôle, contexte, tâche, format, contraintes. C'est la première chose que Claude reçoit, et vous pouvez le faire écrire par Claude.",f:[["anatomie-prompt-complet.html","Anatomie d'un prompt complet"],["animation-meta-prompting.html","Le meta-prompting"]]},
+ model:{t:"Le modèle",st:"Étape 3",x:"Le cerveau, interchangeable : il ne voit que la fenêtre. On choisit l'outil d'accès et le modèle selon la tâche et l'enjeu.",f:[["quiz-claude-ai-vs-desktop.html","Claude.ai ou Claude Desktop ?"],["jeu-aiguillage-outils-claude.html","L'Aiguilleur Claude"],["quiz-choisir-son-modele.html","Quel modèle Claude ?"]]},
+ win:{t:"La fenêtre de contexte",st:"Étape 4",x:"Tout ce que Claude voit à un instant donné, relu en entier à chaque tour. Sa taille est limitée : ce qu'on y met se choisit.",f:[["animation-fenetre-contexte.html","La fenêtre de contexte"],["animation-context-engineering.html","Context engineering"]]},
+ claude:{t:"CLAUDE.md",st:"Étape 4",x:"La notice : les règles de travail, écrites une fois, relues à chaque session.",f:[["animation-memory-md.html","Le carnet MEMORY.md"],["animation-construction-projet-repas.html","Construire un projet"]]},
+ mem:{t:"MEMORY.md",st:"Étape 4",x:"Le carnet : ce qu'on sait du projet. Claude propose une mise à jour, vous la validez. Rien n'est retenu s'il n'est pas écrit.",f:[["animation-memory-md.html","Le carnet MEMORY.md"]]},
+ loop:{t:"La boucle qualité",st:"Étape 5",x:"Produire, vérifier, corriger, revérifier, avec une règle d'arrêt. Version simple : la boucle de vérification. Version notée à plusieurs rôles : le Loop Engineering.",f:[["jeu-discussion-socratique.html","Le Défi Socrate"],["simulateur-loop-engineering.html","La boucle de vérification"],["simulateur-loop-engineering-interactif.html","La boucle de vérification, à vous"],["animation-loop-engineering.html","Loop Engineering"]]},
+ docs:{t:"Les documents longs",st:"Étape 5",x:"Ce qui ne tient pas dans la fenêtre entre par segments (Map), est assemblé (Reduce), puis passe dans la boucle qualité.",f:[["analyse-document-long-map-reduce.html","Analyser un document long"]]},
+ skill:{t:"Les skills",st:"Étape 6",x:"Des méthodes réutilisables. Claude connaît leur description en permanence et n'ouvre le contenu que lorsque la tâche le demande.",f:[["anatomie-skill.html","Anatomie d'un skill"],["animation-construction-projet-repas.html","Construire un projet"]]},
+ tools:{t:"Les outils",st:"Étape 6",x:"Connecteurs MCP, navigateur, fichiers : ils permettent à Claude d'agir. Le modèle demande, le harnais exécute, le résultat revient dans la fenêtre.",f:[["la-prise-mcp.html","La prise MCP"],["animation-browser-use.html","Claude et le navigateur"]]},
+ harn:{t:"Le harnais",st:"Étape 6",x:"Le programme qui fait tourner l'agent (Claude Code, Cowork) : il enchaîne les tours, exécute les outils, applique les garde-fous et trie ce qui entre dans la fenêtre.",f:[["schema-projet-navigateur-vs-cowork.html","Navigateur ou Cowork local"],["animation-agent-tri-cv.html","Construire un système agentique"],["animation-context-engineering.html","Context engineering"]]}
+};
+const EL=[
+ ["harn",170,10,820,580,9,6,"Harnais de l'agent","enchaîne les tours · exécute · applique les règles","frame"],
+ ["vous",20,250,130,92,1,1,"Vous","le but · la validation"],
+ ["esc",30,140,110,90,1,1,"","","stairs"],
+ ["claude",200,40,150,70,5,4,"CLAUDE.md","la notice, stable"],
+ ["mem",370,40,150,70,5,4,"MEMORY.md","le carnet, évolue"],
+ ["skill",540,40,150,70,8,6,"Skills","méthodes réutilisables"],
+ ["win",200,160,490,230,4,4,"Fenêtre de contexte","tout ce que Claude voit","win"],
+ ["r_prompt",215,198,460,32,2,2,"Votre prompt : rôle, contexte, tâche, format, contraintes","","row","prompt"],
+ ["r_instr",215,238,460,32,5,4,"Instructions et mémoire, relues à chaque session","","row","mem"],
+ ["r_skill",215,278,460,32,8,6,"Skill chargée seulement quand la tâche la demande","","row","skill"],
+ ["r_ext",215,318,460,32,7,5,"Extraits de documents, résultats d'outils","","row","docs"],
+ ["model",770,160,200,130,3,3,"Modèle","Haiku · Sonnet · Opus · Fable"],
+ ["loop",770,320,200,110,6,5,"Boucle qualité","produire · vérifier · corriger"],
+ ["docs",200,440,180,100,7,5,"Documents longs","découpés : Map-Reduce"],
+ ["tools",420,440,300,100,8,6,"Outils","MCP · navigateur · fichiers"]
+];
+const AR={
+ vp:["M150 285 C182 285 182 214 213 214",2], wm:["M692 225 H766",3],
+ cw:["M275 112 V158",5], mw:["M430 112 V158",5], sw:["M615 112 V158",8],
+ mt:["M770 270 C735 270 745 490 724 490",8], tw:["M570 438 V352",8], dw:["M290 438 V352",7],
+ ml:["M845 292 V318",6], lm:["M900 318 V292",6],
+ lv:["M870 432 V572 H85 V346",10], vm:["M150 262 H185 V25 H460 V38",10]
+};
+const S=[
+ {ch:1,t:"Tout part de vous",x:"Vous avez un but. L'escalier vous situe : à la première marche, on pose une question et on prend la réponse telle quelle.",lit:[],hot:["vous","esc"]},
+ {ch:2,t:"Le prompt entre dans la fenêtre",x:"Votre demande et ses 5 composants sont la première chose que Claude reçoit. Le contexte que vous y mettez est ce qui pèse le plus.",lit:["vp"],hot:["r_prompt"]},
+ {ch:3,t:"Le modèle lit et répond",x:"Le modèle ne voit que ce qu'il reçoit. Vous choisissez l'outil d'accès et le modèle selon la tâche et l'enjeu.",lit:["vp","wm"],hot:["model"]},
+ {ch:4,t:"La fenêtre a une taille limitée",x:"À chaque tour, Claude relit toute la fenêtre. Quand elle se remplit, il résume ou oublie le début : des informations se perdent.",lit:["wm"],hot:["win"]},
+ {ch:4,t:"Deux fichiers donnent une mémoire",x:"CLAUDE.md (les règles) et MEMORY.md (ce qu'on sait) sont relus à chaque session. Ce qui n'est pas écrit est oublié.",lit:["cw","mw","wm"],hot:["claude","mem","r_instr"]},
+ {ch:5,t:"La réponse passe par une boucle",x:"Produire, vérifier, corriger, revérifier, trois tours au maximum. Le Loop Engineering y ajoute des notes et des rôles ; le Défi Socrate fait poser les questions avant de produire.",lit:["ml","lm"],hot:["loop","model"]},
+ {ch:5,t:"Un document trop long est découpé",x:"Ce qui ne tient pas dans la fenêtre y entre par morceaux : chaque segment est analysé, puis tout est assemblé et repasse dans la boucle.",lit:["dw","wm","ml","lm"],hot:["docs","r_ext"]},
+ {ch:6,t:"Méthodes et outils s'ajoutent",x:"Les skills apportent une méthode chargée au besoin. Les outils permettent d'agir ; leurs résultats reviennent dans la fenêtre.",lit:["sw","wm","mt","tw"],hot:["skill","tools","r_skill"]},
+ {ch:6,t:"Le harnais fait tourner l'ensemble",x:"Agent = modèle + harnais. Le harnais enchaîne les tours, applique les garde-fous et décide ce qui entre dans la fenêtre : c'est le context engineering.",lit:["cw","sw","dw","tw","wm","ml","lm"],hot:["harn"]},
+ {ch:0,t:"Vous fermez la boucle",x:"Le livrable vous revient avec ce qui a été vérifié et ce qui reste à confirmer. Vous validez, et ce qui a été appris rejoint MEMORY.md pour la prochaine fois.",lit:["lv","vm"],hot:["vous","mem"]}
+];
+const mk=(tag,attrs,parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;};
+const els={};
+EL.forEach(([id,x,y,w,h,s,ch,t,sub,kind,info])=>{
+  const g=mk("g",{class:"el"+(kind?" "+kind:""),tabindex:"0",role:"button","aria-label":INFO[info||id].t},document.getElementById("aels"));
+  g.dataset.s=s; g.dataset.info=info||id;
+  mk("rect",{class:"b",x,y,width:w,height:h,rx:kind==="row"?6:14},g);
+  if(kind==="stairs"){[0,1,2,3,4].forEach(i=>mk("rect",{class:"stair",x:x+4+i*21,y:y+h-18-i*16,width:18,height:18+i*16,rx:2},g));}
+  else if(kind==="row"){mk("text",{class:"tr",x:x+12,y:y+21},g).textContent=t;}
+  else{
+    const tx=kind==="frame"?x+20:kind==="win"?x+16:x+w/2, an=(kind==="frame"||kind==="win")?"start":"middle";
+    const ty=kind==="frame"?y+h-14:kind==="win"?y+24:y+h/2-4;
+    mk("text",{class:"tt",x:tx,y:ty,"text-anchor":an},g).textContent=t;
+    if(sub&&kind!=="win"&&kind!=="frame") mk("text",{class:"ts",x:tx,y:ty+18,"text-anchor":an},g).textContent=sub;
+    if(kind==="frame") mk("text",{class:"ts",x:tx+175,y:ty,"text-anchor":"start"},g).textContent=sub;
+  }
+  if(kind!=="row"&&kind!=="stairs"){const b=mk("g",{class:"badge"},g);const bx=kind==="frame"?x+w-24:x+w-14,by=kind==="frame"?y+h-20:y+14;mk("circle",{cx:bx,cy:by,r:10},b);mk("text",{x:bx,y:by+4,"text-anchor":"middle"},b).textContent=ch;}
+  g.addEventListener("click",()=>showInfo(g));
+  g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();showInfo(g);}});
+  els[id]=g;
+});
+const ars={};
+for(const k in AR){ars[k]=mk("path",{class:"ar",d:AR[k][0],"marker-end":"url(#ah)"},document.getElementById("aars"));}
+const $=id=>document.getElementById(id), esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+let cur=0,timer=null,anim=null,selEl=null;
+$("achips").innerHTML=S.map((_,i)=>`<button type="button" data-i="${i}" aria-label="Temps ${i+1} : ${S[i].t}">${i+1}</button>`).join("");
+$("achips").querySelectorAll("button").forEach(b=>b.onclick=()=>{stop();go(+b.dataset.i);});
+function runDot(paths){
+  cancelAnimationFrame(anim);
+  const dot=$("adot");
+  if(reduce||!paths.length){dot.setAttribute("cx",-20);dot.setAttribute("cy",-20);return;}
+  const seq=paths.map(p=>[p,p.getTotalLength()]);let i=0,t0=performance.now();
+  const step=now=>{const [p,L]=seq[i];const k=Math.min(1,(now-t0)/1000);const pt=p.getPointAtLength(L*k);
+    dot.setAttribute("cx",pt.x);dot.setAttribute("cy",pt.y);
+    if(k>=1){i=(i+1)%seq.length;t0=now;}
+    anim=requestAnimationFrame(step);};
+  anim=requestAnimationFrame(step);
+}
+function go(i){
+  cur=Math.max(0,Math.min(S.length-1,i));const s=S[cur],n=cur+1;
+  EL.forEach(([id])=>{const g=els[id];g.classList.toggle("ghost",+g.dataset.s>n);g.classList.toggle("hot",s.hot.includes(id));});
+  for(const k in ars){ars[k].classList.toggle("off",AR[k][1]>n);ars[k].classList.toggle("lit",s.lit.includes(k));}
+  runDot(s.lit.map(k=>ars[k]));
+  $("astep").innerHTML=`<span class="tag">Temps ${n} sur ${S.length}${s.ch?` · étape ${s.ch} du parcours`:" · tout le parcours"}</span><h3>${esc(s.t)}</h3><p>${esc(s.x)}</p>`;
+  $("achips").querySelectorAll("button").forEach((b,j)=>j===cur?b.setAttribute("aria-current","step"):b.removeAttribute("aria-current"));
+  $("aprev").disabled=cur===0;$("anext").disabled=cur===S.length-1;
+}
+function showInfo(g){
+  if(selEl)selEl.classList.remove("sel");selEl=g;g.classList.add("sel");
+  const d=INFO[g.dataset.info];
+  $("ainfo").innerHTML=`<span class="tag">${esc(d.st)}</span><h3>${esc(d.t)}</h3><p>${esc(d.x)}</p><ul>${d.f.map(([h,t])=>`<li><a href="${h}">${esc(t)}</a></li>`).join("")}</ul>`;
+}
+function stop(){clearInterval(timer);timer=null;$("aplay").textContent="▶ Lecture";}
+$("aprev").onclick=()=>{stop();go(cur-1);};
+$("anext").onclick=()=>{stop();go(cur+1);};
+$("aplay").onclick=()=>{if(timer)return stop();if(cur===S.length-1)go(0);$("aplay").textContent="❚❚ Pause";
+  timer=setInterval(()=>{if(cur>=S.length-1)return stop();go(cur+1);},5500);};
+go(0);
+})();
+
+$("end").innerHTML=ORDER.map(k=>`<div style="--c:${THREADS[k].c}"><h3>${THREADS[k].name}</h3><p>${esc(THREADS[k].idea)}</p></div>`).join('');
+</script>
+</body>
+</html>
