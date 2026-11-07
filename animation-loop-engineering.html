@@ -166,6 +166,7 @@ button{font:inherit;cursor:pointer}
   <p class="eyebrow">1 · Qu'est-ce que c'est ?</p>
   <h2 id="def">Un circuit de relecture, joué par l'IA elle-même</h2>
   <p class="read">Le Loop Engineering découpe la production d'un contenu en <strong>cinq rôles</strong>, chacun avec une consigne précise. Le Stratège fixe le cadre une seule fois. Ensuite, quatre rôles tournent en boucle sur le texte. Deux règles décident quand la boucle s'arrête : une <strong>note minimale</strong> sur chaque critère, et un <strong>nombre maximal de cycles</strong>.</p>
+  <p class="read">Vous avez vu la <a href="simulateur-loop-engineering.html">boucle de vérification</a> (produire, vérifier, corriger, trois tours au maximum) ? Le Loop Engineering reprend cette boucle et y ajoute trois choses : un Stratège qui fixe l'angle avant d'écrire, une note sur cinq critères au lieu d'un simple « conforme ou non », et des rôles séparés. La vérification devient l'un de ces rôles : le Vérificateur.</p>
   <p class="read">C'est exactement ce que fait une rédaction de magazine : un rédacteur en chef donne l'angle, un journaliste écrit, un secrétaire de rédaction relit, un correcteur vérifie les faits, et l'article repart tant qu'il n'est pas bon.</p>
   <div class="compare">
     <div><span class="tag">Prompt simple</span><h3>Une demande, une réponse</h3><p>« Écris-moi un post LinkedIn sur l'IA au travail. » Vous recevez un premier jet, souvent générique, et c'est vous qui relisez tout.</p></div>
@@ -205,7 +206,7 @@ button{font:inherit;cursor:pointer}
 <section class="stack" aria-labelledby="how">
   <p class="eyebrow">3 · Comment ça marche ?</p>
   <h2 id="how">Suivez un post LinkedIn dans la boucle</h2>
-  <p class="read">Exemple : un post « Le futur du travail à l'ère de l'IA » destiné à des dirigeants de PME. Lancez l'animation ou avancez étape par étape. Changez de scénario pour voir les deux façons dont la boucle s'arrête.</p>
+  <p class="read">Exemple : un post « Le futur du travail à l'ère de l'IA » destiné à des managers d'équipe. Lancez l'animation ou avancez étape par étape. Changez de scénario pour voir les deux façons dont la boucle s'arrête.</p>
 
   <div class="player">
     <div class="stage">
@@ -293,7 +294,7 @@ button{font:inherit;cursor:pointer}
 CONTEXTE
 - Contenu à produire : [ex. un post LinkedIn de 1 200 signes]
 - Sujet : [ex. le futur du travail à l'ère de l'IA]
-- Public : [ex. dirigeants de PME]
+- Public : [ex. managers d'équipe]
 - Objectif : [ex. faire réagir et donner envie de me contacter]
 - Éléments fiables à utiliser (faits, chiffres, exemples) : [collez-les ici]
 
@@ -354,7 +355,7 @@ const DOES = [
   "Corrige uniquement les points nommés, un par un, sans rien ajouter d'autre."
 ];
 const EX = {
-  red: ["Rédige la V1 : 1 200 signes, ton direct, pour des dirigeants de PME, autour du message central.",
+  red: ["Rédige la V1 : 1 200 signes, ton direct, pour des managers d'équipe, autour du message central.",
         "Reprend la version corrigée par l'Optimiseur : c'est la V2 qui part en notation.",
         "Reprend la nouvelle version corrigée : c'est la V3 qui part en notation."],
   ver: ["« L'IA fait gagner 40 % de temps » : aucune source, à sourcer ou supprimer. « Une révolution sans précédent » : formule creuse.",
@@ -433,7 +434,7 @@ function render(){
   if(s.k==="strat"){
     $("pRole").textContent="Stratège";
     $("pDoes").textContent="Définit l'angle et le message central, une seule fois, avant la boucle. Écarte d'abord l'approche banale.";
-    $("pEx").textContent="Angle écarté : « l'IA va supprimer des emplois », vu partout. Angle retenu : « l'IA déplace votre temps de la production vers la relecture ». Cible : dirigeants de PME.";
+    $("pEx").textContent="Angle écarté : « l'IA va supprimer des emplois », vu partout. Angle retenu : « l'IA déplace votre temps de la production vers la relecture ». Cible : managers d'équipe.";
     moveDot(-90,0); return;
   }
   if(s.k==="end"){
