@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La boucle Loop Engineering</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout : colonne de lecture unique ; la section « Comment ça marche » s'élargit en deux colonnes (anneau animé + panneau de l'étape). */
+:root{
+  --bg:#F6F7FB; --surface:#FFFFFF; --ink:#101736; --muted:#5B6384; --line:#DDE1EE;
+  --navy:#0E1F6E; --blue:#1F5FD1; --red:#C8304A; --ochre:#D48A1C; --lime:#DDF20B; --lime-ink:#101736;
+  --ok:#1C8B57; --ok-bg:#E4F4EC; --ko:#C8304A; --ko-bg:#FBE7EA;
+  --display:"DM Serif Display",Georgia,"Times New Roman",serif;
+  --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1030; --surface:#121A44; --ink:#EEF0FA; --muted:#A3AACB; --line:#26306A;
+  --navy:#8FA8FF; --blue:#6E9BFF; --red:#FF7A8E; --ochre:#F2B04F; --lime:#DDF20B; --lime-ink:#101736;
+  --ok:#5BD49A; --ok-bg:#12382A; --ko:#FF7A8E; --ko-bg:#3A1426; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A1030; --surface:#121A44; --ink:#EEF0FA; --muted:#A3AACB; --line:#26306A;
+  --navy:#8FA8FF; --blue:#6E9BFF; --red:#FF7A8E; --ochre:#F2B04F; --lime:#DDF20B; --lime-ink:#101736;
+  --ok:#5BD49A; --ok-bg:#12382A; --ko:#FF7A8E; --ko-bg:#3A1426; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 80px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:72px}
+.read{max-width:68ch}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(2.6rem,7vw,4.6rem);line-height:1;color:var(--ink)}
+h2{font-family:var(--display);font-weight:400;font-size:clamp(1.8rem,4vw,2.5rem);line-height:1.1}
+h3{font-size:1.05rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);font-weight:700}
+.stack{display:flex;flex-direction:column;gap:16px}
+.lead{font-size:1.2rem;color:var(--muted)}
+.hl{background:var(--lime);color:var(--lime-ink);padding:0 .25em;border-radius:3px}
+header.hero{display:flex;flex-direction:column;gap:20px;padding-top:12px}
+.note{font-size:.9rem;color:var(--muted);border-left:3px solid var(--ochre);padding-left:12px}
+
+/* Définition */
+.compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.compare > div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.compare .tag{font-family:var(--mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.compare .loop{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue) inset}
+.compare .loop .tag{color:var(--blue)}
+
+/* Quand l'appliquer */
+.cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
+.cases ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.cases li{display:flex;gap:10px;align-items:flex-start}
+.cases li::before{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.8rem;font-weight:700;margin-top:2px}
+.yes li::before{content:"✓";background:var(--ok-bg);color:var(--ok)}
+.no li::before{content:"–";background:var(--ko-bg);color:var(--ko)}
+
+/* Animation */
+.player{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:820px){.player{grid-template-columns:1fr}}
+.stage{background:var(--navy);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;color:#fff}
+:root[data-theme="dark"] .stage{background:#060B24}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stage{background:#060B24}}
+.strat{display:flex;gap:12px;align-items:center;border:1px dashed rgba(255,255,255,.35);border-radius:10px;padding:10px 14px;transition:background .3s,border-color .3s}
+.strat.on{background:rgba(221,242,11,.14);border-color:var(--lime);border-style:solid}
+.strat b{color:var(--lime);font-size:.95rem}
+.strat span{font-size:.85rem;opacity:.85}
+.strat .num{font-family:var(--mono);font-size:.75rem;opacity:.7;flex:none}
+svg.ring{width:100%;max-width:440px;height:auto;margin:0 auto;display:block}
+.ring text{font-family:var(--body)}
+.node circle.bg{fill:#1A2C85;stroke:rgba(255,255,255,.35);stroke-width:2;transition:fill .3s,stroke .3s}
+.node.on circle.bg{fill:var(--lime);stroke:var(--lime)}
+.node text{fill:#fff;font-weight:700;font-size:14px;transition:fill .3s}
+.node.on text{fill:var(--lime-ink)}
+.node text.sub{font-weight:500;font-size:11px;opacity:.8}
+.controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+button{font:inherit;cursor:pointer}
+.btn{font-size:.9rem;font-weight:600;border-radius:999px;padding:8px 16px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff}
+.btn:hover{background:rgba(255,255,255,.1)}
+.btn.primary{background:var(--lime);color:var(--lime-ink);border-color:var(--lime)}
+.btn:focus-visible,.opt:focus-visible,.seg button:focus-visible{outline:3px solid var(--lime);outline-offset:2px}
+.seg{display:flex;gap:4px;background:rgba(255,255,255,.08);border-radius:999px;padding:4px;justify-content:center;flex-wrap:wrap;align-self:center}
+.seg button{border:0;background:transparent;color:#fff;font-size:.8rem;font-weight:600;padding:6px 12px;border-radius:999px;opacity:.75}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--lime-ink);opacity:1}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.panel .who{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.panel .role{font-family:var(--display);font-size:2rem;line-height:1}
+.panel .step{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.panel .does{font-weight:600}
+.example{background:var(--bg);border-radius:10px;padding:14px 16px;font-size:.95rem;display:flex;flex-direction:column;gap:6px}
+.example .k{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.scores{display:flex;flex-direction:column;gap:8px}
+.score{display:grid;grid-template-columns:9.5em 1fr 3.2em;gap:10px;align-items:center;font-size:.88rem}
+.bar{height:10px;background:var(--line);border-radius:5px;position:relative;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--ko);transition:width .6s ease,background .3s}
+.bar i.ok{background:var(--ok)}
+.bar::after{content:"";position:absolute;left:80%;top:-2px;bottom:-2px;width:2px;background:var(--ink);opacity:.55}
+.score .v{font-family:var(--mono);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.scores .legend{font-size:.78rem;color:var(--muted)}
+.verdict{border-radius:10px;padding:12px 14px;font-weight:600;font-size:.95rem}
+.verdict.go{background:var(--ko-bg);color:var(--ko)}
+.verdict.stop{background:var(--ok-bg);color:var(--ok)}
+
+/* Règles + livrables */
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.rule{border-top:3px solid var(--blue);padding-top:12px;display:flex;flex-direction:column;gap:6px}
+.rule:nth-child(2){border-color:var(--red)}
+.rule:nth-child(3){border-color:var(--ochre)}
+.rule .big{font-family:var(--display);font-size:2.4rem;line-height:1}
+.crit{width:100%;border-collapse:collapse;font-size:.95rem}
+.crit th,.crit td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.crit th{font-weight:700;white-space:nowrap}
+.crit td{color:var(--muted)}
+.scroll{overflow-x:auto}
+.deliv{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:6px}
+
+/* Prompt */
+.prompt{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.prompt .bar2{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.prompt .bar2 span{font-family:var(--mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.prompt pre{margin:0;padding:18px 20px;font-family:var(--mono);font-size:.82rem;line-height:1.65;white-space:pre-wrap;word-break:break-word;max-height:460px;overflow:auto;color:var(--ink)}
+.copy{font-size:.85rem;font-weight:600;border-radius:999px;padding:6px 14px;border:1px solid var(--blue);background:var(--blue);color:#fff}
+.copy:focus-visible{outline:3px solid var(--lime);outline-offset:2px}
+.tips{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+
+/* Quiz */
+.qnav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.qbar{flex:1;min-width:120px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.qbar i{display:block;height:100%;background:var(--blue);transition:width .4s}
+.nextq{font-size:.95rem;font-weight:600;border-radius:999px;padding:10px 20px;border:0;background:var(--blue);color:#fff}
+.nextq:focus-visible{outline:3px solid var(--lime);outline-offset:2px}
+.quiz{display:flex;flex-direction:column;gap:20px}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.q .qn{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+.q h3{font-size:1.05rem;line-height:1.4}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:10px 14px;font-size:.95rem}
+.opt:hover:not([disabled]){border-color:var(--blue)}
+.opt[disabled]{cursor:default}
+.opt.good{border-color:var(--ok);background:var(--ok-bg);color:var(--ok);font-weight:600}
+.opt.bad{border-color:var(--ko);background:var(--ko-bg);color:var(--ko)}
+.why{font-size:.9rem;color:var(--muted)}
+.result{background:var(--navy);color:#fff;border-radius:12px;padding:20px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+:root[data-theme="dark"] .result{background:#060B24}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .result{background:#060B24}}
+.result .n{font-family:var(--mono);font-size:1.6rem;font-weight:700;color:var(--lime)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<a href="index.html" style="position:fixed;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9999;background:#0F2A7A;color:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.2)">← Menu</a>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Programme Claude · Partie 4 · Fiabiliser ses résultats</p>
+  <h1>Loop Engineering</h1>
+  <p class="lead read">Au lieu de demander un texte à l'IA et de le prendre tel quel, on la fait <span class="hl">travailler en boucle</span> : écrire, noter, vérifier, corriger, puis recommencer jusqu'à atteindre un niveau de qualité fixé à l'avance.</p>
+</header>
+
+<!-- 1. Définition -->
+<section class="stack" aria-labelledby="def">
+  <p class="eyebrow">1 · Qu'est-ce que c'est ?</p>
+  <h2 id="def">Un circuit de relecture, joué par l'IA elle-même</h2>
+  <p class="read">Le Loop Engineering découpe la production d'un contenu en <strong>cinq rôles</strong>, chacun avec une consigne précise. Le Stratège fixe le cadre une seule fois. Ensuite, quatre rôles tournent en boucle sur le texte. Deux règles décident quand la boucle s'arrête : une <strong>note minimale</strong> sur chaque critère, et un <strong>nombre maximal de cycles</strong>.</p>
+  <p class="read">C'est exactement ce que fait une rédaction de magazine : un rédacteur en chef donne l'angle, un journaliste écrit, un secrétaire de rédaction relit, un correcteur vérifie les faits, et l'article repart tant qu'il n'est pas bon.</p>
+  <div class="compare">
+    <div><span class="tag">Prompt simple</span><h3>Une demande, une réponse</h3><p>« Écris-moi un post LinkedIn sur l'IA au travail. » Vous recevez un premier jet, souvent générique, et c'est vous qui relisez tout.</p></div>
+    <div class="loop"><span class="tag">Loop Engineering</span><h3>Une demande, plusieurs passes notées</h3><p>Le même post est noté sur 5 critères, ses affirmations sont vérifiées, ses faiblesses corrigées une par une. Vous recevez la meilleure version, avec ses notes.</p></div>
+  </div>
+  <p class="note read">Le terme « Loop Engineering » n'est pas une norme officielle : c'est un nom d'usage pour cette méthode. Les noms des rôles et le seuil de 8/10 sont ceux de ce module ; vous pouvez les adapter.</p>
+</section>
+
+<!-- 2. Cas d'usage -->
+<section class="stack" aria-labelledby="cas">
+  <p class="eyebrow">2 · Dans quels cas l'appliquer ?</p>
+  <h2 id="cas">Quand la qualité compte plus que la vitesse</h2>
+  <div class="cases">
+    <div class="stack">
+      <h3>Oui, la boucle vaut le coup</h3>
+      <ul class="yes">
+        <li>Un post ou un article publié sous votre nom, lu par des clients.</li>
+        <li>Une proposition commerciale ou une réponse à appel d'offres.</li>
+        <li>Une newsletter, une page de site, une fiche produit importante.</li>
+        <li>Un support de formation qui sera réutilisé plusieurs fois.</li>
+        <li>Tout texte qui contient des chiffres ou des affirmations à vérifier.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Non, un prompt simple suffit</h3>
+      <ul class="no">
+        <li>Un mail rapide à un collègue, une reformulation.</li>
+        <li>Un brainstorming où vous cherchez des idées brutes.</li>
+        <li>Un résumé pour votre usage personnel.</li>
+        <li>Un sujet critique (juridique, médical, financier) : là, il faut un <strong>vérificateur indépendant</strong> ou un humain expert, pas seulement une boucle.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Animation -->
+<section class="stack" aria-labelledby="how">
+  <p class="eyebrow">3 · Comment ça marche ?</p>
+  <h2 id="how">Suivez un post LinkedIn dans la boucle</h2>
+  <p class="read">Exemple : un post « Le futur du travail à l'ère de l'IA » destiné à des dirigeants de PME. Lancez l'animation ou avancez étape par étape. Changez de scénario pour voir les deux façons dont la boucle s'arrête.</p>
+
+  <div class="player">
+    <div class="stage">
+      <div class="seg" role="group" aria-label="Scénario">
+        <button type="button" id="scA" aria-pressed="true">Scénario A · qualité atteinte</button>
+        <button type="button" id="scB" aria-pressed="false">Scénario B · plafond de 3 cycles</button>
+      </div>
+      <div class="strat" id="strat"><span class="num">00</span><div><b>Stratège</b> <span>· avant la boucle : angle et message central</span></div></div>
+      <svg class="ring" viewBox="0 0 440 440" role="img" aria-label="Boucle à quatre rôles : Rédacteur, Critique, Vérificateur, Optimiseur">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="rgba(255,255,255,.55)"/></marker>
+        </defs>
+        <circle cx="220" cy="220" r="150" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="10"/>
+        <circle id="prog" cx="220" cy="220" r="150" fill="none" stroke="#DDF20B" stroke-width="10" stroke-linecap="round" transform="rotate(-90 220 220)" stroke-dasharray="0 943"/>
+        <path d="M285 85 A150 150 0 0 1 355 155" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2" marker-end="url(#ah)"/>
+        <path d="M355 285 A150 150 0 0 1 285 355" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2" marker-end="url(#ah)"/>
+        <path d="M155 355 A150 150 0 0 1 85 285" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2" marker-end="url(#ah)"/>
+        <path d="M85 155 A150 150 0 0 1 155 85" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2" marker-end="url(#ah)"/>
+        <g class="node" data-i="0" transform="translate(220 70)"><circle class="bg" r="50"/><text text-anchor="middle" y="-2">Rédacteur</text><text class="sub" text-anchor="middle" y="16">écrit</text></g>
+        <g class="node" data-i="1" transform="translate(370 220)"><circle class="bg" r="50"/><text text-anchor="middle" y="-2">Critique</text><text class="sub" text-anchor="middle" y="16">note /10</text></g>
+        <g class="node" data-i="2" transform="translate(220 370)"><circle class="bg" r="50"/><text text-anchor="middle" y="-2" style="font-size:13px">Vérificateur</text><text class="sub" text-anchor="middle" y="16">traque</text></g>
+        <g class="node" data-i="3" transform="translate(70 220)"><circle class="bg" r="50"/><text text-anchor="middle" y="-2" style="font-size:13px">Optimiseur</text><text class="sub" text-anchor="middle" y="16">corrige</text></g>
+        <circle id="dot" r="9" fill="#DDF20B" cx="220" cy="70" stroke="#0E1F6E" stroke-width="3"/>
+        <text x="220" y="200" text-anchor="middle" fill="#fff" style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.1em;opacity:.7" id="cyc">CYCLE 1 / 3</text>
+        <text x="220" y="246" text-anchor="middle" fill="#DDF20B" style="font-family:'DM Serif Display',Georgia,serif;font-size:46px" id="ver">V1</text>
+        <text x="220" y="272" text-anchor="middle" fill="#fff" style="font-size:12px;opacity:.75" id="minS">note la plus basse : –</text>
+      </svg>
+      <div class="controls">
+        <button type="button" class="btn" id="prev">← Étape</button>
+        <button type="button" class="btn primary" id="play">▶ Lecture</button>
+        <button type="button" class="btn" id="next">Étape →</button>
+        <button type="button" class="btn" id="reset">Recommencer</button>
+      </div>
+    </div>
+
+    <div class="panel" aria-live="polite">
+      <div class="who"><span class="role" id="pRole">Stratège</span><span class="step" id="pStep">Étape 1</span></div>
+      <p class="does" id="pDoes"></p>
+      <div class="example"><span class="k">Dans notre exemple</span><span id="pEx"></span></div>
+      <div class="scores" id="scores">
+        <div class="legend">Notes du Critique · trait vertical = seuil 8/10</div>
+      </div>
+      <div class="verdict" id="verdict" hidden></div>
+    </div>
+  </div>
+
+  <div class="rules">
+    <div class="rule"><span class="big">8/10</span><h3>Seuil sur chaque critère</h3><p>La boucle repart tant qu'au moins un critère est en dessous de 8. Une moyenne ne suffit pas.</p></div>
+    <div class="rule"><span class="big">3</span><h3>Cycles au maximum</h3><p>Au-delà, on livre la meilleure version en signalant les critères restés insuffisants. Pas de boucle infinie.</p></div>
+    <div class="rule"><span class="big">↓</span><h3>En cas de doute, la note basse</h3><p>Le Critique est plus sévère qu'indulgent : entre 7 et 8, il met 7.</p></div>
+  </div>
+
+  <div class="stack">
+    <h3>Les cinq critères notés sur dix</h3>
+    <div class="scroll"><table class="crit">
+      <tr><th>Clarté</th><td>Le message est compris dès la première lecture.</td></tr>
+      <tr><th>Spécificité</th><td>Des preuves, des chiffres et des exemples concrets, pas d'affirmation vague.</td></tr>
+      <tr><th>Originalité</th><td>Le texte ne serait pas interchangeable avec un autre sur le même sujet.</td></tr>
+      <tr><th>Crédibilité</th><td>Le propos résiste à la vérification des faits.</td></tr>
+      <tr><th>Engagement</th><td>Le contenu donne envie de lire, de réagir, de partager.</td></tr>
+    </table></div>
+  </div>
+
+  <div class="stack read">
+    <h3>Ce que livre la boucle à la fin</h3>
+    <ol class="deliv">
+      <li>La version finale.</li>
+      <li>Le tableau des notes par critère.</li>
+      <li>La liste des corrections entre la V1 et la version finale, avec la raison de chacune.</li>
+      <li>Un paragraphe qui explique pourquoi cette version est meilleure.</li>
+    </ol>
+    <p>Ces quatre éléments vous permettent de contrôler le travail en deux minutes, sans tout relire.</p>
+  </div>
+</section>
+
+<!-- 4. Prompt -->
+<section class="stack" aria-labelledby="pT">
+  <p class="eyebrow">4 · À vous de lancer la boucle</p>
+  <h2 id="pT">Le prompt prêt à copier</h2>
+  <p class="read">Copiez ce prompt dans Claude, puis remplacez les passages entre crochets par votre propre sujet. Claude jouera les cinq rôles l'un après l'autre et vous rendra les quatre livrables.</p>
+  <div class="prompt">
+    <div class="bar2"><span>Prompt · Loop Engineering</span><button type="button" class="copy" id="copyP">Copier le prompt</button></div>
+<pre id="promptTxt">Tu vas produire un contenu en travaillant en boucle, en jouant successivement cinq rôles. Affiche clairement le nom du rôle avant chaque étape.
+
+CONTEXTE
+- Contenu à produire : [ex. un post LinkedIn de 1 200 signes]
+- Sujet : [ex. le futur du travail à l'ère de l'IA]
+- Public : [ex. dirigeants de PME]
+- Objectif : [ex. faire réagir et donner envie de me contacter]
+- Éléments fiables à utiliser (faits, chiffres, exemples) : [collez-les ici]
+
+ÉTAPE 0 — STRATÈGE (une seule fois)
+Propose d'abord l'approche la plus banale sur ce sujet, puis écarte-la. Définis ensuite l'angle retenu et le message central en une phrase.
+
+LA BOUCLE (3 cycles maximum)
+1. RÉDACTEUR — Écris la version (V1, puis V2, V3…) en respectant strictement le cadre du Stratège.
+2. CRITIQUE — Note la version sur 10 pour chacun de ces critères :
+   - Clarté : le message est compris dès la première lecture.
+   - Spécificité : preuves, chiffres et exemples concrets, pas d'affirmation vague.
+   - Originalité : le texte ne serait pas interchangeable avec un autre sur le même sujet.
+   - Crédibilité : le propos résiste à la vérification des faits.
+   - Engagement : le contenu donne envie de lire, de réagir, de partager.
+   Sois plus sévère qu'indulgent. En cas de doute entre deux notes, mets la plus basse.
+   Si tous les critères sont à 8/10 ou plus, arrête la boucle et passe à la livraison.
+3. VÉRIFICATEUR — Relis phrase par phrase. Repère les formules creuses et les affirmations sans preuve. N'invente aucune source : si un fait n'est pas dans les éléments fournis, signale-le.
+4. OPTIMISEUR — Corrige uniquement les points nommés par le Critique et le Vérificateur, un par un, sans rien ajouter d'autre.
+Puis recommence au Rédacteur avec la version corrigée.
+
+RÈGLE D'ARRÊT
+La boucle s'arrête dès que tous les critères atteignent 8/10, ou après 3 cycles. Dans ce second cas, livre la meilleure version et signale les critères restés sous 8.
+
+LIVRAISON
+1. La version finale.
+2. Un tableau des notes par critère, pour chaque cycle.
+3. La liste des corrections entre la V1 et la version finale, avec la raison de chacune.
+4. Un paragraphe : pourquoi cette version est meilleure.</pre>
+  </div>
+  <ul class="tips read">
+    <li><strong>Fournissez vos faits.</strong> Le Vérificateur ne peut contrôler que ce que vous lui donnez : sans éléments fiables, il ne fera que signaler des manques.</li>
+    <li><strong>Gardez la décision finale.</strong> Les notes sont celles de l'IA, pas une mesure objective. Relisez le tableau et les corrections avant de publier.</li>
+  </ul>
+</section>
+
+<!-- 5. Quiz -->
+<section class="stack" aria-labelledby="quizT">
+  <p class="eyebrow">5 · Testez-vous</p>
+  <h2 id="quizT">Quiz : avez-vous compris la boucle ?</h2>
+  <p class="read">Sept questions, une à la fois. Choisissez une réponse pour voir la correction, puis passez à la suivante.</p>
+  <div class="quiz" id="quiz" aria-live="polite"></div>
+</section>
+
+</div>
+
+<script>
+(() => {
+const CRIT = ["Clarté","Spécificité","Originalité","Crédibilité","Engagement"];
+const SC = {
+  A: [[7,5,6,6,7],[8,7,7,8,8],[9,8,8,9,8]],
+  B: [[7,5,6,6,7],[8,7,6,8,8],[8,8,7,9,8]]
+};
+const ROLE = ["Rédacteur","Critique","Vérificateur","Optimiseur"];
+const DOES = [
+  "Écrit la version en respectant strictement le cadre fixé par le Stratège.",
+  "Note la version sur cinq critères, plus sévère qu'indulgent.",
+  "Repère, phrase par phrase, les formules creuses et les affirmations sans preuve.",
+  "Corrige uniquement les points nommés, un par un, sans rien ajouter d'autre."
+];
+const EX = {
+  red: ["Rédige la V1 : 1 200 signes, ton direct, pour des dirigeants de PME, autour du message central.",
+        "Reprend la version corrigée par l'Optimiseur : c'est la V2 qui part en notation.",
+        "Reprend la nouvelle version corrigée : c'est la V3 qui part en notation."],
+  ver: ["« L'IA fait gagner 40 % de temps » : aucune source, à sourcer ou supprimer. « Une révolution sans précédent » : formule creuse.",
+        "Le cas client ajouté vient bien du brief. L'accroche « Et si demain… » reste vue et revue."],
+  opt: ["Remplace le chiffre non sourcé par un exemple réel du brief. Supprime « révolution sans précédent ». Ne touche pas au reste.",
+        "Remplace l'accroche générique par une scène concrète : un lundi matin, 40 mails triés en 10 minutes."]
+};
+
+// Séquence : 0 = Stratège, puis (rôle, cycle) jusqu'à la livraison
+function buildSeq(key){
+  const s = [{k:"strat"}];
+  for (let c=0;c<3;c++){
+    s.push({k:"node",i:0,c});
+    s.push({k:"node",i:1,c});
+    const ok = SC[key][c].every(v=>v>=8);
+    if (ok || c===2){ s.push({k:"end",c,ok}); break; }
+    s.push({k:"node",i:2,c});
+    s.push({k:"node",i:3,c});
+  }
+  return s;
+}
+let key="A", seq=buildSeq(key), pos=0, timer=null;
+const $=id=>document.getElementById(id);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const CENTER=220, R=150, CIRC=2*Math.PI*R;
+const nodeAngle=i=>-90+i*90;
+let curAngle=-90, anim=null;
+
+// Barres de notes
+const scoresEl=$("scores");
+CRIT.forEach((n,j)=>{
+  const d=document.createElement("div"); d.className="score";
+  d.innerHTML=`<span>${n}</span><span class="bar"><i id="b${j}" style="width:0"></i></span><span class="v" id="v${j}">–</span>`;
+  scoresEl.appendChild(d);
+});
+
+function moveDot(target, total){
+  // total = progression cumulée en degrés depuis le début (pour l'anneau)
+  cancelAnimationFrame(anim);
+  const from=curAngle, to=target, t0=performance.now(), dur=reduce?0:800;
+  const p0=parseFloat($("prog").dataset.p||0);
+  const step=now=>{
+    const k=dur?Math.min(1,(now-t0)/dur):1, e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    const a=from+(to-from)*e, r=a*Math.PI/180;
+    $("dot").setAttribute("cx",CENTER+R*Math.cos(r));
+    $("dot").setAttribute("cy",CENTER+R*Math.sin(r));
+    const p=p0+(total-p0)*e;
+    $("prog").setAttribute("stroke-dasharray",`${(p%360)/360*CIRC} ${CIRC}`);
+    if(k<1) anim=requestAnimationFrame(step); else {curAngle=to;$("prog").dataset.p=total;}
+  };
+  anim=requestAnimationFrame(step);
+}
+
+function setScores(arr){
+  CRIT.forEach((_,j)=>{
+    const b=$("b"+j), v=$("v"+j);
+    if(!arr){b.style.width="0";b.className="";v.textContent="–";return;}
+    b.style.width=arr[j]*10+"%"; b.className=arr[j]>=8?"ok":""; v.textContent=arr[j]+"/10";
+  });
+}
+
+function render(){
+  const s=seq[pos];
+  document.querySelectorAll(".node").forEach(n=>n.classList.toggle("on", s.k==="node" && +n.dataset.i===s.i));
+  $("strat").classList.toggle("on", s.k==="strat");
+  $("pStep").textContent=`Étape ${pos+1} / ${seq.length}`;
+  const v=$("verdict"); v.hidden=true;
+  // dernière notation connue à ce point de la séquence
+  let lastC=-1; for(let i=0;i<=pos;i++){ if(seq[i].k==="node"&&seq[i].i===1) lastC=seq[i].c; }
+  setScores(lastC>=0?SC[key][lastC]:null);
+  const cyc = s.k==="strat"?0:s.c;
+  $("cyc").textContent=s.k==="strat"?"AVANT LA BOUCLE":`CYCLE ${cyc+1} / 3`;
+  $("ver").textContent=s.k==="strat"?"—":(s.k==="end"?"✓":"V"+(cyc+1));
+  $("minS").textContent=lastC>=0?`note la plus basse : ${Math.min(...SC[key][lastC])}/10`:"note la plus basse : –";
+
+  if(s.k==="strat"){
+    $("pRole").textContent="Stratège";
+    $("pDoes").textContent="Définit l'angle et le message central, une seule fois, avant la boucle. Écarte d'abord l'approche banale.";
+    $("pEx").textContent="Angle écarté : « l'IA va supprimer des emplois », vu partout. Angle retenu : « l'IA déplace votre temps de la production vers la relecture ». Cible : dirigeants de PME.";
+    moveDot(-90,0); return;
+  }
+  if(s.k==="end"){
+    $("pRole").textContent="Livraison";
+    if(s.ok){
+      $("pDoes").textContent=`Tous les critères atteignent 8/10 au cycle ${s.c+1} : la boucle s'arrête.`;
+      $("pEx").textContent="La V3 est livrée avec ses notes, la liste des corrections depuis la V1 et un paragraphe qui explique pourquoi elle est meilleure.";
+      v.className="verdict stop"; v.textContent="Arrêt : qualité atteinte."; v.hidden=false;
+    } else {
+      const low=CRIT.filter((_,j)=>SC[key][s.c][j]<8).join(", ");
+      $("pDoes").textContent="Le plafond de 3 cycles est atteint alors qu'un critère reste sous 8/10.";
+      $("pEx").textContent=`On livre la meilleure version (V3) en signalant clairement le critère resté insuffisant : ${low}. C'est à vous de décider si vous l'améliorez à la main.`;
+      v.className="verdict go"; v.textContent=`Arrêt : plafond atteint. À signaler : ${low}.`; v.hidden=false;
+    }
+    return;
+  }
+  $("pRole").textContent=ROLE[s.i];
+  $("pDoes").textContent=DOES[s.i];
+  if(s.i===0) $("pEx").textContent=EX.red[s.c];
+  if(s.i===1){
+    const arr=SC[key][s.c], low=CRIT.filter((_,j)=>arr[j]<8);
+    $("pEx").textContent=`Note la V${s.c+1}.`+(low.length?` Sous le seuil : ${low.join(", ")}.`:" Tous les critères sont à 8 ou plus.");
+    v.hidden=false;
+    if(!low.length){v.className="verdict stop";v.textContent="Tous les critères ≥ 8 : on peut livrer.";}
+    else if(s.c===2){v.className="verdict go";v.textContent="Encore un critère sous 8, mais c'était le 3ᵉ cycle.";}
+    else {v.className="verdict go";v.textContent=`${low.length} critère(s) sous 8 : la boucle continue.`;}
+  }
+  if(s.i===2) $("pEx").textContent=EX.ver[s.c];
+  if(s.i===3) $("pEx").textContent=EX.opt[s.c];
+  const total=s.c*360+s.i*90;
+  moveDot(-90+total,total);
+}
+
+function go(p){ pos=Math.max(0,Math.min(seq.length-1,p)); render(); if(pos===seq.length-1) stop(); }
+function stop(){ clearInterval(timer); timer=null; $("play").textContent="▶ Lecture"; }
+function play(){ if(pos===seq.length-1) reset(); $("play").textContent="❚❚ Pause"; timer=setInterval(()=>go(pos+1),2600); }
+function reset(){ stop(); curAngle=-90; $("prog").dataset.p=0; go(0); }
+$("play").onclick=()=>timer?stop():play();
+$("next").onclick=()=>{stop();go(pos+1);};
+$("prev").onclick=()=>{stop();go(pos-1);};
+$("reset").onclick=reset;
+function setKey(k){ key=k; seq=buildSeq(k); $("scA").setAttribute("aria-pressed",k==="A"); $("scB").setAttribute("aria-pressed",k==="B"); reset(); }
+$("scA").onclick=()=>setKey("A"); $("scB").onclick=()=>setKey("B");
+render();
+
+// Quiz
+const Q=[
+ {q:"Quel rôle intervient une seule fois, avant que la boucle commence ?",o:["Le Rédacteur","Le Stratège","L'Optimiseur"],a:1,w:"Le Stratège fixe l'angle et le message central. Les quatre autres rôles tournent ensuite en boucle dans ce cadre."},
+ {q:"Les notes d'un cycle sont : Clarté 9, Spécificité 8, Originalité 7, Crédibilité 9, Engagement 9. Que se passe-t-il ?",o:["On livre : la moyenne dépasse 8","La boucle repart : Originalité est sous 8","On supprime le critère Originalité"],a:1,w:"La règle porte sur chaque critère, pas sur la moyenne. Un seul critère sous 8 suffit à relancer un cycle (si le plafond n'est pas atteint)."},
+ {q:"Au 3ᵉ cycle, un critère est encore à 7/10. Quelle est la bonne décision ?",o:["Lancer un 4ᵉ cycle","Livrer la meilleure version en signalant ce critère","Livrer sans rien dire"],a:1,w:"Le plafond de 3 cycles évite une boucle infinie. On livre la meilleure version, avec le critère insuffisant clairement signalé : la décision finale revient à l'humain."},
+ {q:"Le Critique hésite entre 7 et 8 sur la Crédibilité. Quelle note met-il ?",o:["8, pour encourager","7, la plus basse l'emporte","7,5"],a:1,w:"En cas de doute, la note la plus basse l'emporte. Un Critique indulgent arrêterait la boucle trop tôt."},
+ {q:"L'Optimiseur reçoit deux points à corriger. Que doit-il faire ?",o:["Réécrire tout le texte pour l'améliorer","Corriger ces deux points, un par un, sans rien ajouter","Ajouter de nouvelles idées"],a:1,w:"L'Optimiseur corrige uniquement les points nommés. S'il réécrit tout, il peut casser ce qui était déjà bien noté."},
+ {q:"Pour lequel de ces contenus la boucle est-elle la plus utile ?",o:["Un mail rapide à un collègue","Une proposition commerciale envoyée à un prospect","Une liste d'idées pour un brainstorming"],a:1,w:"La boucle prend du temps et des requêtes. Elle se justifie quand le texte sera lu par d'autres et engage votre image ou votre entreprise."},
+ {q:"Pourquoi la boucle livre-t-elle aussi la liste des corrections et leurs raisons ?",o:["Pour allonger le livrable","Pour que l'humain puisse contrôler le travail rapidement","Parce que l'IA ne sait pas s'arrêter"],a:1,w:"Le tableau des notes et la liste des corrections permettent de vérifier en deux minutes ce qui a changé, et pourquoi. L'IA reste au service de votre expertise."}
+];
+let qi=0, good=0;
+const box=$("quiz");
+function showQ(){
+  const it=Q[qi];
+  box.innerHTML=`<div class="q">
+    <div class="qnav"><span class="qn">Question ${qi+1} / ${Q.length}</span><span class="qbar"><i style="width:${qi/Q.length*100}%"></i></span><span class="qn">Score : ${good}</span></div>
+    <h3>${it.q}</h3><div class="opts"></div><p class="why" hidden></p>
+    <div class="qnav" hidden><span></span><button type="button" class="nextq" id="qNext">${qi<Q.length-1?"Question suivante →":"Voir mon score →"}</button></div>
+  </div>`;
+  const opts=box.querySelector(".opts"), why=box.querySelector(".why"), nav=box.querySelectorAll(".qnav")[1];
+  it.o.forEach((t,j)=>{
+    const b=document.createElement("button"); b.type="button"; b.className="opt"; b.id=`q${qi}o${j}`; b.textContent=t;
+    b.onclick=()=>{
+      opts.querySelectorAll("button").forEach((x,k)=>{x.disabled=true; if(k===it.a) x.classList.add("good");});
+      if(j===it.a) good++; else b.classList.add("bad");
+      why.hidden=false; why.textContent=(j===it.a?"Exact. ":"Pas tout à fait. ")+it.w;
+      nav.hidden=false; const n=$("qNext"); n.onclick=()=>{qi++; qi<Q.length?showQ():showEnd();}; n.focus();
+    };
+    opts.appendChild(b);
+  });
+}
+function showEnd(){
+  const msg = good>=6 ? "Très bien : vous maîtrisez les règles de la boucle."
+    : good>=4 ? "Bonne base. Relisez les règles d'arrêt et le rôle de l'Optimiseur."
+    : "Rejouez l'animation, scénarios A et B, puis retentez le quiz.";
+  box.innerHTML=`<div class="result"><div><strong>Votre score</strong><br><span>${msg}</span></div><span class="n">${good} / ${Q.length}</span><button type="button" class="btn" id="qReset">Recommencer le quiz</button></div>`;
+  $("qReset").onclick=()=>{qi=0;good=0;showQ();};
+}
+showQ();
+
+// Copier le prompt
+$("copyP").onclick=async()=>{
+  const btn=$("copyP"), txt=$("promptTxt").textContent;
+  try{ await navigator.clipboard.writeText(txt); btn.textContent="Copié"; }
+  catch(e){ const r=document.createRange(); r.selectNodeContents($("promptTxt")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent="Texte sélectionné : ⌘C"; }
+  setTimeout(()=>btn.textContent="Copier le prompt",2200);
+};
+})();
+</script>
+</body>
+</html>
