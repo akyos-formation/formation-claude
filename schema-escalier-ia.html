@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Schéma interactif : les 5 niveaux d'usage de l'IA générative, l'écart entre usage réel et souhaitable, et ce que chaque marche permet au travail.">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+</style>
+<title>L'escalier de l'IA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout : un escalier de 5 marches en ouverture (thèse), 100 points = 100 personnes qui montent d'un état "aujourd'hui" à un état "objectif", puis le détail de la marche choisie, la même tâche aux 5 niveaux, l'auto-diagnostic et les chiffres sourcés. */
+:root{
+  --bg:#f5f6fb; --surface:#ffffff; --surface-2:#eceef8;
+  --ink:#111a5e; --muted:#535b87; --line:#d9ddee;
+  --lime:#d9f24b; --on-lime:#111a5e; --link:#2b3fd6;
+  --l0:#c4c8dc; --l0-ink:#111a5e;
+  --l1:#7d70e3; --l1-ink:#ffffff;
+  --l2:#3d6fd8; --l2-ink:#ffffff;
+  --l2p:#22409c; --l2p-ink:#ffffff;
+  --l3:#d9f24b; --l3-ink:#111a5e;
+  --warn:#b4471f;
+  --f-display:"Archivo", "Arial Narrow", Arial, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a0f30; --surface:#121a46; --surface-2:#1a2357;
+    --ink:#eef0fb; --muted:#a8aed3; --line:#2b346d;
+    --lime:#d9f24b; --on-lime:#0a0f30; --link:#d9f24b;
+    --l0:#5a6290; --l0-ink:#eef0fb;
+    --l1:#8a7ef0; --l1-ink:#0a0f30;
+    --l2:#5b8bf0; --l2-ink:#0a0f30;
+    --l2p:#3a5fcf; --l2p-ink:#ffffff;
+    --l3:#d9f24b; --l3-ink:#0a0f30;
+    --warn:#ff9c72;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a0f30; --surface:#121a46; --surface-2:#1a2357;
+  --ink:#eef0fb; --muted:#a8aed3; --line:#2b346d;
+  --lime:#d9f24b; --on-lime:#0a0f30; --link:#d9f24b;
+  --l0:#5a6290; --l0-ink:#eef0fb;
+  --l1:#8a7ef0; --l1-ink:#0a0f30;
+  --l2:#5b8bf0; --l2-ink:#0a0f30;
+  --l2p:#3a5fcf; --l2p-ink:#ffffff;
+  --l3:#d9f24b; --l3-ink:#0a0f30;
+  --warn:#ff9c72;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0}
+.wrap{max-width:1120px;margin:0 auto;padding-block:40px 64px;display:grid;gap:56px}
+a{color:var(--link);text-underline-offset:3px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.05}
+h1{font-size:clamp(2.4rem,7vw,4.4rem);font-weight:850;font-stretch:120%;letter-spacing:-.01em}
+h2{font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:800;font-stretch:112%}
+h3{font-size:1.25rem;font-weight:750;font-stretch:108%}
+p{margin:0}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lead{font-size:1.15rem;max-width:62ch;color:var(--ink)}
+mark{background:var(--lime);color:var(--on-lime);padding:0 .2em;border-radius:3px}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+:focus-visible{outline:3px solid var(--link);outline-offset:3px}
+
+/* Hero */
+.hero{display:grid;gap:22px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:8px}
+.stat{border-top:3px solid var(--ink);padding-top:10px;display:grid;gap:4px;align-content:start}
+.stat b{font-family:var(--f-display);font-size:2.3rem;font-weight:850;font-stretch:115%;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{font-size:.95rem}
+.stat cite{font-style:normal;font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 14px}}
+
+/* Escalier */
+.stairs-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px clamp(14px,3vw,28px) 18px;display:grid;gap:18px}
+.stairs-head{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:end;justify-content:space-between}
+.stairs-head > div{min-width:0}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:4px;gap:4px}
+.seg button{font:inherit;font-weight:700;font-size:.92rem;border:0;background:transparent;color:var(--muted);padding:8px 16px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.stairs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(4px,1vw,10px);align-items:end;min-height:340px}
+.col{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
+.you{align-self:center;font-family:var(--f-mono);font-size:.72rem;font-weight:500;background:var(--lime);color:var(--on-lime);padding:2px 8px;border-radius:999px}
+.count{font-family:var(--f-display);font-weight:850;font-stretch:115%;font-size:clamp(1.15rem,3.2vw,1.9rem);text-align:center;font-variant-numeric:tabular-nums;line-height:1}
+.dots{display:flex;flex-wrap:wrap-reverse;align-content:flex-start;justify-content:center;gap:clamp(2px,.5vw,4px);min-height:12px;padding-inline:2px}
+.dot{width:clamp(7px,1.2vw,12px);height:clamp(7px,1.2vw,12px);border-radius:50%;display:block}
+.step{font:inherit;text-align:left;border:0;border-radius:10px 10px 4px 4px;padding:10px clamp(6px,1.2vw,12px);cursor:pointer;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;transition:transform .15s ease, box-shadow .15s ease;min-width:0}
+.step:hover{transform:translateY(-3px)}
+.step[aria-pressed="true"]{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--ink)}
+.step .lv{font-family:var(--f-mono);font-size:clamp(.66rem,1.4vw,.78rem);font-weight:500;letter-spacing:.04em}
+.step .nm{font-family:var(--f-display);font-weight:800;font-stretch:105%;font-size:clamp(.72rem,1.7vw,1.02rem);line-height:1.1;overflow-wrap:anywhere}
+.step .tg{font-size:clamp(.62rem,1.3vw,.78rem);opacity:.85;line-height:1.2}
+.s0{background:var(--l0);color:var(--l0-ink);height:clamp(60px,9vw,80px)}
+.s1{background:var(--l1);color:var(--l1-ink);height:clamp(90px,14vw,125px)}
+.s2{background:var(--l2);color:var(--l2-ink);height:clamp(120px,19vw,170px)}
+.s2p{background:var(--l2p);color:var(--l2p-ink);height:clamp(140px,22vw,200px)}
+.s3{background:var(--l3);color:var(--l3-ink);height:clamp(165px,26vw,235px)}
+.c0{background:var(--l0)} .c1{background:var(--l1)} .c2{background:var(--l2)} .c2p{background:var(--l2p)} .c3{background:var(--l3);box-shadow:inset 0 0 0 1px var(--muted)}
+.stairs-foot{display:flex;flex-wrap:wrap;gap:6px 20px;justify-content:space-between;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:520px){.step .tg{display:none}.stairs{min-height:280px}}
+
+/* Panneau détail */
+.panel{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;align-items:start}
+.panel > div{min-width:0;display:grid;gap:16px}
+@media (max-width:820px){.panel{grid-template-columns:minmax(0,1fr)}}
+.badge{display:inline-block;font-family:var(--f-mono);font-size:.8rem;font-weight:500;padding:3px 10px;border-radius:999px}
+.title-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+ul.clean{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+ul.clean li{padding-left:22px;position:relative}
+ul.clean li::before{content:"";position:absolute;left:2px;top:.55em;width:10px;height:10px;border-radius:2px;background:var(--lvl,var(--ink))}
+.meters{display:grid;gap:8px;background:var(--surface-2);border-radius:10px;padding:12px 14px}
+.meter{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;font-size:.92rem}
+.pips{display:flex;gap:4px}
+.pip{width:22px;height:8px;border-radius:2px;background:var(--line)}
+.pip.on{background:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-size:.9rem;font-weight:700;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 12px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.examples{display:grid;gap:10px}
+.ex{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.callouts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+@media (max-width:520px){.callouts{grid-template-columns:minmax(0,1fr)}}
+.callout{border-radius:10px;padding:12px 14px;display:grid;gap:4px}
+.callout .k{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase}
+.callout.risk{border:1.5px dashed var(--warn)}
+.callout.risk .k{color:var(--warn)}
+.callout.next{background:var(--lime);color:var(--on-lime)}
+.nav{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:700;font-size:.92rem;border:1.5px solid var(--ink);background:transparent;color:var(--ink);padding:8px 14px;border-radius:999px;cursor:pointer}
+.btn:disabled{opacity:.35;cursor:default}
+
+/* Même tâche */
+.section{display:grid;gap:18px}
+.task-rows{display:grid;gap:8px}
+.trow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.trow .tl{padding:12px 12px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.trow .tl .lv{font-family:var(--f-mono);font-size:.74rem}
+.trow .tl .nm{font-family:var(--f-display);font-weight:800;font-size:.95rem;line-height:1.1}
+.trow .tt{padding:12px 14px 12px 0;align-self:center}
+.trow.sel{box-shadow:0 0 0 2px var(--ink)}
+@media (max-width:560px){.trow{grid-template-columns:minmax(0,1fr);gap:0}.trow .tt{padding:10px 14px 12px}}
+
+/* Diagnostic */
+.diag{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:820px){.diag{grid-template-columns:minmax(0,1fr)}}
+.qgroup{display:grid;gap:8px}
+.qgroup + .qgroup{margin-top:14px}
+.qgroup .eyebrow{display:flex;align-items:center;gap:8px}
+.qgroup .eyebrow i{width:10px;height:10px;border-radius:2px;display:inline-block}
+label.q{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+label.q input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--ink)}
+.result{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 16px);background:var(--ink);color:var(--bg);border-radius:var(--r);padding:20px;display:grid;gap:12px}
+.result .big{font-family:var(--f-display);font-weight:850;font-stretch:115%;font-size:2rem;line-height:1}
+.result .nextbox{background:var(--lime);color:var(--on-lime);border-radius:10px;padding:12px 14px;display:grid;gap:4px}
+.result .k{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+
+/* Chiffres */
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.facts{grid-template-columns:minmax(0,1fr)}}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:6px;align-content:start}
+.fact b{font-family:var(--f-display);font-weight:850;font-stretch:115%;font-size:1.8rem;line-height:1;font-variant-numeric:tabular-nums}
+.fact cite{font-style:normal;font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.sources{font-size:.85rem;color:var(--muted);display:grid;gap:6px;border-top:1px solid var(--line);padding-top:16px}
+.sources ol{margin:0;padding-left:20px;display:grid;gap:4px}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow">Support de formation · IA générative au travail</p>
+    <h1>L'escalier de l'IA</h1>
+    <p class="lead">Depuis 2023, l'IA générative est entrée dans les bureaux. L'utiliser ne veut pas dire bien s'en servir : <mark>la majorité reste sur la première marche</mark>, alors que chaque niveau supplémentaire change ce qu'on peut confier à l'IA.</p>
+    <div class="stats">
+      <div class="stat"><b>48&nbsp;%</b><span>des Français ont déjà utilisé une IA générative, contre 20&nbsp;% deux ans plus tôt</span><cite>Arcep · Baromètre du numérique 2026</cite></div>
+      <div class="stat"><b>36&nbsp;%</b><span>des salariés disent que leur entreprise l'a déployée, alors que 2 sur 3 l'utilisent</span><cite>Ipsos</cite></div>
+      <div class="stat"><b>21&nbsp;%</b><span>des salariés seulement ont reçu une formation à l'IA</span><cite>Ipsos pour Google · 2026</cite></div>
+      <div class="stat"><b>×&nbsp;2,6</b><span>d'usage au travail chez les salariés formés par rapport aux autres</span><cite>Ipsos pour Google · 2026</cite></div>
+    </div>
+  </header>
+
+  <section class="stairs-card" aria-labelledby="t-stairs">
+    <div class="stairs-head">
+      <div>
+        <h2 id="t-stairs">100 personnes sur l'escalier</h2>
+        <p class="muted small">1 point = 1 % · Cliquez sur une marche pour voir ce qu'elle permet.</p>
+      </div>
+      <div class="seg" role="group" aria-label="Répartition affichée">
+        <button type="button" id="m-real" aria-pressed="true">Usage réel</button>
+        <button type="button" id="m-target" aria-pressed="false">Usage souhaitable</button>
+      </div>
+    </div>
+    <div class="stairs" id="stairs"></div>
+    <div class="stairs-foot small muted">
+      <p id="mode-note"></p>
+      <p>Niv 2+ : voie individuelle · Niv 3 : voie organisation</p>
+    </div>
+  </section>
+
+  <section class="panel" id="panel" aria-live="polite"></section>
+
+  <section class="section" aria-labelledby="t-task">
+    <div>
+      <p class="eyebrow">Usage réel vs usage performant</p>
+      <h2 id="t-task">La même tâche, cinq niveaux</h2>
+    </div>
+    <div class="chips" role="group" aria-label="Choisir une tâche" id="task-chips"></div>
+    <div class="task-rows" id="task-rows"></div>
+  </section>
+
+  <section class="section" aria-labelledby="t-diag">
+    <div>
+      <p class="eyebrow">Auto-diagnostic</p>
+      <h2 id="t-diag">Où en êtes-vous ?</h2>
+      <p class="muted">Cochez ce que vous faites déjà vraiment, pas ce que vous savez possible.</p>
+    </div>
+    <div class="diag">
+      <div id="questions"></div>
+      <aside class="result" id="result" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="t-facts">
+    <div>
+      <p class="eyebrow">Le piège</p>
+      <h2 id="t-facts">Utiliser n'est pas maîtriser</h2>
+      <p class="muted" style="max-width:62ch">L'usage progresse beaucoup plus vite que l'encadrement et la formation. Résultat : des pratiques personnelles, peu sécurisées, qui restent au niveau 0 ou 1.</p>
+    </div>
+    <div class="facts">
+      <div class="fact"><b>62&nbsp;%</b><span>des salariés de grandes entreprises disent utiliser l'IA en 2026, contre 38&nbsp;% en 2024</span><cite>Ifop pour Julhiet Sterwen · 2026</cite></div>
+      <div class="fact"><b>57&nbsp;%</b><span>des utilisateurs professionnels passent uniquement par des comptes personnels</span><cite>IntoTheMinds</cite></div>
+      <div class="fact"><b>28&nbsp;%</b><span>des actifs se disent dépassés face à l'IA, et 60&nbsp;% souhaitent se former</span><cite>Ipsos</cite></div>
+    </div>
+    <div class="sources">
+      <p><b>Lecture de l'escalier.</b> La répartition « usage réel » est une estimation pédagogique : 52&nbsp;% des Français n'ont jamais utilisé d'IA générative (Arcep 2026) et une grande partie des utilisateurs restent sur un usage ponctuel. La répartition « usage souhaitable » est l'objectif visé pour un professionnel formé. Les jauges d'autonomie, de mise en place et de gain sont des repères qualitatifs.</p>
+      <ol>
+        <li><a href="https://www.arcep.fr/uploads/tx_gspublication/barometre-du-numerique-edition-2026_PRESENTATION.pdf" target="_blank" rel="noopener">Arcep, Arcom, ANCT, CRÉDOC · Baromètre du numérique, édition 2026</a></li>
+        <li><a href="https://www.ipsos.com/fr-fr/node/1049801" target="_blank" rel="noopener">Ipsos · IA générative au bureau : enthousiasme, usages fantômes et crainte du remplacement</a></li>
+        <li><a href="https://www.blogdumoderateur.com/ia-au-travail-70-pourcent-dirigeants-voient-gains-productivite-salaries-restent-prudents/" target="_blank" rel="noopener">Ipsos pour Google, via Blog du Modérateur · IA au travail (mars 2026)</a></li>
+        <li><a href="https://fr.themedialeader.com/?p=213684" target="_blank" rel="noopener">Ifop pour Julhiet Sterwen · Baromètre Phygital Workplace 2026</a></li>
+        <li><a href="https://www.intotheminds.com/blog/ia-generative-entreprise/" target="_blank" rel="noopener">IntoTheMinds · IA générative en entreprise et shadow IA</a></li>
+        <li><a href="https://www.ipsos.com/fr-fr/ia-au-travail-six-actifs-sur-10-se-sentent-livres-eux-memes" target="_blank" rel="noopener">Ipsos · IA au travail : six actifs sur 10 se sentent livrés à eux-mêmes</a></li>
+      </ol>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+const LEVELS=[
+ {id:"n0",cls:"0",code:"Niv 0",name:"Le curieux",tag:"Question → réponse",
+  desc:"L'IA sert de moteur de recherche amélioré. Une question courte, une réponse copiée-collée, rarement vérifiée.",
+  prat:["Questions ponctuelles, sans contexte","Réponse reprise telle quelle, sans relecture critique","Compte personnel gratuit, parfois avec des données de l'entreprise"],
+  risk:"Résultats génériques, erreurs non détectées, risque de fuite de données confidentielles.",
+  next:"Apprendre à donner du contexte : qui vous êtes, pour qui vous écrivez, ce que vous attendez et sous quelle forme.",
+  m:[1,1,1],
+  ex:{com:["Trouver une idée de titre pour un article","Corriger l'orthographe d'un paragraphe"],
+      mkt:["Demander une définition (CPC, taux de conversion…)","Traduire une phrase d'un mail client"],
+      rh:["Reformuler une offre d'emploi existante","Chercher une idée d'activité brise-glace"],
+      dir:["Résumer un article de presse","Obtenir une explication rapide d'une notion juridique, sans vérifier"]}},
+ {id:"n1",cls:"1",code:"Niv 1",name:"Le prompt",tag:"Dialoguer avec méthode",
+  desc:"Vous structurez vos demandes et vous travaillez la réponse en plusieurs tours. La qualité dépend de votre méthode, plus du hasard.",
+  prat:["Prompt engineering : rôle, contexte, tâche, contraintes, format, exemples","Dialogue socratique : l'IA vous pose ses questions avant de produire","Loop engineering : critères explicites, autocritique, nouvelle version, jusqu'au niveau visé"],
+  risk:"Tout repart de zéro à chaque conversation. Vous recopiez le même contexte encore et encore.",
+  next:"Enregistrer votre contexte et vos consignes une fois pour toutes dans un assistant dédié.",
+  m:[2,2,3],
+  ex:{com:["Rédiger un post LinkedIn dans un ton défini, avec 3 variantes d'accroche","Transformer un compte rendu en newsletter structurée"],
+      mkt:["Construire 3 personas à partir d'un brief","Générer des variantes d'annonces à tester"],
+      rh:["Concevoir un déroulé pédagogique avec objectifs et timing","Préparer une grille d'entretien structurée"],
+      dir:["Synthétiser un rapport de 40 pages en note de décision","Préparer arguments et contre-arguments avant une réunion"]}},
+ {id:"n2",cls:"2",code:"Niv 2",name:"Assistant + agent IA",tag:"Déléguer une tâche",
+  desc:"Vous créez des assistants qui connaissent une mission précise (vos consignes, vos documents) et vous confiez à des agents des tâches en plusieurs étapes : chercher, analyser, produire un fichier.",
+  prat:["Assistants personnalisés : GPT, Gem, Projet Claude avec instructions et documents de référence","Agents : recherche approfondie, navigation web, création de documents, tableaux, présentations","Vérification systématique des sources et des livrables"],
+  risk:"Chaque assistant reste dans sa case. Votre contexte global (métier, clients, outils) n'est pas partagé.",
+  next:"Deux suites possibles : structurer votre propre environnement IA (Niv 2+) ou construire un système pour l'organisation (Niv 3).",
+  m:[3,3,4],
+  ex:{com:["Assistant « charte éditoriale » qui écrit dans la voix de la marque","Agent qui produit le bilan mensuel des réseaux sociaux à partir des exports"],
+      mkt:["Agent de veille qui compare les offres de 5 concurrents et livre un tableau","Assistant qui qualifie les demandes entrantes selon vos critères"],
+      rh:["Assistant d'accueil nourri du livret d'intégration","Agent qui génère quiz et supports à partir d'un module de formation"],
+      dir:["Assistant qui répond sur les procédures internes à partir des documents fournis","Agent qui prépare un dossier de financement à partir des pièces existantes"]}},
+ {id:"n2p",cls:"2p",code:"Niv 2+",name:"Mon projet",tag:"Votre environnement IA",
+  desc:"L'IA travaille dans votre contexte durable : elle sait qui vous êtes, comment vous travaillez, et elle accède à vos outils. Vous passez de « je fais avec l'IA » à « je délègue un processus ».",
+  prat:["Profil et préférences : ton, langue, format de réponse","CLAUDE.md : un fichier d'instructions qui décrit votre métier, vos règles et vos dossiers","Projets, skills et connecteurs : savoir-faire réutilisables et accès à Drive, Notion, Canva, messagerie…"],
+  risk:"Demande de la rigueur : documents à jour, consignes claires, droits d'accès maîtrisés.",
+  next:"Partager vos skills avec l'équipe, planifier les tâches récurrentes, puis relier les étapes entre elles.",
+  m:[4,4,4],
+  ex:{com:["« Prépare les posts de la semaine » : le skill applique votre ligne éditoriale et vos formats","Visuels créés directement dans Canva à partir d'un brief"],
+      mkt:["Proposition commerciale chiffrée à partir du brief client et de la grille tarifaire","Compte rendu de rendez-vous rangé dans Notion avec les prochaines actions"],
+      rh:["Notes des évaluations à chaud calculées à partir du fichier Excel","Convocations et documents administratifs générés selon vos modèles"],
+      dir:["Tableau de bord hebdomadaire planifié, prêt chaque lundi","Tri de la boîte mail avec brouillons de réponse à valider"]}},
+ {id:"n3",cls:"3",code:"Niv 3",name:"Système agentique IA + RAG",tag:"Industrialiser",
+  desc:"Plusieurs agents coopèrent sur la base de connaissances de l'organisation (RAG : l'IA cherche dans vos documents avant de répondre), reliés à vos outils par automatisation, avec un humain qui valide les étapes clés.",
+  prat:["RAG : base documentaire indexée, réponses sourcées sur vos propres contenus","Orchestration : agents spécialisés et automatisations (Make, n8n, API)","Gouvernance : RGPD, AI Act, traçabilité des actions, validation humaine"],
+  risk:"Projet d'équipe, pas individuel : données propres, budget, maintenance et pilotage sont indispensables.",
+  next:"Mesurer, documenter, améliorer en continu, et former les équipes pour que le système soit réellement utilisé.",
+  m:[5,5,5],
+  ex:{com:["Chaîne veille → brouillon → validation → publication programmée","Assistant de marque interne interrogeable par toute l'équipe"],
+      mkt:["Qualification et relance des leads synchronisées avec le CRM","Chatbot client qui répond à partir de la documentation produit, avec sources"],
+      rh:["Assistant RH qui répond aux salariés sur les accords et procédures","Parcours de formation adapté au niveau de chaque apprenant"],
+      dir:["Agent de conformité qui contrôle les documents avant envoi","Reporting consolidé multi-sources, commenté et diffusé automatiquement"]}}
+];
+const METIERS=[["com","Communication"],["mkt","Marketing & ventes"],["rh","RH & formation"],["dir","Direction & gestion"]];
+const TASKS=[
+ {id:"post",name:"Publier un post LinkedIn",rows:[
+  "« Écris un post LinkedIn sur notre formation IA. » Texte générique, ton passe-partout, émojis à la chaîne.",
+  "Prompt structuré (cible, objectif, ton, longueur, exemples), 3 accroches, autocritique selon vos critères, version finale.",
+  "Assistant « ligne éditoriale » nourri de vos meilleurs posts et de la charte : la voix de la marque dès le premier jet.",
+  "Skill dédié + accès à vos dossiers : il reprend l'actualité de la semaine, propose le post et le visuel, vous validez.",
+  "Chaîne complète : veille sectorielle, calendrier éditorial, brouillons, validation humaine, programmation et mesure."]},
+ {id:"propal",name:"Rédiger une proposition commerciale",rows:[
+  "Demander « un modèle de proposition commerciale », puis tout réécrire à la main.",
+  "Donner le brief, l'offre et la structure attendue ; laisser l'IA poser les questions manquantes ; itérer section par section.",
+  "Projet dédié avec propositions de référence et grille tarifaire : un premier jet cohérent en quelques minutes.",
+  "Skill qui lit le brief dans votre Drive, chiffre selon la grille, applique la mise en page et dépose le document à relire.",
+  "Du formulaire de contact au devis : qualification du besoin, proposition générée, suivi dans le CRM et relances."]},
+ {id:"veille",name:"Faire une veille concurrentielle",rows:[
+  "« Quoi de neuf chez mes concurrents ? » Réponse datée ou inventée, sans source.",
+  "Recherche guidée : liste des concurrents, angles à observer, sources exigées, synthèse en tableau.",
+  "Agent de recherche approfondie : il parcourt les sites, compare les offres et livre un rapport sourcé.",
+  "Tâche planifiée chaque lundi : la veille arrive dans votre dossier, comparée à la semaine précédente.",
+  "Veille continue partagée : alertes, base de connaissances alimentée, synthèses par équipe, décisions tracées."]}
+];
+const DIST={real:[60,28,9,2,1],target:[0,20,40,30,10]};
+const NOTES={real:"Estimation pédagogique pour la population française. 6 personnes sur 10 sont encore au niveau 0.",
+             target:"Objectif pour un professionnel formé : plus personne au niveau 0, la majorité au niveau 2 et au-delà."};
+const QUESTIONS=[
+ {lv:1,id:"q1",t:"J'utilise une IA générative au moins une fois par semaine pour mon travail."},
+ {lv:1,id:"q2",t:"Je précise systématiquement rôle, contexte, format attendu et exemples."},
+ {lv:1,id:"q3",t:"Je fais critiquer puis réécrire la réponse selon mes propres critères."},
+ {lv:2,id:"q4",t:"J'ai créé au moins un assistant personnalisé (GPT, Gem, Projet Claude) avec mes documents."},
+ {lv:2,id:"q5",t:"Je confie à l'IA des tâches en plusieurs étapes qu'elle exécute seule (recherche, fichiers, navigation)."},
+ {lv:3,id:"q6",t:"L'IA connaît mon contexte durable : profil, fichier d'instructions, skills réutilisables."},
+ {lv:3,id:"q7",t:"Elle est reliée à mes outils (Drive, Notion, messagerie, CRM…) par des connecteurs."},
+ {lv:4,id:"q8",t:"Dans mon organisation, des agents travaillent sur notre base documentaire (RAG), avec validation humaine."}
+];
+
+let mode="real", sel=0, metier="com", task="post", youLevel=0;
+const $=s=>document.querySelector(s);
+const reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Escalier
+const stairs=$("#stairs");
+const cols=LEVELS.map((L,i)=>{
+  const col=document.createElement("div");col.className="col";
+  col.innerHTML=`<span class="you" hidden>Vous</span><div class="count"></div><div class="dots"></div>
+  <button type="button" class="step s${L.cls}" data-i="${i}" aria-pressed="false">
+    <span class="lv">${L.code}</span><span class="nm">${L.name}</span><span class="tg">${L.tag}</span></button>`;
+  stairs.appendChild(col);
+  col.querySelector(".step").addEventListener("click",()=>select(i,true));
+  return {count:col.querySelector(".count"),dots:col.querySelector(".dots"),you:col.querySelector(".you"),step:col.querySelector(".step")};
+});
+const dots=[];
+for(let k=0;k<100;k++){const d=document.createElement("span");d.className="dot";dots.push(d);}
+function levelOf(k,dist){let acc=0;for(let i=0;i<dist.length;i++){acc+=dist[i];if(k<acc)return i;}return dist.length-1;}
+function placeDots(animate){
+  const dist=DIST[mode];
+  const first=animate&&!reduce?dots.map(d=>d.isConnected?d.getBoundingClientRect():null):null;
+  dots.forEach((d,k)=>{const lv=levelOf(k,dist);d.className="dot c"+LEVELS[lv].cls;cols[lv].dots.appendChild(d);});
+  cols.forEach((c,i)=>{c.count.textContent=dist[i]+" %";});
+  $("#mode-note").textContent=NOTES[mode];
+  if(first){
+    dots.forEach((d,k)=>{const f=first[k];if(!f)return;const l=d.getBoundingClientRect();
+      const dx=f.left-l.left,dy=f.top-l.top;if(!dx&&!dy)return;
+      d.style.transition="none";d.style.transform=`translate(${dx}px,${dy}px)`;});
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      dots.forEach((d,k)=>{d.style.transition=`transform .7s cubic-bezier(.2,.8,.2,1) ${(k%20)*12}ms`;d.style.transform="";});
+    }));
+  }
+}
+function setMode(m){mode=m;$("#m-real").setAttribute("aria-pressed",m==="real");$("#m-target").setAttribute("aria-pressed",m==="target");placeDots(true);}
+$("#m-real").addEventListener("click",()=>setMode("real"));
+$("#m-target").addEventListener("click",()=>setMode("target"));
+
+// Panneau
+function pips(n){let s="";for(let i=1;i<=5;i++)s+=`<span class="pip${i<=n?" on":""}"></span>`;return `<span class="pips" aria-label="${n} sur 5">${s}</span>`;}
+function renderPanel(){
+  const L=LEVELS[sel];const v=`var(--l${L.cls})`;
+  $("#panel").innerHTML=`
+  <div>
+    <div class="title-row"><span class="badge" style="background:${v};color:var(--l${L.cls}-ink)">${L.code}</span><span class="eyebrow">${L.tag}</span></div>
+    <h2>${L.name}</h2>
+    <p>${L.desc}</p>
+    <h3>À ce niveau, vous…</h3>
+    <ul class="clean" style="--lvl:${v}">${L.prat.map(p=>`<li>${p}</li>`).join("")}</ul>
+    <div class="meters">
+      <div class="meter"><span>Autonomie confiée à l'IA</span>${pips(L.m[0])}</div>
+      <div class="meter"><span>Effort de mise en place</span>${pips(L.m[1])}</div>
+      <div class="meter"><span>Gain potentiel au travail</span>${pips(L.m[2])}</div>
+    </div>
+  </div>
+  <div>
+    <h3>Ce que ça permet au travail</h3>
+    <div class="chips" role="group" aria-label="Choisir un métier">${METIERS.map(([k,n])=>`<button type="button" class="chip" data-m="${k}" aria-pressed="${k===metier}">${n}</button>`).join("")}</div>
+    <div class="examples">${L.ex[metier].map(e=>`<div class="ex">${e}</div>`).join("")}</div>
+    <div class="callouts">
+      <div class="callout risk"><span class="k">Si on s'arrête là</span><span>${L.risk}</span></div>
+      <div class="callout next"><span class="k">${sel<4?"Pour monter d'une marche":"Pour tenir dans la durée"}</span><span>${L.next}</span></div>
+    </div>
+    <div class="nav">
+      <button type="button" class="btn" id="prev" ${sel===0?"disabled":""}>← Marche précédente</button>
+      <button type="button" class="btn" id="nextb" ${sel===4?"disabled":""}>Marche suivante →</button>
+    </div>
+  </div>`;
+  $("#panel").querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{metier=b.dataset.m;renderPanel();}));
+  $("#prev").addEventListener("click",()=>select(sel-1));
+  $("#nextb").addEventListener("click",()=>select(sel+1));
+}
+function select(i,scroll){
+  sel=Math.max(0,Math.min(4,i));
+  cols.forEach((c,k)=>c.step.setAttribute("aria-pressed",k===sel));
+  renderPanel();renderTask();
+  if(scroll){const p=$("#panel");const r=p.getBoundingClientRect();if(r.top>window.innerHeight*.75)p.scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"});}
+}
+
+// Même tâche
+const tc=$("#task-chips");
+TASKS.forEach(T=>{const b=document.createElement("button");b.type="button";b.className="chip";b.dataset.t=T.id;b.textContent=T.name;
+  b.addEventListener("click",()=>{task=T.id;renderTask();});tc.appendChild(b);});
+function renderTask(){
+  tc.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===task));
+  const T=TASKS.find(t=>t.id===task);
+  $("#task-rows").innerHTML=T.rows.map((r,i)=>{const L=LEVELS[i];
+    return `<div class="trow${i===sel?" sel":""}"><div class="tl" style="background:var(--l${L.cls});color:var(--l${L.cls}-ink)"><span class="lv">${L.code}${i===youLevel?" · vous":""}</span><span class="nm">${L.name}</span></div><p class="tt">${r}</p></div>`;}).join("");
+}
+
+// Diagnostic
+const groups=[[1,"Niveau 1 · Le prompt"],[2,"Niveau 2 · Assistant + agent"],[3,"Niveau 2+ · Mon projet"],[4,"Niveau 3 · Système agentique"]];
+$("#questions").innerHTML=groups.map(([lv,n])=>`<div class="qgroup"><p class="eyebrow"><i style="background:var(--l${LEVELS[lv].cls})"></i>${n}</p>${
+  QUESTIONS.filter(q=>q.lv===lv).map(q=>`<label class="q" for="${q.id}"><input type="checkbox" id="${q.id}"><span>${q.t}</span></label>`).join("")}</div>`).join("");
+function diag(){
+  const c=id=>document.getElementById(id).checked;
+  let lv=0;
+  if([c("q1"),c("q2"),c("q3")].filter(Boolean).length>=2) lv=1;
+  if(lv>=1&&(c("q4")||c("q5"))) lv=2;
+  if(lv>=2&&(c("q6")||c("q7"))) lv=3;
+  if(lv>=2&&c("q8")) lv=4;
+  youLevel=lv;
+  cols.forEach((col,i)=>col.you.hidden=i!==lv);
+  const L=LEVELS[lv];
+  const nxt=lv<4?LEVELS[lv===2?3:lv+1]:null;
+  $("#result").innerHTML=`<span class="k">Votre marche</span>
+    <span class="big">${L.code} · ${L.name}</span>
+    <p>${L.desc}</p>
+    <div class="nextbox"><span class="k">${nxt?"Prochaine marche : "+nxt.code+" · "+nxt.name:"Pour tenir dans la durée"}</span><span>${L.next}</span></div>
+    <button type="button" class="btn" id="see" style="border-color:var(--bg);color:var(--bg)">Voir ce que permet ${nxt?nxt.code:L.code}</button>`;
+  $("#see").addEventListener("click",()=>{select(nxt?LEVELS.indexOf(nxt):lv);$("#stairs").scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"});});
+  renderTask();
+}
+$("#questions").addEventListener("change",diag);
+
+placeDots(false);
+select(0);
+diag();
+})();
+</script>
+</body>
+</html>
