@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Le carnet MEMORY.md</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout : une scène bleu nuit (reprise des slides) qui joue l'animation, puis un pupitre de narration avec les commandes et les 8 étapes */
+:root{
+  --bg:#f3f5fb; --surface:#ffffff; --fg:#0d1a3b; --muted:#56627c; --line:#d8deea;
+  --navy:#0f2a7a; --ok:#17784f; --ok-bg:#e4f4ec; --warn:#b4400f; --warn-bg:#fdeee5;
+  /* scène : sombre dans les deux thèmes, comme les slides */
+  --stage:#0b1858; --stage-2:#16247a; --stage-3:#22318f; --stage-fg:#eef2fb; --stage-muted:#a3aed0;
+  --lime:#e2ff1a; --blue:#58a6ff; --orange:#ffad5c; --green:#6fe0a6; --red:#ff8a8a;
+  --f-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0a0f22; --surface:#131b34; --fg:#e6ebf7; --muted:#9ba7c2; --line:#27324f;
+  --navy:#a9c0ff; --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a0f22; --surface:#131b34; --fg:#e6ebf7; --muted:#9ba7c2; --line:#27324f;
+  --navy:#a9c0ff; --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+header h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,4.2vw,2.8rem);line-height:1.05;margin:0;color:var(--navy);text-wrap:balance;letter-spacing:-.01em}
+header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+code,.mono{font-family:var(--f-mono)}
+
+/* ---------- Scène ---------- */
+.stage{position:relative;background:radial-gradient(120% 140% at 90% 0%,var(--stage-3) 0%,var(--stage) 60%);color:var(--stage-fg);border-radius:16px;min-height:430px;overflow:hidden}
+.stage::after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border:28px solid var(--lime);border-radius:50%;opacity:.18;pointer-events:none}
+.scene{display:none;padding:26px clamp(14px,3.4vw,34px);gap:18px;position:relative;z-index:1}
+.scene.on{display:grid}
+.tag{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--stage-muted)}
+.big{font-family:var(--f-display);font-weight:800;font-size:clamp(1.3rem,2.8vw,1.9rem);line-height:1.15;margin:0;text-wrap:balance}
+.big em{font-style:normal;color:var(--lime)}
+
+/* animation d'entrée : chaque élément .a apparaît à son tour (--d) */
+.scene.on .a{animation:rise .55s cubic-bezier(.3,.7,.2,1) var(--d,0s) both}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* fenêtres de chat */
+.win{background:var(--stage-2);border:1px solid rgba(255,255,255,.14);border-radius:12px;overflow:hidden;min-width:0}
+.win-h{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.1);font-family:var(--f-mono);font-size:.76rem;color:var(--stage-muted)}
+.win-h i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.25)}
+.win-b{padding:12px;display:grid;gap:8px}
+.bub{max-width:88%;padding:8px 12px;border-radius:12px;font-size:.9rem;line-height:1.4}
+.bub.me{justify-self:end;background:#f4f6ff;color:#0d1a3b;border-bottom-right-radius:3px}
+.bub.ai{justify-self:start;background:var(--stage-3);border:1px solid rgba(255,255,255,.15);border-bottom-left-radius:3px}
+.bub .who{display:block;font-family:var(--f-mono);font-size:.68rem;opacity:.65;margin-bottom:2px}
+.bub.ai .who{color:var(--lime);opacity:1}
+
+/* scène 1 */
+.two{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px;align-items:center}
+.gap{display:grid;justify-items:center;gap:6px;text-align:center;font-size:.78rem;color:var(--stage-muted)}
+.gap .moon{font-size:1.6rem;line-height:1}
+.scene.on .fade{animation:rise .55s var(--d) both,forget 1s 2.6s forwards}
+@keyframes forget{to{opacity:.18;filter:blur(2px)}}
+.erased{font-family:var(--f-mono);font-size:.75rem;color:var(--red);text-align:center}
+.q{color:var(--orange);font-weight:600}
+
+/* scène 2 : arbre + carnet */
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:center}
+.tree{font-family:var(--f-mono);font-size:clamp(.82rem,1.6vw,.98rem);line-height:1.75;background:var(--stage-2);border-radius:12px;padding:16px 20px;white-space:pre;overflow-x:auto;border:1px solid rgba(255,255,255,.12)}
+.tree .dim{color:var(--stage-muted)}
+.tree .hot{color:#0b1858;background:var(--lime);padding:1px 6px;border-radius:4px;font-weight:600}
+.scene.on .tree .hot{animation:glow 1.4s 1s ease-in-out 3 alternate}
+@keyframes glow{to{box-shadow:0 0 0 6px rgba(226,255,26,.25)}}
+.analogy{border:2px dashed var(--lime);border-radius:12px;padding:14px 16px;display:grid;gap:6px}
+.analogy b{color:var(--lime);font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase}
+.analogy p{margin:0}
+
+/* fichier MEMORY.md */
+.file{background:#081245;border:1px solid rgba(255,255,255,.14);border-radius:12px;font-family:var(--f-mono);font-size:clamp(.76rem,1.45vw,.88rem);line-height:1.6;min-width:0;overflow:hidden}
+.file .win-h{background:rgba(255,255,255,.04)}
+.file .body{padding:12px 16px;display:grid;gap:1px;overflow-x:auto}
+.ln{white-space:pre-wrap}
+.h1{color:var(--orange);font-weight:600}
+.h2{color:var(--blue);font-weight:600;margin-top:6px}
+.rub{display:grid;gap:8px;align-content:start}
+.rub div{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:baseline;font-size:.9rem}
+.rub span{font-family:var(--f-mono);font-size:.72rem;color:var(--blue);background:rgba(88,166,255,.12);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.mem-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:start}
+
+/* scène 4 : comparaison */
+.vs{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px;align-items:stretch}
+.card{background:var(--stage-2);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:16px;display:grid;gap:8px;align-content:start;min-width:0}
+.card h3{margin:0;font-family:var(--f-mono);font-size:1.05rem}
+.card .role{font-family:var(--f-display);font-weight:800;font-size:1.25rem;color:var(--lime);line-height:1.1}
+.card ul{margin:0;padding-left:18px;font-size:.9rem;display:grid;gap:3px}
+.card .ex{font-family:var(--f-mono);font-size:.78rem;background:#081245;border-radius:8px;padding:8px 10px;color:var(--stage-muted)}
+.card .ex b{color:var(--stage-fg);font-weight:600}
+.link{display:grid;place-items:center;text-align:center;font-size:.75rem;color:var(--stage-muted);gap:4px;max-width:110px}
+.link .arr{font-size:1.6rem;color:var(--lime)}
+.scene.on .link .arr{animation:nudge 1s 1.6s ease-in-out infinite alternate}
+@keyframes nudge{to{transform:translateX(6px)}}
+
+/* cas appel d'offres : tri */
+.sort{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.col{display:grid;gap:8px;align-content:start;min-width:0}
+.col h3{margin:0;font-family:var(--f-mono);font-size:1rem;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.col h3 small{font-family:var(--f-body);font-weight:400;font-size:.8rem;color:var(--stage-muted)}
+.item{background:var(--stage-2);border:1px solid rgba(255,255,255,.14);border-left:4px solid var(--blue);border-radius:8px;padding:8px 12px;font-size:.88rem;display:grid;gap:2px}
+.col.mem .item{border-left-color:var(--orange)}
+.item i{font-style:normal;font-family:var(--f-mono);font-size:.68rem;color:var(--stage-muted)}
+.test{border:2px dashed var(--lime);border-radius:10px;padding:8px 14px;font-size:.92rem;text-align:center}
+.test b{color:var(--lime)}
+
+/* cas appel d'offres : un fichier ou deux */
+.race{display:grid;gap:10px}
+.lane{display:grid;grid-template-columns:150px repeat(4,minmax(0,1fr));gap:8px;align-items:stretch}
+.lane-h{font-family:var(--f-mono);font-size:.82rem;font-weight:600;align-self:center}
+.lane-h small{display:block;font-family:var(--f-body);font-weight:400;color:var(--stage-muted);font-size:.75rem}
+.cell{background:var(--stage-2);border:1px solid rgba(255,255,255,.14);border-top:4px solid var(--green);border-radius:8px;padding:8px 10px;font-size:.82rem;line-height:1.35;display:grid;gap:4px;align-content:start;min-width:0}
+.cell .m{font-family:var(--f-mono);font-size:.66rem;color:var(--stage-muted);text-transform:uppercase;letter-spacing:.06em}
+.cell.mid{border-top-color:var(--orange)}
+.cell.bad{border-top-color:var(--red);background:rgba(255,138,138,.1)}
+.cell .s{font-weight:700}
+.cell.good .s{color:var(--green)}.cell.mid .s{color:var(--orange)}.cell.bad .s{color:var(--red)}
+
+/* scène 5 : cycle */
+.cycle{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;position:relative}
+.step{background:var(--stage-2);border:2px solid rgba(255,255,255,.16);border-radius:12px;padding:14px;display:grid;gap:6px;align-content:start;position:relative;min-width:0}
+.step .n{font-family:var(--f-mono);font-size:.75rem;color:var(--stage-muted)}
+.step b{font-family:var(--f-display);font-size:1.08rem;line-height:1.15}
+.step p{margin:0;font-size:.85rem;color:var(--stage-muted)}
+.step.you{background:var(--lime);color:#0b1858;border-color:var(--lime)}
+.step.you .n,.step.you p{color:#2b3570}
+.scene.on .step{animation:rise .5s var(--d) both,lit 8s calc(var(--d) + 1s) infinite}
+@keyframes lit{0%,22%{box-shadow:0 0 0 4px var(--lime);transform:translateY(-4px)}28%,100%{box-shadow:none;transform:none}}
+.loop{font-family:var(--f-mono);font-size:.8rem;color:var(--stage-muted);text-align:center}
+.loop b{color:var(--lime)}
+.motto{font-family:var(--f-display);font-weight:800;font-size:clamp(1.1rem,2.4vw,1.5rem);text-align:center;margin:0}
+.motto em{font-style:normal;color:var(--lime)}
+
+/* scènes 6 et 7 */
+.duo{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+.prompt{font-family:var(--f-mono);font-size:.8rem;white-space:pre-wrap}
+.reads{font-family:var(--f-mono);font-size:.75rem;color:var(--lime);display:flex;gap:6px;align-items:center}
+.scene.on .file.scan{position:relative}
+.scene.on .file.scan::after{content:"";position:absolute;left:0;right:0;height:40px;top:-40px;background:linear-gradient(180deg,transparent,rgba(226,255,26,.25),transparent);animation:scan 1.6s .8s ease-in-out 2}
+@keyframes scan{to{top:100%}}
+.add{color:var(--green)}
+.chg{color:var(--orange)}
+.del{color:var(--red);text-decoration:line-through;opacity:.85}
+.diffnote{font-family:var(--f-body);font-size:.75rem;color:var(--red);margin-left:4px}
+.new-line{display:none}
+.saved .new-line{display:block;animation:rise .5s both}
+.saved .old-line{display:none}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn-lime{font:inherit;font-weight:600;background:var(--lime);color:#0b1858;border:0;border-radius:10px;padding:9px 14px;cursor:pointer}
+.btn-ghost{font:inherit;font-weight:500;background:transparent;color:var(--stage-fg);border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:8px 14px;cursor:pointer}
+.ok-msg{display:none;font-family:var(--f-mono);font-size:.8rem;color:var(--green)}
+.saved .ok-msg{display:inline}
+.saved .btn-lime{display:none}
+
+/* scène 8 */
+.todo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.todo .card{grid-template-columns:auto minmax(0,1fr);align-items:start;column-gap:12px}
+.todo .num{font-family:var(--f-display);font-weight:800;font-size:1.8rem;line-height:1;color:var(--lime)}
+.todo .card p{margin:0;font-size:.88rem;color:var(--stage-muted)}
+.todo .card b{display:block;margin-bottom:2px}
+.rules{display:flex;flex-wrap:wrap;gap:8px}
+.rules span{border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:5px 12px;font-size:.83rem}
+.rules span::before{content:"✓ ";color:var(--lime);font-weight:700}
+
+/* ---------- Pupitre ---------- */
+.desk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 26px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px clamp(16px,3vw,28px)}
+.narr{min-width:0}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.narr h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.25rem,2.5vw,1.65rem);margin:4px 0 8px;line-height:1.15;text-wrap:balance}
+.narr p{margin:0 0 8px;max-width:68ch}
+.narr .key{background:var(--ok-bg);color:var(--ok);padding:8px 12px;border-radius:8px;font-weight:500}
+.controls{display:flex;flex-direction:column;gap:10px;min-width:210px}
+.row{display:flex;gap:8px}
+button{font:inherit}
+.ctl{font-weight:600;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:10px 14px;cursor:pointer;flex:1}
+.ctl:hover{border-color:var(--navy)}
+.ctl.primary{background:var(--navy);color:var(--bg);border-color:var(--navy)}
+.ctl:disabled{opacity:.4;cursor:default}
+button:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+.dots{display:flex;gap:6px;justify-content:center}
+.dot{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-family:var(--f-mono);font-size:.72rem;cursor:pointer;padding:0}
+.dot.cur{background:var(--navy);color:var(--bg);border-color:var(--navy)}
+.dot.seen{border-color:var(--navy);color:var(--navy)}
+.hint{font-size:.75rem;color:var(--muted);text-align:center}
+
+/* prompts à copier */
+.copy{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.copy .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:8px;min-width:0}
+.copy h3{font-family:var(--f-display);font-size:1.05rem;margin:0}
+.copy .when{font-size:.85rem;color:var(--muted);margin:0}
+.copy pre{margin:0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--f-mono);font-size:.8rem;white-space:pre-wrap;overflow-x:auto}
+.copy .ctl{justify-self:start;flex:none;padding:7px 12px;font-size:.88rem}
+.copy .panel.wide{grid-column:1/-1;border:2px solid var(--navy)}
+.copy .step0{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--navy)}
+
+@media (max-width:760px){
+  .two,.vs{grid-template-columns:minmax(0,1fr)}
+  .gap,.link{grid-auto-flow:column;max-width:none;justify-content:center}
+  .link .arr{transform:rotate(90deg)}
+  .split,.mem-grid,.duo,.copy,.todo{grid-template-columns:minmax(0,1fr)}
+  .cycle{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sort{grid-template-columns:minmax(0,1fr)}
+  .lane{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lane-h{grid-column:1/-1}
+  .desk{grid-template-columns:minmax(0,1fr)}
+  .controls{min-width:0}
+}
+@media (prefers-reduced-motion:reduce){
+  .scene.on *,.scene.on *::after{animation:none!important}
+  .scene.on .fade{opacity:.35}
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Le carnet MEMORY.md</h1>
+    <p>Claude oublie tout entre deux conversations. En 10 étapes, avec un cas concret de réponse à un appel d'offres, voici comment un simple fichier texte lui sert de mémoire, et comment le mettre en place toi-même.</p>
+  </header>
+
+  <section class="stage" aria-live="polite">
+
+    <!-- 1. Le problème -->
+    <div class="scene" data-i="0">
+      <div class="tag a">Le problème</div>
+      <p class="big a" style="--d:.1s">Chaque nouvelle conversation repart de <em>zéro</em>.</p>
+      <div class="two">
+        <div class="win a" style="--d:.3s">
+          <div class="win-h"><i></i><i></i><i></i>Lundi · conversation 1</div>
+          <div class="win-b">
+            <div class="bub me fade" style="--d:.6s"><span class="who">Toi</span>Je débute en IA. Je préfère des exemples tirés du monde pro.</div>
+            <div class="bub ai fade" style="--d:1.2s"><span class="who">Claude</span>C'est noté, j'adapte mes explications.</div>
+            <div class="erased a" style="--d:3s">✕ conversation fermée : tout est effacé</div>
+          </div>
+        </div>
+        <div class="gap a" style="--d:2.4s"><span class="moon">☾</span>une nuit<br>plus tard</div>
+        <div class="win a" style="--d:3.4s">
+          <div class="win-h"><i></i><i></i><i></i>Mardi · conversation 2</div>
+          <div class="win-b">
+            <div class="bub me a" style="--d:3.8s"><span class="who">Toi</span>Explique-moi ce qu'est un prompt.</div>
+            <div class="bub ai a" style="--d:4.5s"><span class="who">Claude</span>Avec plaisir ! <span class="q">Quel est ton niveau ? Tu préfères quel type d'exemples ?</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. La solution -->
+    <div class="scene" data-i="1">
+      <div class="tag a">La solution</div>
+      <p class="big a" style="--d:.1s">On écrit ce qu'il faut retenir dans un fichier : <em>MEMORY.md</em>.</p>
+      <div class="split">
+        <div class="tree a" style="--d:.4s"><span>claude_debutant/</span>
+<span class="dim">├──</span> CLAUDE.md
+<span class="dim">├──</span> <span class="hot">MEMORY.md</span>   <span class="dim">← le carnet</span>
+<span class="dim">├──</span> connaissances/
+<span class="dim">├──</span> prompts/
+<span class="dim">├──</span> projets/
+<span class="dim">└──</span> resultats/</div>
+        <div class="analogy a" style="--d:1s">
+          <b>Comparaison</b>
+          <p>Pense au <strong>cahier de liaison</strong> d'un poste partagé. Le collègue de l'après-midi n'était pas là le matin, mais il lit le cahier en arrivant et sait où en sont les choses.</p>
+          <p>Claude fait pareil : il ne se souvient de rien, mais il <strong>relit le fichier</strong> à chaque début de session.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Le contenu -->
+    <div class="scene" data-i="2">
+      <div class="tag a">Le contenu</div>
+      <p class="big a" style="--d:.1s">Cinq rubriques, écrites en <em>phrases courtes</em>.</p>
+      <div class="mem-grid">
+        <div class="file a" style="--d:.3s">
+          <div class="win-h"><i></i><i></i><i></i>MEMORY.md</div>
+          <div class="body">
+            <div class="ln h1 a" style="--d:.5s"># Mémoire du projet</div>
+            <div class="ln h2 a" style="--d:.8s">## Profil</div>
+            <div class="ln a" style="--d:1s">- Niveau : débutant en IA</div>
+            <div class="ln a" style="--d:1.15s">- Langue : français · Style : simple et concret</div>
+            <div class="ln h2 a" style="--d:1.5s">## Objectifs</div>
+            <div class="ln a" style="--d:1.7s">- Créer de meilleurs prompts</div>
+            <div class="ln a" style="--d:1.85s">- Utiliser l'IA au travail</div>
+            <div class="ln h2 a" style="--d:2.2s">## Préférences</div>
+            <div class="ln a" style="--d:2.4s">- Exemples professionnels, peu de jargon</div>
+            <div class="ln h2 a" style="--d:2.8s">## Difficultés actuelles</div>
+            <div class="ln a" style="--d:3s">- Différence entre prompt et instruction</div>
+            <div class="ln h2 a" style="--d:3.4s">## Décisions prises</div>
+            <div class="ln a" style="--d:3.6s">- Utiliser Markdown pour les notes</div>
+          </div>
+        </div>
+        <div class="rub">
+          <div class="a" style="--d:1s"><span>Profil</span>Qui tu es : ton niveau, ta langue, ton style.</div>
+          <div class="a" style="--d:1.7s"><span>Objectifs</span>Ce que tu veux atteindre.</div>
+          <div class="a" style="--d:2.4s"><span>Préférences</span>Comment tu aimes qu'on t'explique.</div>
+          <div class="a" style="--d:3s"><span>Difficultés</span>Ce qui bloque encore, pour insister dessus.</div>
+          <div class="a" style="--d:3.6s"><span>Décisions</span>Ce qui a été tranché, pour ne pas y revenir.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. CLAUDE.md vs MEMORY.md -->
+    <div class="scene" data-i="3">
+      <div class="tag a">Ne pas confondre</div>
+      <p class="big a" style="--d:.1s">CLAUDE.md dit <em>comment travailler</em>. MEMORY.md dit <em>ce qu'on sait</em>.</p>
+      <div class="vs">
+        <div class="card a" style="--d:.4s">
+          <h3>CLAUDE.md</h3>
+          <div class="role">La notice</div>
+          <ul><li>Les règles du jeu pour Claude</li><li>Écrite une fois, change rarement</li><li>À la main ou avec <code>/init</code></li></ul>
+          <div class="ex">Avant de répondre :<br><b>1. Consulte MEMORY.md.</b><br>2. Consulte le dossier connaissances.<br>…</div>
+        </div>
+        <div class="link a" style="--d:1.2s"><span class="arr">→</span>la notice demande de lire le carnet</div>
+        <div class="card a" style="--d:.8s">
+          <h3>MEMORY.md</h3>
+          <div class="role">Le carnet</div>
+          <ul><li>Les informations sur toi et ton projet</li><li>Évolue après chaque session importante</li><li>Mis à jour avec ton accord</li></ul>
+          <div class="ex">## Difficultés actuelles<br><b>- Construire des prompts complets</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Cas appel d'offres : où va chaque information ? -->
+    <div class="scene">
+      <div class="tag a">Cas pratique · répondre à un appel d'offres</div>
+      <p class="big a" style="--d:.1s">Même projet, deux fichiers : chaque information a <em>sa place</em>.</p>
+      <div class="test a" style="--d:.4s">Le test : <b>« Sera-t-elle encore vraie au prochain appel d'offres ? »</b> Oui → CLAUDE.md · Non → MEMORY.md</div>
+      <div class="sort">
+        <div class="col">
+          <h3 class="a" style="--d:.7s">CLAUDE.md <small>valable pour tous les appels d'offres</small></h3>
+          <div class="item a" style="--d:1.2s">Suis le plan imposé par le règlement de consultation.<i>encore vrai ensuite ? oui</i></div>
+          <div class="item a" style="--d:2.2s">N'invente jamais de référence client ni de chiffre.<i>encore vrai ensuite ? oui</i></div>
+          <div class="item a" style="--d:3.2s">Ton factuel, phrases courtes, vocabulaire de l'acheteur.<i>encore vrai ensuite ? oui</i></div>
+          <div class="item a" style="--d:4.2s">Signale toute exigence du CCTP restée sans réponse.<i>encore vrai ensuite ? oui</i></div>
+        </div>
+        <div class="col mem">
+          <h3 class="a" style="--d:.7s">MEMORY.md <small>valable pour cet appel d'offres</small></h3>
+          <div class="item a" style="--d:1.7s">Refonte du site de la CC du Val Fleuri · remise le 12/12 à 12 h.<i>encore vrai ensuite ? non</i></div>
+          <div class="item a" style="--d:2.7s">Décision : on répond au lot 2 uniquement.<i>encore vrai ensuite ? non</i></div>
+          <div class="item a" style="--d:3.7s">Question posée à l'acheteur sur l'hébergement : réponse attendue.<i>encore vrai ensuite ? non</i></div>
+          <div class="item a" style="--d:4.7s">Références retenues : 3 sites de collectivités.<i>encore vrai ensuite ? non</i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Cas appel d'offres : un seul fichier ou deux ? -->
+    <div class="scene">
+      <div class="tag a">Cas pratique · ce qui change en 3 semaines</div>
+      <p class="big a" style="--d:.1s">Tout dans CLAUDE.md, ça marche… <em>jusqu'au jour 15</em>.</p>
+      <div class="race">
+        <div class="lane">
+          <div class="lane-h a" style="--d:.3s">Un seul fichier<small>tout dans CLAUDE.md</small></div>
+          <div class="cell good a" style="--d:.7s"><span class="m">Jour 1 · analyse du DCE</span><span class="s">✓ OK</span>15 lignes, règles et infos mélangées. Tout va bien.</div>
+          <div class="cell mid a" style="--d:1.9s"><span class="m">Jour 8 · rédaction</span><span class="s">⚠ Noyé</span>60 lignes. Les règles disparaissent sous les notes sur l'appel d'offres.</div>
+          <div class="cell bad a" style="--d:3.1s"><span class="m">Jour 15 · mise à jour</span><span class="s">✕ Règle perdue</span>Claude réécrit le fichier et « N'invente jamais de référence » saute. Une référence imaginaire entre dans le mémoire technique.</div>
+          <div class="cell bad a" style="--d:4.3s"><span class="m">Appel d'offres suivant</span><span class="s">✕ À nettoyer</span>Tu tries le fichier à la main. Un « Val Fleuri » oublié se glisse dans la nouvelle réponse.</div>
+        </div>
+        <div class="lane">
+          <div class="lane-h a" style="--d:.3s">Deux fichiers<small>CLAUDE.md + MEMORY.md</small></div>
+          <div class="cell good a" style="--d:1s"><span class="m">Jour 1 · analyse du DCE</span><span class="s">✓ OK</span>12 lignes de règles. La fiche de l'appel d'offres va dans MEMORY.md.</div>
+          <div class="cell good a" style="--d:2.2s"><span class="m">Jour 8 · rédaction</span><span class="s">✓ Lisible</span>MEMORY.md grossit. CLAUDE.md n'a pas bougé d'une ligne.</div>
+          <div class="cell good a" style="--d:3.4s"><span class="m">Jour 15 · mise à jour</span><span class="s">✓ Règles intactes</span>Claude ne propose de changements que dans MEMORY.md.</div>
+          <div class="cell good a" style="--d:4.6s"><span class="m">Appel d'offres suivant</span><span class="s">✓ Prêt</span>CLAUDE.md resservi tel quel. MEMORY.md archivé, un nouveau est ouvert.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Le cycle -->
+    <div class="scene" data-i="4">
+      <div class="tag a">Le fonctionnement</div>
+      <p class="big a" style="--d:.1s">Un cycle en 4 temps, où <em>c'est toi</em> qui as le dernier mot.</p>
+      <div class="cycle">
+        <div class="step" style="--d:.3s"><span class="n">1 · début</span><b>Claude lit MEMORY.md</b><p>Il découvre ton profil et l'état du projet.</p></div>
+        <div class="step" style="--d:.5s"><span class="n">2 · pendant</span><b>Il utilise ces informations</b><p>Ses réponses sont adaptées sans que tu répètes.</p></div>
+        <div class="step" style="--d:.7s"><span class="n">3 · fin</span><b>Il propose une mise à jour</b><p>Ce qui a changé : un objectif, une décision…</p></div>
+        <div class="step you" style="--d:.9s"><span class="n">4 · toi</span><b>Tu valides et enregistres</b><p>Rien n'est écrit sans ton accord.</p></div>
+      </div>
+      <div class="loop a" style="--d:1.3s">↺ la session suivante repart de l'étape 1, avec un carnet <b>à jour</b></div>
+      <p class="motto a" style="--d:1.6s">Ce n'est pas une mémoire native de Claude.<br>C'est une <em>mémoire documentaire contrôlée</em>.</p>
+    </div>
+
+    <!-- 6. Début de session -->
+    <div class="scene" data-i="5">
+      <div class="tag a">En pratique · début de session</div>
+      <p class="big a" style="--d:.1s">Tu ouvres avec le <em>prompt de démarrage</em>.</p>
+      <div class="duo">
+        <div class="win a" style="--d:.3s">
+          <div class="win-h"><i></i><i></i><i></i>Mardi · conversation 2</div>
+          <div class="win-b">
+            <div class="bub me a" style="--d:.5s"><span class="who">Toi</span><span class="prompt">Commence par consulter CLAUDE.md et MEMORY.md.
+Ensuite, indique-moi : mon profil, mes objectifs, les fichiers utiles, ce qui te manque.</span></div>
+            <div class="reads a" style="--d:1.3s">◉ lecture de MEMORY.md…</div>
+            <div class="bub ai a" style="--d:3.2s"><span class="who">Claude</span>1. Tu débutes en IA et préfères des exemples pro.<br>2. Objectif : créer de meilleurs prompts.<br>3. Fichiers utiles : <code>connaissances/glossaire.md</code>.<br>4. <span class="q">Sur quel projet travaille-t-on aujourd'hui ?</span></div>
+          </div>
+        </div>
+        <div class="file scan a" style="--d:1.1s">
+          <div class="win-h"><i></i><i></i><i></i>MEMORY.md</div>
+          <div class="body">
+            <div class="ln h2">## Profil</div>
+            <div class="ln">- Niveau : débutant en IA</div>
+            <div class="ln h2">## Objectifs</div>
+            <div class="ln">- Créer de meilleurs prompts</div>
+            <div class="ln h2">## Préférences</div>
+            <div class="ln">- Exemples professionnels</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Fin de session -->
+    <div class="scene" data-i="6" id="s7">
+      <div class="tag a">En pratique · fin de session</div>
+      <p class="big a" style="--d:.1s">Tu termines avec le <em>prompt de mise à jour</em>, puis tu valides.</p>
+      <div class="duo">
+        <div class="win a" style="--d:.3s">
+          <div class="win-h"><i></i><i></i><i></i>Fin de l'échange</div>
+          <div class="win-b">
+            <div class="bub me a" style="--d:.5s"><span class="who">Toi</span><span class="prompt">Analyse notre échange. Propose une version mise à jour de MEMORY.md. Ne supprime aucune information encore valable. Ne mémorise aucune donnée sensible.</span></div>
+            <div class="bub ai a" style="--d:1.4s"><span class="who">Claude</span>Je propose 2 changements. J'ai écarté le code d'accès client que tu as cité : c'est une donnée sensible.</div>
+          </div>
+        </div>
+        <div class="file a" style="--d:1.8s" id="memfile">
+          <div class="win-h"><i></i><i></i><i></i>MEMORY.md · proposition</div>
+          <div class="body">
+            <div class="ln h2">## Projets</div>
+            <div class="ln add old-line a" style="--d:2.3s">+ Préparer une présentation client avec Claude</div>
+            <div class="ln new-line">- Préparer une présentation client avec Claude</div>
+            <div class="ln h2">## Difficultés actuelles</div>
+            <div class="ln del old-line a" style="--d:2.8s">- Différence entre prompt et instruction</div>
+            <div class="ln chg old-line a" style="--d:3.1s">~ Construire des prompts complets (en progrès)</div>
+            <div class="ln new-line">- Construire des prompts complets (en progrès)</div>
+            <div class="ln h2">## Décisions prises</div>
+            <div class="ln add old-line a" style="--d:3.5s">+ Différence prompt / instruction : acquise</div>
+            <div class="ln new-line">- Différence prompt / instruction : acquise</div>
+            <div class="ln del old-line a" style="--d:3.9s">  Code d'accès client <span class="diffnote">refusé : donnée sensible</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="actions a" style="--d:4.2s">
+        <button class="btn-lime" type="button" id="save">Valider et enregistrer</button>
+        <span class="ok-msg">✓ MEMORY.md enregistré. La prochaine session partira de cette version.</span>
+        <button class="btn-ghost" type="button" id="undo">Revoir la proposition</button>
+      </div>
+    </div>
+
+    <!-- 8. Mise en place -->
+    <div class="scene" data-i="7">
+      <div class="tag a">À toi de jouer</div>
+      <p class="big a" style="--d:.1s">La mise en place prend <em>10 minutes</em>.</p>
+      <div class="todo">
+        <div class="card a" style="--d:.3s"><span class="num">1</span><div><b>Crée un dossier de projet</b><p>Par exemple <code>claude_debutant/</code>, avec tes sous-dossiers.</p></div></div>
+        <div class="card a" style="--d:.5s"><span class="num">2</span><div><b>Crée CLAUDE.md</b><p>À la main ou avec <code>/init</code>. Écris la règle : « Consulte MEMORY.md avant de répondre. »</p></div></div>
+        <div class="card a" style="--d:.7s"><span class="num">3</span><div><b>Crée MEMORY.md</b><p>Les 5 rubriques, avec 2 ou 3 lignes chacune. Il sera complété au fil des sessions.</p></div></div>
+        <div class="card a" style="--d:.9s"><span class="num">4</span><div><b>Prends le rituel</b><p>Prompt de démarrage au début, prompt de mise à jour à la fin. Tu relis avant d'enregistrer.</p></div></div>
+      </div>
+      <div class="rules a" style="--d:1.2s">
+        <span>Rien n'est retenu s'il n'est pas écrit</span>
+        <span>Jamais de mot de passe ni de donnée confidentielle</span>
+        <span>Tu relis toujours avant d'enregistrer</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="desk">
+    <div class="narr">
+      <div class="eyebrow" id="eb">Étape 1 sur 8</div>
+      <h2 id="nt"></h2>
+      <div id="nx"></div>
+    </div>
+    <div class="controls">
+      <div class="row">
+        <button class="ctl" type="button" id="prev">← Précédent</button>
+        <button class="ctl primary" type="button" id="next">Suivant →</button>
+      </div>
+      <div class="row">
+        <button class="ctl" type="button" id="replay">↻ Rejouer</button>
+        <button class="ctl" type="button" id="auto">▶ Lecture auto</button>
+      </div>
+      <div class="dots" id="dots"></div>
+      <div class="hint">Flèches ← → du clavier</div>
+    </div>
+  </section>
+
+  <section class="copy">
+    <div class="panel wide">
+      <span class="step0">Étape 0 · une seule fois, avant la première session</span>
+      <h3>Prompt d'installation : construire CLAUDE.md et MEMORY.md avec Claude</h3>
+      <p class="when">Tu n'as pas besoin de partir d'une page blanche. Ouvre Claude dans ton dossier de projet et colle ce prompt : il t'interroge, puis rédige les deux fichiers. Avec Claude Code, il les crée après ta validation. Dans claude.ai, il te les affiche, et tu les copies dans deux fichiers.</p>
+      <pre id="p0">Je débute avec Claude et je veux organiser mon projet avec deux fichiers :
+- CLAUDE.md : les règles que tu suis pour travailler avec moi (elles changent rarement) ;
+- MEMORY.md : les informations sur moi et mon projet (elles évoluent à chaque session).
+
+Aide-moi à les créer. Procède ainsi :
+
+1. Pose-moi des questions simples, une par une, sur :
+   - mon niveau et mon métier ;
+   - mon projet et mes objectifs ;
+   - la façon dont j'aime qu'on m'explique ;
+   - ce qui me pose difficulté ;
+   - les règles que tu dois toujours respecter.
+2. Arrête-toi après 8 questions au maximum.
+3. Range chaque réponse dans le bon fichier avec ce test : « Sera-t-elle encore vraie au prochain projet ? » Oui → CLAUDE.md. Non → MEMORY.md.
+4. Propose-moi les deux fichiers complets :
+   - dans CLAUDE.md, ajoute la règle « Avant de répondre, consulte MEMORY.md » ;
+   - dans MEMORY.md, utilise les rubriques Profil, Objectifs, Préférences, Difficultés actuelles, Décisions prises.
+5. N'enregistre rien avant que je dise « je valide ».
+
+Ne me demande aucun mot de passe ni aucune donnée confidentielle.</pre>
+      <button class="ctl" type="button" data-copy="p0">Copier</button>
+    </div>
+    <div class="panel">
+      <h3>Prompt de démarrage</h3>
+      <p class="when">À coller au début de chaque session.</p>
+      <pre id="p1">Commence par consulter CLAUDE.md et MEMORY.md.
+
+Ensuite, indique-moi :
+
+1. ce que tu sais déjà de mon profil ;
+2. mes objectifs actuels ;
+3. les fichiers utiles pour ma demande ;
+4. les informations qui te manquent éventuellement.
+
+Réponds de manière simple et adaptée à un débutant.</pre>
+      <button class="ctl" type="button" data-copy="p1">Copier</button>
+    </div>
+    <div class="panel">
+      <h3>Prompt de mise à jour</h3>
+      <p class="when">À coller en fin d'échange.</p>
+      <pre id="p2">Analyse notre échange.
+
+Identifie uniquement les informations qui pourraient être utiles à long terme concernant :
+
+- mon profil ;
+- mes objectifs ;
+- mes préférences ;
+- mes difficultés ;
+- mes projets ;
+- nos décisions.
+
+Propose ensuite une version mise à jour de MEMORY.md.
+Ne supprime aucune information encore valable.
+Ne mémorise aucune donnée sensible.</pre>
+      <button class="ctl" type="button" data-copy="p2">Copier</button>
+    </div>
+  </section>
+</div>
+
+<script>
+const N = [
+  {t:"Claude n'a pas de mémoire d'une conversation à l'autre",
+   x:`<p>Lundi, tu expliques ton niveau et tes préférences. Mardi, tu ouvres une nouvelle conversation : Claude te repose les mêmes questions.</p><p>Ce n'est pas un défaut de politesse. Une conversation fermée ne laisse <strong>aucune trace</strong> dans la conversation suivante.</p>`},
+  {t:"Un fichier qui sert de mémoire",
+   x:`<p><code>MEMORY.md</code> est un simple fichier texte posé dans ton dossier de projet. L'extension <code>.md</code> veut dire Markdown : du texte avec quelques symboles (<code>#</code> pour un titre, <code>-</code> pour une liste).</p><p class="key">Claude ne se souvient pas. Il relit.</p>`},
+  {t:"Ce qu'on écrit dans MEMORY.md",
+   x:`<p>Uniquement ce qui restera utile la semaine prochaine : ton profil, tes objectifs, tes préférences, tes difficultés et les décisions prises.</p><p>Pas le détail des conversations. Une ligne courte par information suffit.</p>`},
+  {t:"CLAUDE.md et MEMORY.md : deux rôles différents",
+   x:`<p><strong>CLAUDE.md</strong> est la notice : les règles que Claude suit (« explique simplement », « donne des exemples »). Tu l'écris une fois.</p><p><strong>MEMORY.md</strong> est le carnet : les faits sur toi et ton projet. Il change au fil des sessions.</p><p class="key">C'est CLAUDE.md qui demande à Claude de lire MEMORY.md. Les deux fonctionnent ensemble.</p>`},
+  {t:"Cas pratique : répondre à un appel d'offres",
+   x:`<p>Tu prépares la réponse à un appel d'offres pour la refonte du site d'une communauté de communes (exemple fictif). Tu as huit informations à donner à Claude. Dans quel fichier va chacune ?</p><p>Les règles décrivent <strong>ta façon de répondre</strong> à n'importe quel appel d'offres. Les faits décrivent <strong>celui-ci</strong> : son client, sa date, tes choix.</p><p class="key">Un seul test suffit : « Sera-t-elle encore vraie au prochain appel d'offres ? »</p>`},
+  {t:"Un seul fichier ou deux : ce qui change en 3 semaines",
+   x:`<p>Tout mettre dans CLAUDE.md fonctionne au début. Les ennuis arrivent plus tard : quand le fichier grossit, quand Claude le met à jour, et quand l'appel d'offres suivant commence.</p><p>Avec deux fichiers, Claude a le droit de proposer des changements dans le carnet, jamais dans la notice. Tes règles restent protégées, et tu peux les réutiliser d'un appel d'offres à l'autre.</p><p class="key">MEMORY.md n'est pas obligatoire. Il devient utile dès qu'un projet dure plusieurs sessions.</p>`},
+  {t:"Le cycle : lire, utiliser, proposer, valider",
+   x:`<p>Claude lit le carnet, s'en sert, puis propose de le compléter. La dernière étape t'appartient : tu relis, tu corriges si besoin, tu enregistres.</p><p class="key">Règle d'or : une information n'est mémorisée que si elle est écrite dans MEMORY.md.</p>`},
+  {t:"Démarrer une session",
+   x:`<p>Le prompt de démarrage oblige Claude à lire ses fichiers <strong>avant</strong> de répondre, et à te dire ce qu'il a compris. Tu vérifies ainsi tout de suite qu'il est à jour.</p><p>Son étape 4 (« ce qui te manque ») l'invite à poser les bonnes questions plutôt qu'à deviner.</p>`},
+  {t:"Terminer une session",
+   x:`<p>Le prompt de mise à jour demande à Claude de trier l'échange et de proposer des changements : <span style="color:var(--ok)">ajouts</span>, modifications, et ce qu'il refuse de garder.</p><p>Clique sur <strong>« Valider et enregistrer »</strong> dans l'animation pour voir le carnet mis à jour.</p><p class="key">Les deux garde-fous : ne rien supprimer de valable, ne jamais retenir de donnée sensible.</p>`},
+  {t:"À ton tour",
+   x:`<p>Quatre étapes, et le rituel devient vite automatique.</p><p class="key">Pas envie de partir d'une page blanche ? Le <strong>prompt d'installation</strong> (étape 0, juste en dessous) fait les étapes 2 et 3 avec toi : Claude te pose quelques questions, puis rédige les deux fichiers.</p><p>Les prompts de démarrage et de mise à jour suivent, prêts à copier.</p><p><strong>Bon à savoir :</strong> certaines versions de Claude proposent aussi une mémoire automatique. MEMORY.md reste utile, parce que tu vois et contrôles exactement ce qui est retenu.</p>`}
+];
+const scenes=[...document.querySelectorAll('.scene')];
+const eb=document.getElementById('eb'),nt=document.getElementById('nt'),nx=document.getElementById('nx');
+const prev=document.getElementById('prev'),next=document.getElementById('next'),autoB=document.getElementById('auto');
+const dots=document.getElementById('dots'),s7=document.getElementById('s7');
+let cur=0,timer=null;const seen=new Set();
+N.forEach((n,i)=>{const b=document.createElement('button');b.className='dot';b.type='button';b.textContent=i+1;b.setAttribute('aria-label','Étape '+(i+1)+' : '+n.t);b.onclick=()=>{stopAuto();go(i)};dots.appendChild(b)});
+function go(i){
+  cur=Math.max(0,Math.min(N.length-1,i));seen.add(cur);
+  scenes.forEach(s=>s.classList.remove('on'));
+  s7.classList.remove('saved');
+  void scenes[cur].offsetWidth; // relance les animations CSS
+  scenes[cur].classList.add('on');
+  eb.textContent='Étape '+(cur+1)+' sur '+N.length;nt.textContent=N[cur].t;nx.innerHTML=N[cur].x;
+  prev.disabled=cur===0;next.disabled=cur===N.length-1;
+  [...dots.children].forEach((d,k)=>{d.classList.toggle('cur',k===cur);d.classList.toggle('seen',seen.has(k)&&k!==cur)});
+}
+function stopAuto(){clearInterval(timer);timer=null;autoB.textContent='▶ Lecture auto'}
+prev.onclick=()=>{stopAuto();go(cur-1)};
+next.onclick=()=>{stopAuto();go(cur+1)};
+document.getElementById('replay').onclick=()=>go(cur);
+autoB.onclick=()=>{
+  if(timer){stopAuto();return}
+  if(cur===N.length-1)go(0);
+  autoB.textContent='❚❚ Pause';
+  timer=setInterval(()=>{if(cur>=N.length-1){stopAuto();return}go(cur+1)},11000);
+};
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){stopAuto();go(cur+1)}
+  if(e.key==='ArrowLeft'){stopAuto();go(cur-1)}
+});
+document.getElementById('save').onclick=()=>s7.classList.add('saved');
+document.getElementById('undo').onclick=()=>go(scenes.indexOf(s7));
+document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{
+  const t=document.getElementById(b.dataset.copy).textContent;
+  try{await navigator.clipboard.writeText(t);b.textContent='Copié ✓'}
+  catch(e){const r=document.createRange();r.selectNodeContents(document.getElementById(b.dataset.copy));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Texte sélectionné'}
+  setTimeout(()=>b.textContent='Copier',2000);
+});
+go(0);
+</script>
+
+<a href="index.html" style="position:fixed;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>
