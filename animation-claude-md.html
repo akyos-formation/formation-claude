@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Le fichier CLAUDE.md</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout : même gabarit que les autres animations du site, une scène bleu nuit qui joue, puis un pupitre de narration */
+:root{
+  --bg:#f3f5fb; --surface:#ffffff; --fg:#0d1a3b; --muted:#56627c; --line:#d8deea;
+  --navy:#0f2a7a; --ok:#17784f; --ok-bg:#e4f4ec; --warn:#b4400f; --warn-bg:#fdeee5;
+  --stage:#0b1858; --stage-2:#16247a; --stage-3:#22318f; --stage-fg:#eef2fb; --stage-muted:#a3aed0;
+  --lime:#e2ff1a; --blue:#58a6ff; --orange:#ffad5c; --green:#6fe0a6; --red:#ff8a8a; --ink:#0b1858;
+  --f-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0a0f22; --surface:#131b34; --fg:#e6ebf7; --muted:#9ba7c2; --line:#27324f;
+  --navy:#a9c0ff; --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a0f22; --surface:#131b34; --fg:#e6ebf7; --muted:#9ba7c2; --line:#27324f;
+  --navy:#a9c0ff; --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+code,.mono{font-family:var(--f-mono)}
+.wrap{max-width:1100px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+.wrap>*{min-width:0}
+header h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,4.2vw,2.8rem);line-height:1.05;margin:0;color:var(--navy);text-wrap:balance;letter-spacing:-.01em}
+header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+
+.stage{position:relative;background:radial-gradient(120% 140% at 90% 0%,var(--stage-3) 0%,var(--stage) 60%);color:var(--stage-fg);border-radius:16px;min-height:470px;overflow:hidden}
+.stage::after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border:28px solid var(--lime);border-radius:50%;opacity:.14;pointer-events:none}
+.scene{display:none;padding:26px clamp(14px,3.4vw,34px);gap:16px;position:relative;z-index:1}
+.scene.on{display:grid}
+.scene>*{min-width:0}
+.tag{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--stage-muted)}
+.big{font-family:var(--f-display);font-weight:800;font-size:clamp(1.3rem,2.8vw,1.9rem);line-height:1.15;margin:0;text-wrap:balance}
+.big em{font-style:normal;color:var(--lime)}
+.scene.on .a{animation:rise .5s cubic-bezier(.3,.7,.2,1) var(--d,0s) both}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.split>*{min-width:0}
+.box{background:var(--stage-2);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:14px}
+.box h3{margin:0 0 8px;font-family:var(--f-mono);font-size:.8rem;font-weight:600;color:var(--stage-muted)}
+.bub{padding:8px 12px;border-radius:12px;font-size:.9rem;line-height:1.4;margin-top:8px}
+.bub.me{background:#f4f6ff;color:#0d1a3b}
+.bub.ai{background:var(--stage-3);border:1px solid rgba(255,255,255,.15)}
+.bad{color:var(--red)}.good{color:var(--green)}
+.code{font-family:var(--f-mono);font-size:clamp(.78rem,1.5vw,.9rem);line-height:1.65;background:rgba(0,0,0,.25);border-radius:10px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.code b{color:var(--lime);font-weight:600}
+.tree b{color:var(--lime)}
+
+/* démarrage de session */
+.boot{display:grid;grid-template-columns:minmax(0,1fr) 40px minmax(0,1.3fr);gap:12px;align-items:center}
+.files{display:grid;gap:8px}
+.file{background:var(--stage-2);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:8px 10px;font-family:var(--f-mono);font-size:.82rem}
+.arrow{font-size:1.6rem;color:var(--lime);text-align:center}
+.ctx{border:2px dashed rgba(255,255,255,.3);border-radius:12px;padding:12px;display:grid;gap:7px}
+.chunk{border-radius:7px;padding:6px 10px;font-size:.84rem}
+.chunk.c1{background:var(--lime);color:var(--ink)}.chunk.c2{background:var(--blue);color:var(--ink)}.chunk.c3{background:#f4f6ff;color:var(--ink)}.chunk.c4{background:var(--green);color:var(--ink)}
+.limit{font-size:.9rem;border-left:0;background:rgba(255,173,92,.14);color:var(--orange);padding:9px 12px;border-radius:8px}
+
+/* emplacements */
+.layers{display:grid;gap:8px}
+.layer{width:100%;text-align:left;background:var(--stage-2);color:var(--stage-fg);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:10px 12px;display:grid;gap:1px}
+.layer code{font-size:.84rem;overflow-wrap:anywhere}.layer span{font-size:.82rem;color:var(--stage-muted)}
+.layer.sel{background:var(--lime);color:var(--ink);border-color:var(--lime)}.layer.sel span{color:var(--ink)}
+.detail dl{margin:0;display:grid;gap:9px}.detail dt{font-family:var(--f-mono);font-size:.72rem;color:var(--stage-muted);text-transform:uppercase;letter-spacing:.08em}.detail dd{margin:0}
+
+/* tri */
+.card{background:#f4f6ff;color:#0d1a3b;border-radius:12px;padding:16px 18px;font-weight:600;font-size:1.08rem}
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.btn-c{background:transparent;color:var(--stage-fg);border:1px solid rgba(255,255,255,.4);border-radius:9px;padding:8px 13px}
+.btn-c:hover:not(:disabled){background:rgba(255,255,255,.12)}
+.btn-c.right{background:var(--green);color:var(--ink);border-color:var(--green)}.btn-c.wrong{background:var(--red);color:var(--ink);border-color:var(--red)}
+.btn-c:disabled{cursor:default}
+.fb{min-height:3em;font-size:.95rem;margin:0}
+.btn-lime{font-weight:600;background:var(--lime);color:var(--ink);border:0;border-radius:10px;padding:9px 14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+
+/* flou → précis */
+.rew{display:grid;gap:8px}
+.rw{width:100%;text-align:left;background:var(--stage-2);color:var(--stage-fg);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center}
+.rw .st{font-family:var(--f-mono);font-size:.7rem;color:var(--red)}
+.rw.done{border-color:var(--green)}.rw.done .st{color:var(--green)}
+.rw .tx{font-size:.95rem}
+.rules{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.rules li{background:rgba(255,255,255,.1);border-radius:999px;padding:5px 12px;font-size:.84rem}
+
+/* vos consignes */
+.ln{display:block;width:100%;text-align:left;background:transparent;border:0;color:inherit;font:inherit;padding:1px 6px;border-radius:5px}
+button.ln:hover{background:rgba(255,255,255,.1)}
+button.ln.sel{background:var(--lime);color:var(--ink)}
+.ln.h{color:var(--lime);font-weight:600}
+.expl{font-size:.95rem;margin:0}
+
+/* routage */
+.tasks{display:flex;flex-wrap:wrap;gap:8px}
+.route{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) minmax(0,1fr);gap:10px;align-items:center;position:relative}
+.node{background:var(--stage-2);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:10px;text-align:center;font-size:.86rem;min-height:68px;display:grid;align-content:center}
+.node b{display:block;font-family:var(--f-display);font-size:1rem}
+.node.hit{background:var(--lime);color:var(--ink);border-color:var(--lime)}
+.models{display:grid;gap:8px}.models .node{min-height:50px}
+.brief{background:#f4f6ff;color:var(--ink);border-radius:8px;padding:8px 10px;font-size:.8rem;font-family:var(--f-mono);line-height:1.4}
+.route.go .brief{animation:slide .8s cubic-bezier(.3,.7,.2,1) both}
+@keyframes slide{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
+
+/* versions */
+.toggle{display:inline-flex;border:1px solid rgba(255,255,255,.4);border-radius:10px;overflow:hidden;width:max-content;max-width:100%}
+.toggle button{background:transparent;color:var(--stage-fg);border:0;padding:7px 13px}
+.toggle button.sel{background:var(--lime);color:var(--ink);font-weight:600}
+.warns{display:grid;gap:7px;font-size:.88rem;margin:0;padding:0;list-style:none}
+.warns li{background:rgba(255,255,255,.08);border-radius:8px;padding:7px 10px}
+.warns b{color:var(--orange)}
+
+/* boucle */
+.phases{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.phases li{padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.1);font-size:.84rem}
+.phases li.on{background:var(--lime);color:var(--ink);font-weight:600}
+.dl{padding:6px 9px;border-radius:7px;font-size:.9rem;margin-top:6px;background:rgba(0,0,0,.2)}
+.dl.ko{background:rgba(255,138,138,.2);color:var(--red)}
+.dl.fix{background:rgba(111,224,166,.18);color:var(--green)}
+.dl.ask{background:rgba(255,173,92,.18);color:var(--orange)}
+
+/* atelier */
+.opts{display:grid;gap:7px}
+.opts label{display:flex;gap:9px;align-items:center;background:var(--stage-2);border-radius:9px;padding:8px 10px;cursor:pointer;font-size:.92rem}
+.opts input{accent-color:var(--lime);width:17px;height:17px;flex:none}
+.count{font-family:var(--f-mono);font-size:.82rem;color:var(--stage-muted)}
+.count b{color:var(--lime)}
+#out{max-height:340px;overflow:auto}
+
+/* pupitre */
+.desk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 26px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px clamp(16px,3vw,28px)}
+.narr{min-width:0}
+.eb{font-family:var(--f-mono);font-size:.76rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.narr h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.25rem,2.5vw,1.65rem);margin:4px 0 8px;line-height:1.15;text-wrap:balance}
+.narr p{margin:0 0 8px;max-width:68ch}
+.narr .key{background:var(--ok-bg);color:var(--ok);padding:8px 12px;border-radius:8px;font-weight:500}
+.narr .caution{background:var(--warn-bg);color:var(--warn);padding:8px 12px;border-radius:8px}
+.controls{display:flex;flex-direction:column;gap:10px;min-width:210px}
+.ctl-row{display:flex;gap:8px}
+.ctl{flex:1;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:9px;padding:8px 12px}
+.ctl.primary{background:var(--navy);color:var(--surface);border-color:var(--navy);font-weight:600}
+.ctl:disabled{opacity:.4;cursor:default}
+.dots{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.dot{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:.72rem;padding:0;font-family:var(--f-mono)}
+.dot.seen{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.dot.cur{background:var(--navy);color:var(--surface);border-color:var(--navy)}
+
+.panels{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:8px;align-content:start;min-width:0}
+.panel h3{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.panel .when{margin:0;color:var(--muted);font-size:.92rem}
+.panel pre{font-family:var(--f-mono);font-size:.84rem;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:12px;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.panel .ctl{justify-self:start;flex:none}
+
+@media(max-width:760px){
+  .split,.panels,.desk{grid-template-columns:minmax(0,1fr)}
+  .boot{grid-template-columns:minmax(0,1fr)}.arrow{transform:rotate(90deg)}
+  .route{grid-template-columns:minmax(0,1fr)}
+  .controls{min-width:0}
+}
+@media(prefers-reduced-motion:reduce){.scene.on .a,.route.go .brief{animation:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Le fichier CLAUDE.md</h1>
+    <p>Ce que c'est, à quoi il sert et comment l'écrire, sur un cas concret : répondre à un appel d'offres public (exemple fictif).</p>
+  </header>
+
+  <main class="stage" aria-live="polite">
+    <!-- 1 -->
+    <section class="scene">
+      <span class="tag a">Le problème</span>
+      <p class="big a" style="--d:.1s">Chaque session, Claude arrive comme <em>un nouveau collègue</em>.</p>
+      <div class="split">
+        <div class="box a" style="--d:.3s"><h3>Sans CLAUDE.md</h3>
+          <div class="bub me">Prépare le mémoire technique de cet appel d'offres.</div>
+          <div class="bub ai">Bien sûr ! Quel plan suivre ? Quelles références citer ? Où sont vos pièces ?</div>
+          <p class="bad" style="margin:10px 0 0;font-size:.9rem">Tu réexpliques tout, à chaque fois.</p></div>
+        <div class="box a" style="--d:.7s"><h3>Avec CLAUDE.md</h3>
+          <div class="bub me">Prépare le mémoire technique de cet appel d'offres.</div>
+          <div class="bub ai">Je suis modeles/memoire-technique.md et je réponds critère par critère. Il me manque la date limite : tu l'as ?</div>
+          <p class="good" style="margin:10px 0 0;font-size:.9rem">Il connaît déjà la maison.</p></div>
+      </div>
+    </section>
+    <!-- 2 -->
+    <section class="scene">
+      <span class="tag a">Ce que c'est</span>
+      <p class="big a" style="--d:.1s">Un simple fichier texte : <em>le livret d'accueil</em> de ton projet.</p>
+      <div class="split">
+        <pre class="code tree a" style="--d:.3s">mon-projet/
+├── <b>CLAUDE.md</b>      ← le livret d'accueil
+├── MEMORY.md      ← le carnet
+├── modeles/
+│   └── memoire-technique.md
+└── appels-offres/</pre>
+        <pre class="code a" style="--d:.6s"><b># Agence web, appels d'offres</b>
+
+<b>## Style</b>
+- Ton factuel, phrases courtes
+- Réponds critère par critère
+
+<b>## Fichiers</b>
+- Modèles : modeles/
+- Lis memoire-technique.md avant de rédiger</pre>
+      </div>
+    </section>
+    <!-- 3 -->
+    <section class="scene">
+      <span class="tag a">Son rôle</span>
+      <p class="big a" style="--d:.1s">Il est lu <em>au démarrage</em>, avant ta première demande.</p>
+      <div class="boot">
+        <div class="files">
+          <div class="file a" style="--d:.3s">~/.claude/CLAUDE.md</div>
+          <div class="file a" style="--d:.7s">./CLAUDE.md</div>
+        </div>
+        <div class="arrow a" style="--d:.9s" aria-hidden="true">→</div>
+        <div class="ctx a" style="--d:.2s">
+          <span class="tag">Mémoire de travail de la session</span>
+          <div class="chunk c1 a" style="--d:1s">Tes règles personnelles</div>
+          <div class="chunk c2 a" style="--d:1.4s">Les règles du projet</div>
+          <div class="chunk c3 a" style="--d:1.9s">Ta demande : « Prépare le mémoire technique »</div>
+          <div class="chunk c4 a" style="--d:2.4s">Réponse qui respecte les règles</div>
+        </div>
+      </div>
+      <p class="limit a" style="--d:2.8s">Une consigne lue n'est pas un verrou : Claude peut s'en écarter. Pour une obligation absolue, on utilise un hook ou une permission.</p>
+    </section>
+    <!-- 4 -->
+    <section class="scene" id="s-where">
+      <span class="tag a">Où le placer</span>
+      <p class="big a" style="--d:.1s">L'emplacement décide <em>où la règle s'applique</em>.</p>
+      <div class="split">
+        <div class="layers a" style="--d:.25s" id="layers"></div>
+        <div class="box detail a" style="--d:.4s" id="ldetail"></div>
+      </div>
+    </section>
+    <!-- 5 -->
+    <section class="scene">
+      <span class="tag a">Que mettre dedans</span>
+      <p class="big a" style="--d:.1s">Où va cette information ? <em>Trie-la.</em></p>
+      <div class="card a" style="--d:.25s" id="sc"></div>
+      <div class="choices a" style="--d:.35s" id="sb"></div>
+      <p class="fb" id="sf"></p>
+      <div class="row"><span class="count" id="sn"></span><button class="btn-lime" type="button" id="snext" hidden>Suivante</button></div>
+    </section>
+    <!-- 6 -->
+    <section class="scene">
+      <span class="tag a">Comment le rédiger</span>
+      <p class="big a" style="--d:.1s">Remplace chaque consigne floue par <em>une consigne vérifiable</em>. Clique.</p>
+      <div class="rew a" style="--d:.25s" id="rew"></div>
+      <ul class="rules a" style="--d:.4s"><li>Moins de 200 lignes</li><li>Des titres et des listes</li><li>Aucune contradiction</li><li>Des faits qu'on peut vérifier</li></ul>
+    </section>
+    <!-- 7 -->
+    <section class="scene">
+      <span class="tag a">Exemple · tes consignes</span>
+      <p class="big a" style="--d:.1s">Un bloc <em>« Optimiser les tokens »</em>, ligne par ligne.</p>
+      <div class="split">
+        <div class="code a" style="--d:.25s" id="tl"></div>
+        <div class="box a" style="--d:.4s"><h3>Ce que cette ligne demande à Claude</h3><p class="expl" id="tx"></p></div>
+      </div>
+    </section>
+    <!-- 8 -->
+    <section class="scene">
+      <span class="tag a">Exemple · le routage en action</span>
+      <p class="big a" style="--d:.1s">Choisis une tâche : <em>qui la traite ?</em></p>
+      <div class="tasks a" style="--d:.25s" id="tasks"></div>
+      <div class="route a" style="--d:.35s" id="route">
+        <div class="node"><b>Claude principal</b>il répartit le travail</div>
+        <div class="brief" id="brief"></div>
+        <div class="models"><div class="node" id="m-opus"><b>Sub-agent Opus 5.5</b></div><div class="node" id="m-fable"><b>Sub-agent Fable 5.1</b></div></div>
+      </div>
+    </section>
+    <!-- 9 -->
+    <section class="scene">
+      <span class="tag a">Avant de les coller</span>
+      <p class="big a" style="--d:.1s">Ces consignes marchent. <em>Trois réglages</em> les rendent plus sûres.</p>
+      <div class="toggle a" style="--d:.2s"><button type="button" id="v0" class="sel">Ta version</button><button type="button" id="v1">Version ajustée</button></div>
+      <div class="split">
+        <pre class="code a" style="--d:.3s" id="vtxt"></pre>
+        <ul class="warns a" style="--d:.45s">
+          <li><b>« Jamais », « toujours ».</b> Un sub-agent repart de zéro et consomme ses propres tokens. Pour une petite tâche, déléguer coûte plus cher.</li>
+          <li><b>Opus pour le simple.</b> Ton parcours conseille Haiku pour le simple et répétitif. Il coûte moins cher.</li>
+          <li><b>Contexte minimal.</b> Le sub-agent ne voit pas ta conversation : son brief doit contenir l'objectif, les fichiers et le résultat attendu.</li>
+        </ul>
+      </div>
+    </section>
+    <!-- 10 -->
+    <section class="scene" id="s-loop">
+      <span class="tag a">Boucle de vérification</span>
+      <p class="big a" style="--d:.1s">Claude relit son travail <em>avant de te le rendre</em>.</p>
+      <ol class="phases a" style="--d:.2s" id="ph"><li>Produire</li><li>Vérifier</li><li>Corriger</li><li>Revérifier</li><li>Bilan</li></ol>
+      <div class="split">
+        <div class="box a" style="--d:.3s"><h3>Mémoire technique · extrait</h3><div id="ld"></div></div>
+        <div class="box a" style="--d:.4s"><h3 id="lt"></h3><p class="expl" id="lm"></p></div>
+      </div>
+      <div class="row"><span class="count">Trois tours au maximum</span><button class="btn-lime" type="button" id="lnext"></button></div>
+    </section>
+    <!-- 11 -->
+    <section class="scene">
+      <span class="tag a">À ton tour</span>
+      <p class="big a" style="--d:.1s">Assemble <em>ton premier CLAUDE.md</em>.</p>
+      <div class="split">
+        <div class="a" style="--d:.2s;display:grid;gap:10px">
+          <div class="opts" id="opts"></div>
+          <div class="row"><span class="count" id="lc"></span><button class="btn-lime" type="button" data-copy="out">Copier</button></div>
+        </div>
+        <pre class="code a" style="--d:.3s" id="out"></pre>
+      </div>
+    </section>
+  </main>
+
+  <section class="desk">
+    <div class="narr"><span class="eb" id="eb"></span><h2 id="nt"></h2><div id="nx"></div></div>
+    <div class="controls">
+      <div class="ctl-row"><button class="ctl" type="button" id="prev">← Retour</button><button class="ctl primary" type="button" id="next">Suivant →</button></div>
+      <div class="ctl-row"><button class="ctl" type="button" id="replay">↻ Rejouer</button><button class="ctl" type="button" id="auto">▶ Lecture auto</button></div>
+      <div class="dots" id="dots"></div>
+    </div>
+  </section>
+
+  <section class="panels">
+    <div class="panel">
+      <h3>Créer le fichier avec Claude</h3>
+      <p class="when">À coller dans un projet qui n'a pas encore de CLAUDE.md. Dans Claude Code, la commande <code>/init</code> propose aussi un premier fichier en analysant le dossier.</p>
+      <pre id="p1">Aide-moi à rédiger le CLAUDE.md de ce projet.
+
+Pose-moi une question à la fois sur :
+1. le but du projet et son public ;
+2. le style attendu ;
+3. les fichiers que tu dois lire ;
+4. ce que tu ne dois jamais faire ;
+5. comment vérifier ton travail.
+
+Rédige ensuite un fichier de moins de 200 lignes.
+Chaque consigne doit être concrète et vérifiable.
+N'y mets ni mot de passe, ni clé, ni donnée client.</pre>
+      <button class="ctl" type="button" data-copy="p1">Copier</button>
+    </div>
+    <div class="panel" style="grid-column:1/-1">
+      <h3>La boucle de vérification</h3>
+      <p class="when">À coller une fois dans CLAUDE.md ou dans les instructions de ton projet.</p>
+      <pre id="pv">Pour chaque livrable (texte, tableau, synthèse) :
+1. Produis une première version.
+2. Vérifie-la par rapport à ma demande : erreurs, imprécisions, affirmations sans preuve.
+3. Corrige, puis revérifie ta correction. Trois tours au maximum.
+4. N'invente aucun fait. Si une information n'est pas dans ce que je t'ai fourni, signale-la.
+5. Termine par un bilan de trois lignes : corrections faites, points à confirmer.
+Affiche-moi seulement la version finale et le bilan.</pre>
+      <button class="ctl" type="button" data-copy="pv">Copier</button>
+    </div>
+    <div class="panel">
+      <h3>Relire un CLAUDE.md existant</h3>
+      <p class="when">À utiliser quand Claude semble ignorer certaines règles.</p>
+      <pre id="p2">Relis notre CLAUDE.md et signale :
+
+- les consignes floues ou invérifiables ;
+- les contradictions ;
+- ce qui n'est vrai que pour ce mois-ci
+  (à déplacer dans MEMORY.md) ;
+- les procédures longues
+  (à déplacer dans une Skill).
+
+Propose les corrections sans modifier le fichier.
+J'approuve chaque changement.</pre>
+      <button class="ctl" type="button" data-copy="p2">Copier</button>
+    </div>
+  </section>
+</div>
+
+<script>
+const N=[
+ {t:"Claude ne garde rien d'une session à l'autre",x:`<p>Imagine un collègue compétent qui découvre ton entreprise chaque matin. Il faut lui redonner vos références, le plan de votre mémoire technique et l'emplacement des pièces administratives.</p><p class="key">CLAUDE.md évite de répéter ce briefing.</p>`},
+ {t:"CLAUDE.md, c'est quoi ?",x:`<p>Un fichier texte placé à la racine de ton dossier de projet. Son nom est imposé : <code>CLAUDE.md</code>, en majuscules. L'extension <code>.md</code> signifie Markdown : <code>#</code> crée un titre et <code>-</code> une liste.</p><p>Ce n'est pas un programme. Tu l'écris en français, comme une note à un collègue.</p>`},
+ {t:"À quoi il sert",x:`<p>Claude Code le charge automatiquement au lancement. Ses règles sont donc présentes dans chaque échange, sans que tu les demandes.</p><p>Il occupe aussi de la place à chaque tour : plus il est long, plus il consomme de tokens.</p><p class="key">Toute ligne doit mériter sa place.</p>`},
+ {t:"Plusieurs fichiers, plusieurs portées",x:`<p>Clique sur chaque emplacement. Plusieurs fichiers peuvent être actifs ensemble.</p><p>Dans claude.ai, l'équivalent le plus proche est le champ « Instructions » d'un projet. CLAUDE.md concerne Claude Code et les outils qui travaillent dans un dossier.</p>`},
+ {t:"Le test : « encore vrai au prochain appel d'offres ? »",x:`<p>Un <strong>prompt</strong> est une demande ponctuelle. Une <strong>instruction</strong> est une règle durable : elle va dans CLAUDE.md. Un <strong>projet</strong> est le dossier qui rassemble le tout.</p><p class="key">CLAUDE.md garde ce qui reste vrai d'un appel d'offres à l'autre.</p>`},
+ {t:"Écrire pour être suivi",x:`<p>« Sois clair » ne donne rien à vérifier. « Phrases de 20 mots maximum » se contrôle.</p><p>La documentation officielle recommande de viser <strong>moins de 200 lignes</strong> par fichier. Au-delà, déplace les procédures vers des Skills.</p><p>Tu peux aussi importer un autre fichier avec <code>@chemin/fichier.md</code>. Son contenu reste chargé : cela range le texte, sans économiser de tokens.</p>`},
+ {t:"Tes consignes pour optimiser les tokens",x:`<p>Clique sur chaque ligne. Ce bloc transforme Claude en <strong>chef d'équipe</strong> : il répartit le travail au lieu de tout faire.</p><p>Un <strong>sub-agent</strong> est un assistant lancé pour une mission précise, avec sa propre mémoire de travail. Le résultat revient au Claude principal.</p>`},
+ {t:"Le routage des modèles",x:`<p>Chaque tâche part vers le modèle prévu par la règle, avec un brief court. Le Claude principal garde ainsi une conversation légère.</p><p class="key">Écrit dans CLAUDE.md, ce routage reste une consigne. Pour le fixer, on précise le champ <code>model</code> dans la définition du sub-agent.</p>`},
+ {t:"Ce que je te conseille de vérifier",x:`<p>Ta version reste valable si tu veux une délégation systématique. Compare-la à la version ajustée.</p><p class="caution">Coût réel à mesurer : déléguer protège la conversation principale, mais chaque sub-agent consomme aussi des tokens. Teste sur ton usage avant de généraliser.</p><p>Détail de forme corrigé dans les deux versions : <code>## Routage</code> a besoin d'une espace après les dièses pour devenir un titre.</p>`},
+ {t:"La boucle de vérification",x:`<p>Ce bloc de ton parcours se colle une fois dans CLAUDE.md. Clique sur le bouton de la scène pour suivre un exemple : produire, vérifier, corriger, revérifier, puis bilan.</p><p>Sur un appel d'offres, une date ou une référence inventée peut coûter le marché. La règle 4 interdit donc d'inventer : ce qui manque est signalé.</p><p class="key">Claude vérifie. Toi, tu lis les points à confirmer et tu décides du dépôt.</p>`},
+ {t:"Ton premier fichier",x:`<p>Coche les blocs utiles et remplace les exemples par ta situation. Commence petit : ajoute une règle quand tu constates la même erreur deux fois.</p><p class="key">Un bon CLAUDE.md grandit à partir de vrais problèmes.</p>`}
+];
+
+const L=[
+ {c:"~/.claude/CLAUDE.md",n:"Mes règles personnelles",w:"Tous tes projets, sur cet ordinateur.",l:"Au lancement de chaque session.",e:"« Réponds en français. Explique simplement. »"},
+ {c:"./CLAUDE.md",n:"Les règles du projet",w:"Ce dossier. Il peut être partagé avec l'équipe.",l:"Au lancement, dans ce projet.",e:"« Le mémoire technique suit modeles/memoire-technique.md. »"},
+ {c:"./CLAUDE.local.md",n:"Mes réglages dans ce projet",w:"Ce dossier, pour toi seulement. À exclure du partage Git.",l:"Au lancement, après CLAUDE.md.",e:"« Mes essais sont dans mes-brouillons/. »"},
+ {c:"./appels-offres/CLAUDE.md",n:"Les règles d'un sous-dossier",w:"Le travail dans ce sous-dossier.",l:"Quand Claude y lit ou y modifie un fichier.",e:"« Réponds dans l'ordre des critères du règlement. »"}
+];
+const layers=document.getElementById('layers'),ld=document.getElementById('ldetail');
+function pickL(i){[...layers.children].forEach((b,k)=>b.classList.toggle('sel',k===i));const x=L[i];ld.innerHTML=`<dl><div><dt>S'applique à</dt><dd>${x.w}</dd></div><div><dt>Chargé</dt><dd>${x.l}</dd></div><div><dt>Exemple</dt><dd>${x.e}</dd></div></dl>`}
+L.forEach((x,i)=>{const b=document.createElement('button');b.type='button';b.className='layer';b.innerHTML=`<code>${x.c}</code><span>${x.n}</span>`;b.onclick=()=>pickL(i);layers.appendChild(b)});pickL(1);
+
+const D=["CLAUDE.md","MEMORY.md","Skill","Prompt","Nulle part"];
+const S=[
+ {t:"Nos mémoires techniques répondent toujours critère par critère.",a:0,f:"Vrai à chaque appel d'offres : c'est une règle durable."},
+ {t:"La date limite de dépôt de cette offre est le 12 mars.",a:1,f:"Ce fait ne vaut que pour cet appel d'offres. Il va dans le carnet."},
+ {t:"La procédure complète en 25 étapes pour constituer le dossier administratif.",a:2,f:"Elle ne sert que pour cette tâche. Une Skill la charge au bon moment."},
+ {t:"Résume ce règlement de consultation en cinq points.",a:3,f:"Demande ponctuelle : elle reste dans la conversation."},
+ {t:"Notre mot de passe sur la plateforme de dépôt des offres.",a:4,f:"Un secret n'a rien à faire dans un fichier d'instructions."},
+ {t:"Ne jamais déposer une offre sans ma validation.",a:0,f:"Bonne règle pour CLAUDE.md. Si l'enjeu est critique, ajoute un blocage par hook ou permission."}
+];
+let si=0,score=0;
+const sc=document.getElementById('sc'),sb=document.getElementById('sb'),sf=document.getElementById('sf'),sn=document.getElementById('sn'),snext=document.getElementById('snext');
+function showS(){
+ if(si>=S.length){sc.textContent=`Tri terminé : ${score} sur ${S.length} du premier coup.`;sb.innerHTML='';sf.textContent="Retiens la question : « Est-ce encore vrai au prochain appel d'offres ? »";sn.textContent='';snext.hidden=false;snext.textContent='Recommencer';return}
+ sc.textContent=S[si].t;sf.textContent='';sn.textContent=`Information ${si+1} sur ${S.length} · score ${score}`;snext.hidden=true;sb.innerHTML='';let tried=false;
+ D.forEach((d,k)=>{const b=document.createElement('button');b.type='button';b.className='btn-c';b.textContent=d;b.onclick=()=>{
+  if(k===S[si].a){if(!tried)score++;b.classList.add('right');[...sb.children].forEach(x=>x.disabled=true);sf.textContent=S[si].f;sn.textContent=`Information ${si+1} sur ${S.length} · score ${score}`;snext.hidden=false;snext.textContent=si===S.length-1?'Voir le résultat':'Suivante'}
+  else{tried=true;b.classList.add('wrong');b.disabled=true;sf.textContent='Pas ici. Essaie une autre destination.'}
+ };sb.appendChild(b)});
+}
+snext.onclick=()=>{if(si>=S.length){si=0;score=0}else si++;showS()};showS();
+
+const R=[["Sois clair.","Écris des phrases de 20 mots maximum, sans jargon."],["Fais attention aux données.","N'envoie aucune pièce du dossier à un service externe."],["Vérifie ton travail.","Avant de livrer, compare chaque prix au bordereau de prix."],["Utilise les bons fichiers.","Lis modeles/memoire-technique.md avant de rédiger."]];
+const rew=document.getElementById('rew');
+R.forEach(r=>{const b=document.createElement('button');b.type='button';b.className='rw';b.setAttribute('aria-pressed','false');b.innerHTML='<span class="st">FLOU</span><span class="tx"></span>';b.lastChild.textContent=r[0];b.onclick=()=>{const on=b.classList.toggle('done');b.setAttribute('aria-pressed',on);b.firstChild.textContent=on?'PRÉCIS':'FLOU';b.lastChild.textContent=r[on?1:0]};rew.appendChild(b)});
+
+const T=[
+ {h:1,t:"# Optimiser les tokens"},
+ {t:"Ne fais jamais le travail toi-même",x:"Le Claude principal coordonne. Il ne rédige pas et n'analyse pas directement. Exemple : il confie la lecture des 80 pages du cahier des charges au lieu de les charger dans la conversation."},
+ {t:"Délègue toujours à des sub-agents",x:"Chaque mission part vers un assistant séparé. Les fichiers lus restent dans sa mémoire de travail ; seul le résultat revient."},
+ {t:"Utilise Opus 5.5 pour les tâches les plus simples.",x:"La règle fixe le modèle par défaut des sub-agents pour le travail courant."},
+ {g:1},
+ {h:1,t:"## Routage des modèles"},
+ {t:"- Code simple, résumés → Opus 5.5",x:"Exemple : résumer le règlement de consultation ou corriger un petit script."},
+ {t:"- Architecture, refacto → Fable 5.1",x:"Les décisions difficiles et les réorganisations de code vont au modèle réservé aux problèmes complexes. Refacto : réécrire du code sans changer ce qu'il fait."},
+ {t:"- Contexte minimal pour chaque sub-agent",x:"Chaque assistant reçoit seulement ce qui sert à sa mission. Moins de texte envoyé, moins de tokens consommés."}
+];
+const tl=document.getElementById('tl'),tx=document.getElementById('tx');
+T.forEach((l,i)=>{if(l.g){tl.appendChild(document.createElement('br'));return}const e=document.createElement(l.h?'span':'button');e.className='ln'+(l.h?' h':'');e.textContent=l.t;if(!l.h){e.type='button';e.onclick=()=>{tl.querySelectorAll('.sel').forEach(s=>s.classList.remove('sel'));e.classList.add('sel');tx.textContent=l.x}}tl.appendChild(e)});
+tl.querySelector('button').click();
+
+const K=[
+ {t:"Résumer le règlement de consultation",m:"opus",b:"Mission : résumé en 5 points\nFichier : reglement-consultation.pdf"},
+ {t:"Corriger le script du bordereau de prix",m:"opus",b:"Mission : corriger le total ligne 12\nFichier : bordereau.py"},
+ {t:"Concevoir l'architecture du site demandé",m:"fable",b:"Mission : proposer 2 architectures\nContraintes : cahier-des-charges.pdf"},
+ {t:"Refactoriser la démo jointe à l'offre",m:"fable",b:"Mission : simplifier sans changer le comportement\nDossier : demo/"}
+];
+const tasks=document.getElementById('tasks'),route=document.getElementById('route'),brief=document.getElementById('brief'),mo=document.getElementById('m-opus'),mf=document.getElementById('m-fable');
+function pickK(i){const k=K[i];[...tasks.children].forEach((b,j)=>b.classList.toggle('right',j===i));route.classList.remove('go');void route.offsetWidth;brief.innerText=k.b;route.classList.add('go');mo.classList.toggle('hit',k.m==='opus');mf.classList.toggle('hit',k.m==='fable')}
+K.forEach((k,i)=>{const b=document.createElement('button');b.type='button';b.className='btn-c';b.textContent=k.t;b.onclick=()=>pickK(i);tasks.appendChild(b)});pickK(0);
+
+const LOOP=`Pour chaque livrable (texte, tableau, synthèse) :
+1. Produis une première version.
+2. Vérifie-la par rapport à ma demande : erreurs, imprécisions, affirmations sans preuve.
+3. Corrige, puis revérifie ta correction. Trois tours au maximum.
+4. N'invente aucun fait. Si une information n'est pas dans ce que je t'ai fourni, signale-la.
+5. Termine par un bilan de trois lignes : corrections faites, points à confirmer.
+Affiche-moi seulement la version finale et le bilan.`;
+const ORIG=`# Optimiser les tokens
+
+Ne fais jamais le travail toi-même
+Délègue toujours à des sub-agents
+Utilise Opus 5.5 pour les tâches les plus simples.
+
+## Routage des modèles
+
+- Code simple, résumés → Opus 5.5
+- Architecture, refacto → Fable 5.1
+- Contexte minimal pour chaque sub-agent`;
+const ADJ=`# Optimiser les tokens
+
+Traite toi-même les petites tâches.
+Délègue à des sub-agents les tâches longues
+ou qui demandent de lire beaucoup de fichiers.
+
+## Routage des modèles
+
+- Tâches simples et répétitives → Haiku 5.5
+- Code simple, résumés → Opus 5.5
+- Architecture, refacto → Fable 5.1
+
+## Brief de chaque sub-agent
+
+Donne uniquement l'objectif, les fichiers utiles
+et le résultat attendu.`;
+const vt=document.getElementById('vtxt'),v0=document.getElementById('v0'),v1=document.getElementById('v1');
+function ver(a){vt.textContent=a?ADJ:ORIG;v0.classList.toggle('sel',!a);v1.classList.toggle('sel',a)}
+v0.onclick=()=>ver(false);v1.onclick=()=>ver(true);ver(false);
+
+const B=[
+ {n:"Le projet",on:1,t:`# Réponses aux appels d'offres\n\nCe projet sert à préparer les réponses de notre agence web aux marchés publics.`},
+ {n:"Le style",on:1,t:`## Style\n\n- Ton factuel, phrases courtes\n- Réponds critère par critère`},
+ {n:"Les fichiers à lire",on:1,t:`## Fichiers\n\n- Lis MEMORY.md au début de chaque session\n- Modèle à suivre : modeles/memoire-technique.md`},
+ {n:"Les interdits",on:0,t:`## Interdits\n\n- N'invente jamais un prix ou une référence client\n- Ne dépose rien sans ma validation`},
+ {n:"La boucle de vérification",on:1,t:`## Boucle de vérification\n\n${LOOP}`},
+ {n:"Tes consignes tokens",on:1,t:ORIG}
+];
+const opts=document.getElementById('opts'),out=document.getElementById('out'),lc=document.getElementById('lc');
+function build(){const s=B.filter((b,i)=>opts.children[i].firstChild.checked).map(b=>b.t).join('\n\n');out.textContent=s;const n=s?s.split('\n').length:0;lc.innerHTML=`<b>${n}</b> lignes sur 200 conseillées`}
+B.forEach((b,i)=>{const l=document.createElement('label');const c=document.createElement('input');c.type='checkbox';c.id='opt'+i;c.checked=!!b.on;c.onchange=build;l.append(c,b.n);opts.appendChild(l)});build();
+
+const LS=[
+ {p:0,t:"Première version",m:"Claude rédige à partir du règlement et de vos documents.",d:[["","Délai de réalisation : 14 semaines."],["","Référence : refonte du site de la commune de Valbrune."]]},
+ {p:1,t:"Tour 1 · vérification",m:"Il compare au règlement. Le délai maximum est de 12 semaines. La référence ne figure dans aucun document fourni.",d:[["ko","Délai de réalisation : 14 semaines."],["ko","Référence : refonte du site de la commune de Valbrune."]]},
+ {p:2,t:"Tour 1 · correction",m:"Il corrige le délai. Il n'invente pas de remplacement pour la référence : il la signale.",d:[["fix","Délai de réalisation : 12 semaines."],["ask","Référence : [à confirmer, aucune source fournie]"]]},
+ {p:3,t:"Tour 2 · revérification",m:"En relisant la grille de notation, il voit qu'un critère noté n'a pas de réponse : l'accessibilité.",d:[["fix","Délai de réalisation : 12 semaines."],["ask","Référence : [à confirmer, aucune source fournie]"],["ko","Critère accessibilité : absent."]]},
+ {p:2,t:"Tour 2 · correction",m:"Il ajoute la réponse à partir de votre méthode de travail documentée.",d:[["fix","Délai de réalisation : 12 semaines."],["ask","Référence : [à confirmer, aucune source fournie]"],["fix","Accessibilité : audit RGAA à chaque livraison."]]},
+ {p:3,t:"Tour 3 · revérification",m:"Plus aucune erreur nouvelle. La boucle s'arrête, sans attendre un texte parfait.",d:[["fix","Délai de réalisation : 12 semaines."],["ask","Référence : [à confirmer, aucune source fournie]"],["fix","Accessibilité : audit RGAA à chaque livraison."]]},
+ {p:4,t:"Bilan rendu",m:"Corrections faites : délai ramené à 12 semaines, critère accessibilité ajouté. Point à confirmer : la référence client. Rien ne se dépose avant ta validation.",d:[["","Délai de réalisation : 12 semaines."],["ask","Référence : [à confirmer, aucune source fournie]"],["","Accessibilité : audit RGAA à chaque livraison."]]}
+];
+let li=0;const ph=document.getElementById('ph'),ldoc=document.getElementById('ld'),lt=document.getElementById('lt'),lm=document.getElementById('lm'),lnext=document.getElementById('lnext');
+function showL(){const x=LS[li];[...ph.children].forEach((e,k)=>e.classList.toggle('on',k===x.p));lt.textContent=x.t;lm.textContent=x.m;ldoc.innerHTML='';x.d.forEach(d=>{const e=document.createElement('div');e.className='dl '+d[0];e.textContent=d[1];ldoc.appendChild(e)});lnext.textContent=li===LS.length-1?'Recommencer':'Étape suivante'}
+lnext.onclick=()=>{li=(li+1)%LS.length;showL()};showL();
+
+const scenes=[...document.querySelectorAll('.scene')];
+const eb=document.getElementById('eb'),nt=document.getElementById('nt'),nx=document.getElementById('nx');
+const prev=document.getElementById('prev'),next=document.getElementById('next'),autoB=document.getElementById('auto'),dots=document.getElementById('dots');
+let cur=0,timer=null;const seen=new Set();
+N.forEach((n,i)=>{const b=document.createElement('button');b.className='dot';b.type='button';b.textContent=i+1;b.setAttribute('aria-label','Étape '+(i+1)+' : '+n.t);b.onclick=()=>{stopAuto();go(i)};dots.appendChild(b)});
+function go(i){
+ cur=Math.max(0,Math.min(N.length-1,i));seen.add(cur);
+ scenes.forEach(s=>s.classList.remove('on'));void scenes[cur].offsetWidth;scenes[cur].classList.add('on');
+ eb.textContent='Étape '+(cur+1)+' sur '+N.length;nt.textContent=N[cur].t;nx.innerHTML=N[cur].x;
+ prev.disabled=cur===0;next.disabled=cur===N.length-1;
+ [...dots.children].forEach((d,k)=>{d.classList.toggle('cur',k===cur);d.classList.toggle('seen',seen.has(k)&&k!==cur)});
+}
+function stopAuto(){clearInterval(timer);timer=null;autoB.textContent='▶ Lecture auto'}
+prev.onclick=()=>{stopAuto();go(cur-1)};next.onclick=()=>{stopAuto();go(cur+1)};
+document.getElementById('replay').onclick=()=>go(cur);
+autoB.onclick=()=>{if(timer){stopAuto();return}if(cur===N.length-1)go(0);autoB.textContent='❚❚ Pause';timer=setInterval(()=>{if(cur>=N.length-1){stopAuto();return}go(cur+1)},11000)};
+document.addEventListener('keydown',e=>{if(e.target.matches('input'))return;if(e.key==='ArrowRight'){stopAuto();go(cur+1)}if(e.key==='ArrowLeft'){stopAuto();go(cur-1)}});
+document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{
+ const el=document.getElementById(b.dataset.copy),t=el.textContent;
+ try{await navigator.clipboard.writeText(t);b.textContent='Copié ✓'}
+ catch(e){const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Texte sélectionné'}
+ setTimeout(()=>b.textContent='Copier',2000);
+});
+go(0);
+</script>
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>
