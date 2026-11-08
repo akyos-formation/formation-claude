@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Le RAG expliqué</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout : même famille que les autres animations du site. Pastilles d'étapes, scène interactive à gauche, pupitre de narration à droite. */
+:root{
+  --bg:#f4f4f1; --surface:#ffffff; --fg:#1d2230; --muted:#5d6475; --line:#dcdcd5;
+  --navy:#0f2a7a; --frame:#3d4a63;
+  --harn:#eeede8; --harn-line:#bdbcb3;
+  --model:#e3f4ec; --model-line:#5ea88a; --model-fg:#1f5a43;
+  --skill:#f9ebe6; --skill-line:#c8826d; --skill-fg:#8a3c25;
+  --tool:#e8f0fa; --tool-line:#7fa3d6; --tool-fg:#2b5694;
+  --rag:#ecebfb; --rag-line:#9890db; --rag-fg:#4b3fae;
+  --instr:#f6f1df; --instr-line:#c5aa55; --instr-fg:#7a5f10;
+  --guard:#fdeaea; --guard-line:#d47777; --guard-fg:#992a2a;
+  --ok:#17784f; --ok-bg:#e4f4ec; --warn:#b4400f; --warn-bg:#fdeee5;
+  --f-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111418; --surface:#1a1e25; --fg:#e8eaef; --muted:#9ca3b2; --line:#2c323d;
+  --navy:#a9bfff; --frame:#9aa8c4;
+  --harn:#1d2129; --harn-line:#3e4554;
+  --model:#16302a; --model-line:#4f9a7c; --model-fg:#8fe0bd;
+  --skill:#35211c; --skill-line:#b0705c; --skill-fg:#f0b6a2;
+  --tool:#1a2638; --tool-line:#5d82b8; --tool-fg:#a9c6f2;
+  --rag:#242242; --rag-line:#7d74c9; --rag-fg:#c3bcff;
+  --instr:#2e2a18; --instr-line:#a68e3e; --instr-fg:#ecd28a;
+  --guard:#3a1c1c; --guard-line:#b35b5b; --guard-fg:#ffb0b0;
+  --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111418; --surface:#1a1e25; --fg:#e8eaef; --muted:#9ca3b2; --line:#2c323d;
+  --navy:#a9bfff; --frame:#9aa8c4;
+  --harn:#1d2129; --harn-line:#3e4554;
+  --model:#16302a; --model-line:#4f9a7c; --model-fg:#8fe0bd;
+  --skill:#35211c; --skill-line:#b0705c; --skill-fg:#f0b6a2;
+  --tool:#1a2638; --tool-line:#5d82b8; --tool-fg:#a9c6f2;
+  --rag:#242242; --rag-line:#7d74c9; --rag-fg:#c3bcff;
+  --instr:#2e2a18; --instr-line:#a68e3e; --instr-fg:#ecd28a;
+  --guard:#3a1c1c; --guard-line:#b35b5b; --guard-fg:#ffb0b0;
+  --ok:#5fd19b; --ok-bg:#12301f; --warn:#ff9a6b; --warn-bg:#3a1e12; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+.wrap>*{min-width:0}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.05;margin:0;color:var(--navy);text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:800;font-size:1.45rem;line-height:1.15;margin:0 0 10px;color:var(--navy);text-wrap:balance}
+h3{font-size:.76rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;font-weight:600}
+p{margin:0 0 10px}
+.sub{margin:6px 0 0;color:var(--muted);max-width:72ch}
+.steps{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0;padding:0}
+.steps button{font:inherit;font-size:.82rem;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 12px;cursor:pointer}
+.steps button .n{font-family:var(--f-mono);font-weight:600;margin-right:6px}
+.steps button.done{color:var(--fg)}
+.steps button.on{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:18px;align-items:start}
+.main>*{min-width:0}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:14px}
+.stage>*{min-width:0}
+.narr{padding:4px 2px}
+.narr ul{margin:0 0 10px;padding-left:20px}
+.narr li{margin-bottom:4px}
+.so{background:var(--rag);border:1px solid var(--rag-line);color:var(--fg);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:.94rem}
+.so b{color:var(--rag-fg)}
+.nav{display:flex;justify-content:space-between;gap:8px}
+button:focus-visible,input:focus-visible,g[tabindex]:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.btn{font:inherit;font-weight:600;border:1px solid var(--navy);background:var(--navy);color:var(--bg);border-radius:8px;padding:8px 14px;cursor:pointer}
+.btn.alt{background:transparent;color:var(--navy)}
+.btn:disabled{opacity:.4;cursor:default}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:inherit;font-size:.88rem;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:6px 11px;cursor:pointer;text-align:left}
+.seg button.on{background:var(--rag);border-color:var(--rag-line);color:var(--rag-fg);font-weight:600}
+.ctl label{display:flex;justify-content:space-between;gap:10px;font-size:.92rem;margin-bottom:4px}
+.ctl b{font-family:var(--f-mono)}
+input[type=range]{width:100%;accent-color:var(--navy)}
+.mono{font-family:var(--f-mono);font-size:.82rem}
+.small{font-size:.84rem;color:var(--muted)}
+
+/* 1. Fenêtre */
+.win-row{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:18px;align-items:start}
+.win-row>*{min-width:0}
+.window{border:2.5px solid var(--frame);border-radius:10px 10px 0 0;border-bottom:none;height:280px;padding:6px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+.limit{border-top:2px dashed var(--guard-line);color:var(--guard-fg);font-size:.76rem;font-weight:600;text-align:right;padding-top:2px}
+.blk{border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:500;flex:none;min-height:0;overflow:hidden;transition:height .25s}
+.blk.base{background:var(--instr);color:var(--instr-fg)}
+.blk.pdf{background:var(--skill);color:var(--skill-fg)}
+.blk.md{background:var(--tool);color:var(--tool-fg)}
+.blk.rag{background:var(--rag);color:var(--rag-fg)}
+.outside{display:flex;flex-wrap:wrap;gap:4px;min-height:26px;margin-top:6px}
+.outside span{border:1px dashed var(--guard-line);color:var(--guard-fg);border-radius:4px;font-size:.72rem;padding:1px 6px}
+.big{font-family:var(--f-display);font-weight:800;font-size:2.3rem;line-height:1;color:var(--navy);font-variant-numeric:tabular-nums}
+.verdict{border-radius:8px;padding:8px 10px;font-size:.92rem}
+.verdict.ok{background:var(--ok-bg);color:var(--ok)}
+.verdict.ko{background:var(--warn-bg);color:var(--warn)}
+
+/* 2. R-A-G */
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;align-items:stretch}
+.st{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 8px;text-align:center;font-size:.84rem;transition:background .25s,border-color .25s,transform .25s}
+.st .L{display:block;font-family:var(--f-display);font-weight:800;font-size:1.9rem;line-height:1.1;color:var(--muted)}
+.st.lit{background:var(--rag);border-color:var(--rag-line);transform:translateY(-3px)}
+.st.lit .L{color:var(--rag-fg)}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.two>*{min-width:0}
+.card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.92rem;background:var(--bg)}
+.card.good{background:var(--ok-bg);border-color:var(--ok)}
+.card.bad{background:var(--warn-bg);border-color:var(--warn)}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:.7rem;font-weight:600;padding:1px 6px;border-radius:4px;background:var(--rag);color:var(--rag-fg);margin-left:3px;white-space:nowrap}
+
+/* 3. Préparer */
+.chain{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.chain button{font:inherit;font-size:.88rem;font-weight:600;border:1.5px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:9px 6px;cursor:pointer}
+.chain button.on{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+pre{font-family:var(--f-mono);font-size:.78rem;line-height:1.5;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.chunk{border-radius:3px;padding:1px 2px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.c0{background:var(--tool)}.c1{background:var(--skill)}.c2{background:var(--model)}.c3{background:var(--instr)}.c4{background:var(--rag)}.c5{background:var(--guard)}
+
+/* 4. Labo */
+.qs{display:grid;gap:5px}
+.qs button{font:inherit;font-size:.9rem;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:6px 10px;cursor:pointer}
+.qs button.on{background:var(--rag);border-color:var(--rag-line);color:var(--rag-fg);font-weight:600}
+.map{display:block;width:100%;height:auto;background:var(--bg);border-radius:10px}
+.map text{font-family:var(--f-body);text-anchor:middle}
+.ex{display:grid;gap:5px;list-style:none;margin:0;padding:0;font-size:.86rem}
+.ex li{border:1px solid var(--line);border-radius:7px;padding:6px 9px;background:var(--bg)}
+.ex li.use{background:var(--rag);border-color:var(--rag-line)}
+.ex .s{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+
+/* 5. Mise en œuvre */
+.reco{border:1.5px solid var(--rag-line);background:var(--rag);border-radius:12px;padding:12px 14px}
+.reco h4{font-family:var(--f-display);font-weight:800;font-size:1.2rem;margin:0 0 4px;color:var(--rag-fg)}
+.reco p:last-child{margin:0}
+.check{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.check label{display:flex;gap:9px;align-items:flex-start;font-size:.92rem;cursor:pointer}
+.check input{margin-top:4px;accent-color:var(--navy)}
+
+/* 6. Harnais */
+.hsvg-wrap{overflow-x:auto}
+.hsvg{display:block;width:100%;height:auto;min-width:560px}
+.hsvg text{font-family:var(--f-body);text-anchor:middle;fill:var(--fg);font-size:14px}
+.hsvg text.t{font-weight:600}
+.hsvg text.lab{font-family:var(--f-mono);font-size:12px;font-weight:600;text-anchor:start;fill:var(--muted);letter-spacing:.06em}
+.hsvg text.s{font-size:12px;fill:var(--muted)}
+.hsvg .fr{fill:none;stroke:var(--frame);stroke-width:1.5;stroke-dasharray:5 4}
+.hsvg .hf{fill:var(--harn);stroke:var(--harn-line);stroke-width:1.5}
+.hsvg .ar{fill:none;stroke:var(--muted);stroke-width:1.6;marker-end:url(#a)}
+.hsvg .ar.dash{stroke-dasharray:5 4}
+.hsvg g[tabindex]{cursor:pointer}
+.hsvg g rect{stroke-width:1.5;transition:stroke-width .2s}
+.hsvg g.lit rect,.hsvg g.sel rect{stroke-width:4}
+.log{list-style:none;margin:0;padding:0;font-size:.88rem;display:grid;gap:3px;max-height:220px;overflow-y:auto}
+.log li{padding-left:18px;position:relative}
+.log li::before{content:"›";position:absolute;left:4px;color:var(--rag-fg);font-weight:700}
+
+/* 7. Ranger */
+.sort{display:grid;gap:8px}
+.sort .it{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
+.sort .it p{margin:0 0 7px;font-weight:500}
+.sort .fb{margin:7px 0 0;font-size:.88rem;font-weight:400}
+.sort .seg button{font-size:.8rem;padding:4px 9px}
+.sort .seg button.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);font-weight:600}
+.sort .seg button.wrong{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+
+@media(max-width:860px){.main{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){.win-row,.two{grid-template-columns:minmax(0,1fr)}.flow{grid-template-columns:minmax(0,1fr)}.chain{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Le RAG : donner à Claude vos documents sans saturer sa mémoire</h1>
+    <p class="sub">Ce que c'est, à quoi ça sert, comment le mettre en place, et où il se range dans un projet. Exemple suivi : une agence web répond à un appel d'offres public pour le portail d'une commune, avec des documents fictifs.</p>
+  </header>
+  <ol class="steps" id="steps"></ol>
+
+  <!-- 1 -->
+  <section class="main view">
+    <div class="stage">
+      <div class="seg" id="m1" role="group" aria-label="Façon de fournir les documents"></div>
+      <div class="ctl">
+        <label for="docs"><span>Documents de 20 pages à consulter</span><b id="docsv"></b></label>
+        <input type="range" id="docs" min="1" max="10" value="3">
+      </div>
+      <div class="win-row">
+        <div>
+          <h3>Fenêtre de contexte</h3>
+          <div class="window" id="win"></div>
+          <div class="limit">limite de contexte</div>
+          <div class="outside" id="out"></div>
+        </div>
+        <div style="display:grid;gap:10px">
+          <div><div class="big" id="tok"></div><div class="small">tokens demandés, pour une fenêtre de 200 000</div></div>
+          <div class="verdict" id="verd"></div>
+          <p class="small" style="margin:0">Ordres de grandeur par PDF de 20 pages : 56 000 à 86 000 tokens en PDF (texte + image de chaque page), 30 000 à 60 000 en texte seul. La simulation prend le milieu. La taille de la fenêtre varie selon le modèle.</p>
+        </div>
+      </div>
+    </div>
+    <div class="narr">
+      <h2>Le problème : la mémoire de travail se remplit</h2>
+      <p>À chaque échange, Claude relit tout ce qui se trouve dans sa fenêtre de contexte. Un document joint y occupe de la place, même si une seule phrase vous intéresse.</p>
+      <p><b>Essayez :</b> montez à 10 documents, puis comparez les trois modes.</p>
+      <ul>
+        <li><b>PDF :</b> le plus coûteux, car chaque page est lue aussi comme une image.</li>
+        <li><b>Markdown :</b> on retire le superflu, mais tout le texte reste chargé.</li>
+        <li><b>RAG :</b> seuls les passages utiles entrent. Le coût ne dépend plus du nombre de documents.</li>
+      </ul>
+      <div class="so"><b>À retenir.</b> Markdown allège chaque document. Le RAG change de logique : on ne charge plus les documents, on va y chercher.</div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="main view" hidden>
+    <div class="stage">
+      <div class="flow" id="flow">
+        <div class="st"><span class="L">?</span>Votre question</div>
+        <div class="st"><span class="L">R</span><b>Retrieval</b><br>Récupérer les passages utiles</div>
+        <div class="st"><span class="L">A</span><b>Augmented</b><br>Les ajouter à la question</div>
+        <div class="st"><span class="L">G</span><b>Generation</b><br>Rédiger à partir d'eux</div>
+        <div class="st"><span class="L">✓</span>Réponse sourcée</div>
+      </div>
+      <div><button class="btn" id="play2">Lancer le trajet d'une question</button></div>
+      <div class="two">
+        <div class="card bad"><h3>Sans RAG : le collègue qui répond de mémoire</h3>« Nous avons une solide expérience du secteur public. » Phrase plausible, sans preuve, que l'acheteur ne pourra pas noter.</div>
+        <div class="card good"><h3>Avec RAG : le collègue qui passe aux archives</h3>Il rapporte la bonne référence, la lit, puis rédige : « Portail d'une communauté de communes, livré en 2025. » <span class="tag">Références §1</span></div>
+      </div>
+    </div>
+    <div class="narr">
+      <h2>L'idée : un examen à livre ouvert</h2>
+      <p>Un <b>RAG</b> est une technique : avant de répondre, on cherche dans <i>votre</i> base documentaire les quelques passages pertinents, on les place dans le contexte, et le modèle rédige à partir d'eux.</p>
+      <h3>À quoi ça sert</h3>
+      <ul>
+        <li>Interroger un volume qui ne tient pas dans la fenêtre</li>
+        <li>Répondre sur des informations propres à votre entreprise</li>
+        <li>Citer la source, pour que l'on puisse vérifier</li>
+        <li>Mettre à jour un document sans rien réapprendre au modèle</li>
+      </ul>
+      <h3>Ce que ce n'est pas</h3>
+      <ul>
+        <li><b>Pas un entraînement :</b> le modèle ne change pas, il lit au moment de répondre.</li>
+        <li><b>Pas une mémoire :</b> la mémoire retient ce qui s'est passé, le RAG consulte ce qui est écrit.</li>
+        <li><b>Pas un agent :</b> c'est une recherche, qu'un agent peut utiliser ou non.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="main view" hidden>
+    <div class="stage">
+      <div class="chain" id="chain"></div>
+      <div id="prep" style="display:grid;gap:10px"></div>
+    </div>
+    <div class="narr">
+      <h2>Préparer la base : le travail invisible</h2>
+      <p>Une base « RAG-ready » se construit <b>avant</b> la première question, en quatre opérations. Cliquez sur chacune.</p>
+      <p>La qualité d'un RAG dépend d'abord de la qualité de ses documents. Si la recherche ramène une attestation périmée, Claude rédigera un dossier impeccable avec une pièce périmée.</p>
+      <div class="so"><b>Le lien avec le Markdown.</b> Les titres <span class="mono">#</span> et <span class="mono">##</span> servent de lignes de découpe naturelles. C'est pour cela que l'on convertit les PDF, DOCX et PPTX.</div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="main view" hidden>
+    <div class="stage">
+      <div><h3>Choisissez une question</h3><div class="qs" id="qs"></div></div>
+      <div class="ctl">
+        <label for="k"><span>Nombre d'extraits à récupérer</span><b id="kv"></b></label>
+        <input type="range" id="k" min="1" max="5" value="3">
+      </div>
+      <svg class="map" id="map" viewBox="0 0 420 270" role="img" aria-label="Carte du sens : chaque point est un extrait, les extraits proches de la question sont retenus"></svg>
+      <ul class="ex" id="ex"></ul>
+    </div>
+    <div class="narr">
+      <h2>Chercher, puis répondre</h2>
+      <p>Chaque extrait est placé sur une <b>carte du sens</b>. La question y est placée aussi, et on retient ses plus proches voisins. La carte est ici réduite à deux dimensions ; les vraies en comptent des centaines.</p>
+      <h3>Ce qui entre dans le contexte</h3>
+      <p class="mono" id="cost"></p>
+      <div class="two" style="grid-template-columns:minmax(0,1fr)">
+        <div class="card bad"><h3>Sans RAG</h3><span id="no"></span></div>
+        <div class="card good"><h3>Avec RAG</h3><span id="yes"></span></div>
+      </div>
+      <div class="so" id="tip"></div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="main view" hidden>
+    <div class="stage">
+      <div><h3>Combien de documents ?</h3><div class="seg" id="vol"></div></div>
+      <div><h3>Où travaillez-vous ?</h3><div class="seg" id="where"></div></div>
+      <div class="reco" id="reco"></div>
+      <div><h3>Le plan de mise en place</h3><ul class="check" id="check"></ul></div>
+    </div>
+    <div class="narr">
+      <h2>Mettre en œuvre : commencer par le plus simple</h2>
+      <p>Vous n'avez pas forcément à construire un RAG. Le bon niveau dépend du volume et de l'endroit où vous travaillez.</p>
+      <p><b>Dans un projet Claude,</b> le RAG se déclenche tout seul lorsque les connaissances du projet approchent de la limite de contexte. Le seuil exact n'est pas publié et peut évoluer.</p>
+      <p><b>Dans Claude Code,</b> il n'y a pas de RAG par défaut : l'agent cherche dans les fichiers par mots et chemins, puis lit ce qu'il trouve. Des fichiers bien nommés et bien titrés font alors une grande différence.</p>
+      <div class="so"><b>Le test qui décide.</b> Préparez 20 questions dont vous connaissez la réponse et la source. Si la bonne source ne remonte pas, corrigez les documents ou le découpage avant de toucher au prompt.</div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="main view" hidden>
+    <div class="stage">
+      <div class="hsvg-wrap">
+      <svg class="hsvg" id="hsvg" viewBox="0 0 760 530" role="group" aria-label="Le RAG dans le harnais et le projet">
+        <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--muted)"/></marker></defs>
+        <rect class="fr" x="6" y="6" width="748" height="518" rx="12"/>
+        <text class="lab" x="20" y="28">PROJET</text>
+        <rect class="hf" x="24" y="112" width="712" height="326" rx="12"/>
+        <text class="lab" x="38" y="134">HARNAIS</text>
+        <path class="ar" d="M100 212V256"/><path class="ar" d="M236 212V256"/><path class="ar" d="M372 212V256"/><path class="ar" d="M508 212V256"/>
+        <path class="ar" d="M644 212C644 236 520 232 480 256"/>
+        <path class="ar" d="M644 92V148"/>
+        <path class="ar" d="M500 290H556"/>
+        <path class="ar" d="M632 326V362"/>
+        <path class="ar dash" d="M556 392H300V326"/>
+        <text class="s" x="430" y="384">non : il manque une info</text>
+        <path class="ar" d="M632 422V462"/>
+        <text class="s" x="664" y="448">oui</text>
+        <text id="ctxt" class="s" x="270" y="310">vide</text>
+      </svg>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="play6">Jouer une demande</button></div>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </div>
+    <div class="narr" id="hn"></div>
+  </section>
+
+  <!-- 7 -->
+  <section class="main view" hidden>
+    <div class="stage">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><h3>Où ranger chaque information ?</h3><b class="mono" id="score"></b></div>
+      <div class="sort" id="sort"></div>
+    </div>
+    <div class="narr">
+      <h2>Chaque information à sa place</h2>
+      <p>Dans un projet, le RAG est l'étagère des <b>connaissances volumineuses, consultées à la demande</b>. Il ne remplace ni les consignes ni la méthode.</p>
+      <h3>Les limites à connaître</h3>
+      <ul>
+        <li><b>Une erreur reste possible :</b> le modèle peut mal lire un extrait. Vérifiez les sources sur les sujets à enjeu.</li>
+        <li><b>Rien ne remonte si rien n'est trouvé :</b> un mauvais découpage fait échouer la réponse sans alerte visible.</li>
+        <li><b>Les documents vieillissent :</b> désignez un responsable et une date de révision.</li>
+        <li><b>La confidentialité compte :</b> tout le monde ne doit pas accéder à tout. Contrats, RH et données personnelles exigent des droits et un cadre RGPD.</li>
+        <li><b>Le passé peut piéger :</b> un ancien mémoire peut reprendre un engagement que l'agence ne tient plus.</li>
+      </ul>
+      <div class="so"><b>Question pour le groupe.</b> Dans votre activité, quels documents sont consultés souvent, changent parfois et ne tiennent pas dans une conversation ? Ce sont vos premiers candidats.</div>
+    </div>
+  </section>
+
+  <div class="nav">
+    <button class="btn alt" id="prev">Précédent</button>
+    <button class="btn" id="next">Suivant</button>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmt=n=>n.toLocaleString('fr-FR');
+
+/* Navigation */
+const names=['Le problème','L\'idée','Préparer','Chercher','Mettre en œuvre','Dans le harnais','Ranger'];
+const views=[...document.querySelectorAll('.view')];
+let cur=0;
+$('steps').innerHTML=names.map((n,i)=>`<li><button data-i="${i}"><span class="n">${i+1}</span>${n}</button></li>`).join('');
+$('steps').onclick=e=>{const b=e.target.closest('button');if(b)go(+b.dataset.i)};
+function go(i){
+  cur=i;views.forEach((v,j)=>v.hidden=j!==i);
+  document.querySelectorAll('#steps button').forEach((b,j)=>{b.classList.toggle('on',j===i);b.classList.toggle('done',j<i);if(j===i)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current')});
+  $('prev').disabled=i===0;$('next').disabled=i===views.length-1;
+  scrollTo({top:0,behavior:reduce?'auto':'smooth'});
+}
+$('prev').onclick=()=>go(cur-1);$('next').onclick=()=>go(cur+1);
+
+function seg(el,opts,val,cb){
+  el.innerHTML=opts.map(o=>`<button data-v="${o[0]}">${o[1]}</button>`).join('');
+  const set=v=>{[...el.children].forEach(b=>{const on=b.dataset.v===v;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});cb(v)};
+  el.onclick=e=>{const b=e.target.closest('button');if(b)set(b.dataset.v)};
+  return ()=>set(val);
+}
+
+/* 1. Fenêtre de contexte */
+const WIN=200000,BASE=5000,COST={pdf:71000,md:45000},RAGC=2000;
+let m1='pdf';
+function draw1(){
+  const n=+$('docs').value;$('docsv').textContent=n;
+  const scale=268/WIN; // hauteur utile de la fenêtre en px
+  let h=`<div class="blk base" style="height:${Math.max(18,BASE*scale)}px">Consignes + question</div>`,total=BASE,fit=0,out='';
+  if(m1==='rag'){
+    total+=RAGC;fit=n;
+    h+=`<div class="blk rag" style="height:20px">5 extraits</div>`;
+    out=`<span style="border-color:var(--rag-line);color:var(--rag-fg)">${n} document${n>1?'s':''} : restent dans la base</span>`;
+  }else{
+    const c=COST[m1];total+=n*c;
+    fit=Math.min(n,Math.floor((WIN-BASE)/c));
+    for(let i=1;i<=fit;i++)h+=`<div class="blk ${m1}" style="height:${c*scale-4}px">Document ${i}</div>`;
+    for(let i=fit+1;i<=n;i++)out+=`<span>Document ${i}</span>`;
+  }
+  $('win').innerHTML=h;$('out').innerHTML=out;$('tok').textContent=fmt(total);
+  const v=$('verd'),ok=fit===n;
+  v.className='verdict '+(ok?'ok':'ko');
+  const pct=Math.round(total/WIN*100);
+  v.textContent=m1==='rag'?`${pct<1?'Moins de 1':pct} % de la fenêtre, quel que soit le nombre de documents.`:
+    ok?`${pct} % de la fenêtre utilisés : il reste ${pct>80?'très peu':'de la'} place pour échanger.`:
+    `${n-fit} document${n-fit>1?'s':''} sur ${n} ne rentre${n-fit>1?'nt':''} pas. Il faut résumer, oublier ou recommencer.`;
+}
+seg($('m1'),[['pdf','Joindre les PDF'],['md','Convertir en Markdown'],['rag','Utiliser un RAG']],'pdf',v=>{m1=v;draw1()})();
+$('docs').oninput=draw1;
+
+/* 2. Trajet */
+let t2=[];
+$('play2').onclick=()=>{
+  t2.forEach(clearTimeout);t2=[];
+  const st=[...$('flow').children];st.forEach(s=>s.classList.remove('lit'));
+  st.forEach((s,i)=>t2.push(setTimeout(()=>{st.forEach(x=>x.classList.remove('lit'));s.classList.add('lit')},reduce?0:i*800)));
+};
+
+/* 3. Préparer */
+const CHUNKS={
+ big:{t:'Trop grands',parts:[['# Mémoire technique 2026\n## 3. Accessibilité\nAudit RGAA à chaque livraison.\n## 4. Hébergement\nDonnées hébergées en France.\n## 5. Support\nIncidents pris en charge sous 4 h ouvrées.']],v:'ko',m:'Un bloc mélange trois sujets. La recherche devient imprécise et le contexte se charge de texte inutile.'},
+ ok:{t:'Par section',parts:[['# Mémoire technique 2026\n## 3. Accessibilité\nAudit RGAA à chaque livraison.\n'],['# Mémoire technique 2026\n## 4. Hébergement\nDonnées hébergées en France.\n'],['# Mémoire technique 2026\n## 5. Support\nIncidents pris en charge sous 4 h ouvrées.']],v:'ok',m:'Un bloc, un sujet. Le titre du document est répété dans chaque bloc pour que l\'extrait reste compréhensible seul.'},
+ small:{t:'Trop petits',parts:[['## 3. Accessibilité\n'],['Audit RGAA à chaque livraison.\n'],['## 4. Hébergement\n'],['Données hébergées\n'],['en France.\n'],['Incidents pris en charge sous 4 h ouvrées.']],v:'ko',m:'Les phrases perdent leur sens : « en France », de quoi parle-t-on ?'}
+};
+let chunkMode='ok';
+const PREP=[
+ {n:'1. Trier',h:()=>`<p><b>Rassembler ce qui fait autorité, retirer le reste.</b> Une seule version par document, pas de brouillons, un responsable par source.</p>
+   <div class="two"><div class="card good"><h3>À garder</h3>Memoire-technique-2026.md<br>References-secteur-public.md<br>CV-equipe-projet.md</div><div class="card bad"><h3>À écarter</h3>Memoire_AO_v3_final_OK(2).docx<br>Attestation-assurance-2023.pdf<br>Notes-soutenance-vrac.txt</div></div>`},
+ {n:'2. Convertir',h:()=>`<p><b>Transformer PDF, DOCX et PPTX en Markdown</b>, puis relire : les tableaux et colonnes se convertissent mal.</p>
+   <div class="two"><div><h3>PDF extrait brut</h3><pre>Page 3/12 Agence Exemple
+3. Accessibilité Audit RGAA
+à chaque Page 4/12
+livraison.</pre></div><div><h3>Markdown</h3><pre># Mémoire technique 2026
+## 3. Accessibilité
+Audit RGAA à chaque
+livraison.</pre></div></div>
+   <p class="small" style="margin:0">CSV, Excel et bases Notion sont déjà structurés : gardez-les ainsi. Pour « le chiffre d'affaires des trois derniers exercices », un calcul sur le tableau est plus fiable qu'une recherche d'extraits.</p>`},
+ {n:'3. Découper',h:()=>{const c=CHUNKS[chunkMode];return `<div class="seg" id="cm">${Object.entries(CHUNKS).map(([k,v])=>`<button data-v="${k}" class="${k===chunkMode?'on':''}" aria-pressed="${k===chunkMode}">${v.t}</button>`).join('')}</div>
+   <pre>${c.parts.map((p,i)=>`<span class="chunk c${i%6}">${p[0]}</span>`).join('')}</pre><div class="verdict ${c.v}">${c.m}</div>`}},
+ {n:'4. Indexer',h:()=>`<p><b>Calculer l'empreinte de sens de chaque bloc</b> (un <i>embedding</i>) et la ranger avec ses informations de provenance. C'est ce qui permet de chercher par le sens.</p>
+   <pre>texte  : "Audit RGAA à chaque livraison."
+source : Memoire-technique-2026.md, section 3
+date   : 2026-01-15
+accès  : équipe réponse aux appels d'offres
+sens   : [0.12, -0.48, 0.33, 0.07, …]</pre>
+   <p class="small" style="margin:0">La source permet de citer, la date de préférer le plus récent, l'accès de filtrer selon la personne qui demande.</p>`}
+];
+let prep=2;
+function drawPrep(){
+  $('chain').innerHTML=PREP.map((p,i)=>`<button data-i="${i}" class="${i===prep?'on':''}" aria-pressed="${i===prep}">${p.n}</button>`).join('');
+  $('prep').innerHTML=PREP[prep].h();
+  const cm=$('cm');if(cm)cm.onclick=e=>{const b=e.target.closest('button');if(b){chunkMode=b.dataset.v;drawPrep()}};
+}
+$('chain').onclick=e=>{const b=e.target.closest('button');if(b){prep=+b.dataset.i;drawPrep()}};
+drawPrep();
+
+/* 4. Labo : recherche réelle par distance sur une carte 2D */
+const DOCS=[
+ {id:'a',x:70,y:62,src:'Mémoire §3',txt:'Accessibilité : audit RGAA à chaque livraison, déclaration de conformité publiée.'},
+ {id:'b',x:108,y:92,src:'Mémoire §3.2',txt:'Une référente certifiée intervient de la conception à la recette.'},
+ {id:'c',x:42,y:112,src:'Mémoire §4',txt:'Données hébergées en France, sauvegarde quotidienne.'},
+ {id:'d',x:310,y:58,src:'Références §1',txt:'Portail d\'une communauté de communes, 2025, 85 000 € HT.'},
+ {id:'e',x:352,y:88,src:'Références §2',txt:'Site d\'un office de tourisme départemental, 2024, 60 000 € HT.'},
+ {id:'f',x:292,y:108,src:'Références §3',txt:'Refonte du site d\'un réseau de 12 boutiques, 2025 (client privé).'},
+ {id:'g',x:96,y:212,src:'CV équipe',txt:'Direction de projet : 9 ans d\'expérience, 14 marchés publics menés.'},
+ {id:'h',x:150,y:190,src:'Planning type',txt:'Portail public : mise en ligne 5 à 6 mois après notification.'},
+ {id:'i',x:50,y:232,src:'Planning type §3',txt:'Chaque validation tardive décale le planning d\'autant.'},
+ {id:'j',x:244,y:190,src:'Administratif',txt:'Assurance responsabilité civile professionnelle valide jusqu\'au 31/12/2026.'}
+];
+const QS=[
+ {t:'Que garantir pour les usagers en situation de handicap ?',x:84,y:78,need:[['a','Un audit RGAA accompagne chaque livraison et la déclaration de conformité est publiée.'],['b','Une référente certifiée intervient de la conception à la recette.']],no:'« Nous portons une grande attention à l\'inclusion numérique. » Une belle phrase, sans engagement que l\'acheteur puisse noter.',tip:'La question parle d\'« usagers en situation de handicap ». Le mémoire parle d\'« accessibilité » et de « RGAA ». Aucun mot commun, et le passage est trouvé quand même : la recherche porte sur le sens. Essayez 1 seul extrait : la réponse devient incomplète.'},
+ {t:'Quelles références publiques récentes présenter ?',x:328,y:70,need:[['d','Portail d\'une communauté de communes, livré en 2025 pour 85 000 € HT.'],['e','Site d\'un office de tourisme départemental, livré en 2024 pour 60 000 € HT.']],no:'« Nous accompagnons de nombreuses collectivités. » Aucun nom, aucune date : le critère ne peut pas être noté.',tip:'Cette réponse combine deux extraits. Avec 1 seul, il manque une référence. Avec 3, la référence privée remonte aussi, alors que le marché demande du public : c\'est le réglage à équilibrer.'},
+ {t:'Qui dirigera le projet, et avec quelle expérience ?',x:90,y:200,need:[['g','La direction de projet est assurée par un profil de 9 ans d\'expérience, avec 14 marchés publics menés.']],no:'« Un chef de projet expérimenté sera désigné. » Générique et invérifiable.',tip:'Un seul extrait suffit ici. Remarquez que les blocs du planning remontent aussi : proches par le sens, mais ils ne répondent pas à la question.'},
+ {t:'Quel prix notre concurrent va-t-il proposer ?',x:395,y:248,need:[],no:'Le modèle risque d\'avancer un montant inventé ou approximatif.',tip:'Rien de pertinent dans la base : aucun extrait n\'est assez proche. Un bon système doit le dire. Ajoutez dans vos instructions : « Si les sources ne contiennent pas la réponse, dis-le. »'}
+];
+const RMAX=150,THRESH=.5; // score = 1 - distance/RMAX ; sous THRESH, l'extrait est écarté
+function search(q,k){
+  return DOCS.map(d=>({...d,score:Math.max(0,1-Math.hypot(d.x-q.x,d.y-q.y)/RMAX)}))
+    .sort((a,b)=>b.score-a.score).slice(0,k).filter(d=>d.score>=THRESH);
+}
+let qi=0;
+$('qs').innerHTML=QS.map((q,i)=>`<button data-i="${i}">${q.t}</button>`).join('');
+$('qs').onclick=e=>{const b=e.target.closest('button');if(b){qi=+b.dataset.i;draw4()}};
+$('k').oninput=draw4;
+function draw4(){
+  const k=+$('k').value;$('kv').textContent=k;
+  [...$('qs').children].forEach((b,i)=>{b.classList.toggle('on',i===qi);b.setAttribute('aria-pressed',i===qi)});
+  const q=QS[qi],hits=search(q,k),ids=hits.map(h=>h.id),needed=q.need.map(n=>n[0]);
+  let s=[['Engagements techniques',90,24],['Références clients',325,24],['Équipe et planning',90,172],['Administratif',260,226]].map(c=>`<text x="${c[1]}" y="${c[2]}" style="fill:var(--muted);font-size:12px">${c[0]}</text>`).join('');
+  s+=hits.map(h=>`<line x1="${q.x}" y1="${q.y}" x2="${h.x}" y2="${h.y}" style="stroke:var(--rag-line);stroke-width:1.5"/>`).join('');
+  s+=DOCS.map(d=>{const on=ids.includes(d.id);return `<circle cx="${d.x}" cy="${d.y}" r="${on?9:6}" style="fill:${on?'var(--rag-line)':'var(--harn-line)'}"><title>${d.src}</title></circle>`}).join('');
+  s+=`<path d="M${q.x} ${q.y-12}L${q.x+4} ${q.y-4}L${q.x+12} ${q.y-3}L${q.x+6} ${q.y+3}L${q.x+8} ${q.y+11}L${q.x} ${q.y+7}L${q.x-8} ${q.y+11}L${q.x-6} ${q.y+3}L${q.x-12} ${q.y-3}L${q.x-4} ${q.y-4}z" style="fill:var(--warn)"><title>Votre question</title></path>`;
+  $('map').innerHTML=s;
+  $('ex').innerHTML=hits.length?hits.map(h=>`<li class="${needed.includes(h.id)?'use':''}"><div class="s"><span>${h.src}</span><span>proximité ${h.score.toFixed(2)}</span></div>${h.txt}</li>`).join(''):'<li>Aucun extrait assez proche de la question.</li>';
+  $('cost').textContent=`${hits.length} extrait${hits.length>1?'s':''} ≈ ${fmt(hits.length*400)} tokens, sur ${DOCS.length} extraits en base`;
+  $('no').textContent=q.no;
+  let a;
+  if(!q.need.length)a='Je ne trouve pas cette information dans les documents fournis.';
+  else{
+    const got=q.need.filter(n=>ids.includes(n[0]));
+    a=got.map(n=>`${n[1]} <span class="tag">${DOCS.find(d=>d.id===n[0]).src}</span>`).join(' ');
+    if(got.length<q.need.length)a+=' <b style="color:var(--warn)">Réponse incomplète : un passage nécessaire n\'a pas été récupéré.</b>';
+  }
+  $('yes').innerHTML=a;
+  $('tip').textContent=q.tip;
+}
+draw4();
+
+/* 5. Mise en œuvre */
+const REC={
+ A:['Tout joindre, en Markdown','Peu de documents tiennent dans la fenêtre : un RAG n\'apporte rien. Convertissez, joignez, travaillez. Claude voit tout le texte, ce qui évite les extraits manqués.'],
+ B:['Un projet Claude','Déposez vos documents dans les connaissances du projet et ajoutez vos instructions. La recherche s\'active automatiquement si le volume approche de la limite. Rien à construire.'],
+ C:['Un dossier de fichiers .md, avec Claude Code ou Cowork','L\'agent parcourt le dossier, cherche et ouvre ce qu\'il lui faut. Soignez les noms de fichiers, les titres et un fichier index. Pas de base vectorielle à maintenir.'],
+ D:['Un vrai RAG, relié par MCP','Une base vectorielle alimentée automatiquement, avec gestion des droits, et reliée à Claude par un connecteur MCP ou une automatisation (n8n, Make). À cadrer avec un profil technique : c\'est un système à maintenir.']
+};
+let vol='moyen',wh='chat';
+function drawReco(){const r=REC[vol==='petit'?'A':vol==='grand'?'D':wh==='chat'?'B':'C'];$('reco').innerHTML=`<h3>Point de départ conseillé</h3><h4>${r[0]}</h4><p>${r[1]}</p>`}
+seg($('vol'),[['petit','Quelques-uns, ils tiennent en contexte'],['moyen','Plusieurs dizaines'],['grand','Des milliers, partagés en équipe']],'moyen',v=>{vol=v;drawReco()})();
+seg($('where'),[['chat','Dans des conversations'],['files','Dans un dossier sur mon ordinateur']],'chat',v=>{wh=v;drawReco()})();
+$('check').innerHTML=['Lister les 20 questions que la base doit savoir traiter','Trier les sources : une version à jour, un responsable','Convertir en Markdown et relire les tableaux','Structurer avec des titres clairs et un sujet par section','Ajouter la consigne : citer la source, dire quand on ne sait pas','Tester les 20 questions et corriger les échecs','Fixer un rythme de mise à jour'].map((t,i)=>`<li><label><input type="checkbox" id="chk${i}"><span>${t}</span></label></li>`).join('');
+
+/* 6. Harnais */
+const P={
+ obj:{x:40,y:40,w:130,h:52,l:'Objectif',c:'instr',t:'Le projet fixe le but',d:'Remettre un dossier complet et conforme avant la date limite. Sans objectif clair, impossible de savoir quels documents mettre dans la base.',v:'Le projet décide <b>quoi</b> faire. Le harnais organise <b>comment</b> le faire.'},
+ base:{x:572,y:40,w:144,h:52,l:'Base documentaire',c:'rag',t:'La base documentaire appartient au projet',d:'Mémoires techniques, références, CV et attestations, en Markdown. Elle existe hors du modèle et se met à jour sans le toucher.',v:'Changer de modèle ne change pas la base : c\'est un actif de l\'organisation.'},
+ ins:{x:40,y:150,w:120,h:62,l:'Instructions',s:'CLAUDE.md',c:'instr',t:'Instructions',d:'Les règles stables : ton, interdits, « chaque affirmation cite une preuve ». Chargées à chaque session.',v:'Courtes et toujours présentes, alors que le RAG est volumineux et consulté à la demande.'},
+ mem:{x:176,y:150,w:120,h:62,l:'Mémoire',s:'MEMORY.md',c:'model',t:'Mémoire',d:'Ce qui a évolué et a été décidé : « on ne répond plus aux marchés de moins de 20 000 € ».',v:'La mémoire raconte votre histoire de travail. Le RAG consulte des documents de référence.'},
+ ski:{x:312,y:150,w:120,h:62,l:'Skill',s:'la méthode',c:'skill',t:'Skill',d:'La façon de faire, réutilisable : analyser le règlement de consultation, suivre les critères de notation, rédiger le mémoire technique.',v:'La Skill dit <b>comment</b> faire. Le RAG apporte <b>les faits</b>, qui changent d\'un dossier à l\'autre.'},
+ too:{x:448,y:150,w:120,h:62,l:'Outils',s:'MCP, fichiers',c:'tool',t:'Outils',d:'Les moyens d\'agir : lire le règlement de consultation, remplir le bordereau de prix. Le modèle demande, le harnais exécute.',v:'Vu de l\'agent, le RAG est un outil particulier : un outil qui sert à lire.'},
+ rag:{x:584,y:150,w:120,h:62,l:'RAG',s:'recherche',c:'rag',t:'RAG : le pont entre la base et le contexte',d:'Il reçoit une recherche, interroge la base, et renvoie quelques extraits.',v:'Deux branchements : une <b>chaîne fixe</b> qui cherche à chaque question, simple et stable, ou un <b>outil de l\'agent</b>, qui décide quand et quoi chercher, pour les tâches en plusieurs étapes.'},
+ ctx:{x:40,y:258,w:460,h:68,l:'Fenêtre de contexte',c:'harn',t:'Fenêtre de contexte',d:'Ce que le modèle voit vraiment à cet instant. Tout le rôle du harnais est d\'y faire entrer le bon contenu au bon moment.',v:'Retour au point de départ : le RAG existe pour que cet espace reste disponible.'},
+ mod:{x:556,y:258,w:152,h:68,l:'Modèle',s:'Claude',c:'model',t:'Modèle',d:'Il décide, rédige, demande un outil. Il est interchangeable.',v:'Le modèle ne fouille pas la base lui-même : il ne lit que ce qui arrive dans le contexte.'},
+ gua:{x:40,y:362,w:220,h:60,l:'Garde-fous',s:'droits, données sensibles',c:'guard',t:'Garde-fous',d:'Qui a accès à quels documents, quelles références sont confidentielles, ce que l\'agent n\'a pas le droit de citer.',v:'Dans un RAG d\'équipe, le filtrage des droits doit se faire avant que l\'extrait n\'entre dans le contexte.'},
+ fin:{x:556,y:364,w:152,h:58,l:'Terminé ?',s:'boucle de vérification',c:'instr',t:'La boucle « Terminé ? »',d:'À chaque tour : la tâche est-elle finie et vérifiée ? Sinon, nouvel appel, nouvelle recherche.',v:'C\'est ici qu\'un simple RAG devient une recherche en plusieurs passes.'},
+ hum:{x:556,y:464,w:152,h:48,l:'L\'humain valide',c:'tool',t:'L\'humain décide',d:'Le dossier n\'est déposé qu\'après relecture. Les sources citées rendent cette relecture rapide.',v:'Le RAG ne supprime pas la validation : il la rend possible.'}
+};
+const svg=$('hsvg'),NS='http://www.w3.org/2000/svg';
+const LN={harn:'harn-line',instr:'instr-line',model:'model-line',skill:'skill-line',tool:'tool-line',rag:'rag-line',guard:'guard-line'};
+for(const [id,p] of Object.entries(P)){
+  const g=document.createElementNS(NS,'g');g.id='p-'+id;g.setAttribute('tabindex','0');g.setAttribute('role','button');g.setAttribute('aria-label',p.l);
+  const cx=p.x+p.w/2,ty=p.y+(p.s?p.h/2-4:p.h/2+5);
+  const fill=p.c==='harn'?'surface':p.c;
+  let inner=`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="9" style="fill:var(--${fill});stroke:var(--${LN[p.c]})"/><text class="t" x="${id==='ctx'?270:cx}" y="${id==='ctx'?p.y+24:ty}">${p.l}</text>`;
+  if(p.s)inner+=`<text class="s" x="${cx}" y="${ty+18}">${p.s}</text>`;
+  g.innerHTML=inner;
+  g.onclick=()=>pick(id);g.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(id)}};
+  svg.insertBefore(g,$('ctxt'));
+}
+function pick(id){
+  svg.querySelectorAll('g.sel').forEach(g=>g.classList.remove('sel'));
+  $('p-'+id).classList.add('sel');
+  const p=P[id];
+  $('hn').innerHTML=`<h2>${p.t}</h2><p>${p.d}</p><div class="so"><b>Par rapport au RAG.</b> ${p.v}</div><p class="small" style="margin-top:12px">Cliquez sur une autre pièce du schéma.</p>`;
+}
+$('hn').innerHTML=`<h2>Le RAG est une pièce du système</h2>
+ <p>Trois enveloppes, de l'extérieur vers l'intérieur :</p>
+ <ul><li><b>Le projet :</b> l'objectif, les documents, la personne qui valide.</li><li><b>Le harnais (<i>harness</i>) :</b> tout ce qui entoure le modèle pour le faire travailler.</li><li><b>Le modèle :</b> il raisonne sur ce qu'on lui montre.</li></ul>
+ <p>Le RAG est dans le harnais. Il va chercher dans la base du projet et dépose des extraits dans le contexte.</p>
+ <div class="so"><b>Essayez.</b> Lancez « Jouer une demande », puis cliquez sur les pièces pour comparer chacune au RAG.</div>`;
+const SCRIPT=[
+ ['ins,mem','Instructions et mémoire sont chargées au démarrage.','Instructions · Mémoire'],
+ ['ctx','Demande : « Rédige le mémoire technique pour le portail de cette commune ».','Instructions · Mémoire · Demande'],
+ ['ski','Le harnais charge la Skill « mémoire technique ».','Instructions · Mémoire · Demande · Skill'],
+ ['mod','Le modèle constate qu\'il lui manque les preuves sur l\'accessibilité.'],
+ ['rag,base','Appel du RAG : la base renvoie 2 extraits du mémoire type.','Instructions · Mémoire · Demande · Skill · 2 extraits'],
+ ['mod','Le modèle rédige la réponse, critère par critère.'],
+ ['fin','Terminé ? Non : le critère « références » n\'a pas de preuve.'],
+ ['rag,base','Second appel du RAG : 2 références publiques sont trouvées.','Instructions · Mémoire · Demande · Skill · 4 extraits'],
+ ['gua','Garde-fous : aucune référence confidentielle n\'est citée.'],
+ ['fin','Terminé ? Oui : chaque critère de notation a sa preuve.'],
+ ['hum','La personne responsable relit et dépose le dossier.']
+];
+let t6=[];
+$('play6').onclick=()=>{
+  t6.forEach(clearTimeout);t6=[];$('log').innerHTML='';$('ctxt').textContent='vide';
+  SCRIPT.forEach((s,i)=>t6.push(setTimeout(()=>{
+    svg.querySelectorAll('g.lit').forEach(g=>g.classList.remove('lit'));
+    s[0].split(',').forEach(id=>$('p-'+id).classList.add('lit'));
+    if(s[2])$('ctxt').textContent=s[2];
+    const li=document.createElement('li');li.textContent=s[1];$('log').append(li);$('log').scrollTop=1e4;
+  },reduce?0:i*1500)));
+  t6.push(setTimeout(()=>svg.querySelectorAll('g.lit').forEach(g=>g.classList.remove('lit')),reduce?0:SCRIPT.length*1500+1000));
+};
+
+/* 7. Ranger */
+const CATS=['Prompt','Instructions','Mémoire','Skill','RAG'];
+const ITEMS=[
+ ['« Rédige la réponse au critère 2 de ce règlement de consultation. »','Prompt','Une demande ponctuelle, valable pour cette fois.'],
+ ['« Chaque affirmation cite une preuve, aucune promesse chiffrée sans source. »','Instructions','Une règle stable, nécessaire à chaque échange.'],
+ ['« Depuis novembre, nous ne répondons plus aux marchés de moins de 20 000 €. »','Mémoire','Une décision qui fait évoluer le projet. Elle tient en une ligne et doit toujours être connue.'],
+ ['La méthode en 6 étapes pour construire un mémoire technique.','Skill','Une façon de faire, qui se répète à l\'identique.'],
+ ['Les 150 anciens mémoires, références et CV de l\'agence.','RAG','Un gros volume, dont seule une petite partie sert à chaque fois.'],
+ ['Le détail du portail livré à une commune en 2024.','RAG','Un fait précis à retrouver dans les archives, au moment où il sert.']
+];
+const ans={};
+$('sort').innerHTML=ITEMS.map((it,i)=>`<div class="it"><p>${it[0]}</p><div class="seg" data-i="${i}">${CATS.map(c=>`<button data-c="${c}">${c}</button>`).join('')}</div><p class="fb" id="fb${i}" hidden></p></div>`).join('');
+function score(){const n=Object.values(ans).filter(Boolean).length;$('score').textContent=`${n} / ${ITEMS.length}`}
+$('sort').onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const box=b.parentElement,i=+box.dataset.i,it=ITEMS[i],ok=b.dataset.c===it[1];
+  [...box.children].forEach(x=>x.classList.remove('right','wrong'));
+  b.classList.add(ok?'right':'wrong');
+  ans[i]=ok;
+  const f=$('fb'+i);f.hidden=false;f.textContent=ok?it[2]:'Pas tout à fait. Posez-vous la question : est-ce ponctuel, stable, évolutif, une méthode, ou un gros volume à consulter ?';
+  score();
+};
+score();
+
+go(0);
+</script>
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>
