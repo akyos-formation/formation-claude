@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Les 7 types d'agents Claude</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,750&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Mise en page : un organigramme vivant, la scène d'abord, la fiche du type à côté. */
+:root {
+  --bg: #e9eff0; --panel: #f8fbfb; --ink: #12343b; --muted: #4e6a70; --line: #b7c9cc;
+  --agent: #0f6b75; --agent-ink: #ffffff; --human: #5b3fa0; --human-ink: #ffffff;
+  --tool: #d5e3e5; --tool-ink: #12343b; --out: #1e7a4c; --out-ink: #ffffff;
+  --token: #f2a900; --token-ink: #2a1c00; --good: #1e7a4c; --bad: #b3372c;
+  --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --body: "Atkinson Hyperlegible", Verdana, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1e22; --panel: #182b30; --ink: #e4f0f1; --muted: #a2b9bd; --line: #38535a;
+  --agent: #2a9aa6; --agent-ink: #06181b; --human: #a78bea; --human-ink: #170b33;
+  --tool: #2b444b; --tool-ink: #e4f0f1; --out: #4dbb82; --out-ink: #06201a;
+  --token: #ffc23d; --token-ink: #2a1c00; --good: #5fcb92; --bad: #ff8e82; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0f1e22; --panel: #182b30; --ink: #e4f0f1; --muted: #a2b9bd; --line: #38535a;
+  --agent: #2a9aa6; --agent-ink: #06181b; --human: #a78bea; --human-ink: #170b33;
+  --tool: #2b444b; --tool-ink: #e4f0f1; --out: #4dbb82; --out-ink: #06201a;
+  --token: #ffc23d; --token-ink: #2a1c00; --good: #5fcb92; --bad: #ff8e82; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 17px/1.55 var(--body); }
+main { max-width: 1080px; margin: 0 auto; padding-block: 36px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.12; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 750; }
+h2 { font-size: 1.7rem; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; }
+.lead { max-width: 65ch; margin-top: 12px; color: var(--muted); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--token); outline-offset: 2px; }
+
+.families { display: flex; flex-wrap: wrap; gap: 14px 24px; }
+.family { display: grid; gap: 6px; min-width: 0; }
+.family > span { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { border: 1.5px solid var(--line); background: var(--panel); border-radius: 6px; padding: 7px 11px; font-size: .94rem; }
+.tab b { font-family: var(--display); margin-right: 4px; }
+.tab[aria-current="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tab.seen:not([aria-current="true"])::after { content: " ✓"; color: var(--good); font-weight: 700; }
+
+.lesson { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.stage { background: var(--panel); border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; }
+svg { display: block; width: 100%; height: auto; }
+.edge { stroke: var(--line); stroke-width: 2.5; }
+.node rect { transition: stroke .2s; stroke: transparent; stroke-width: 4; }
+.node text { font: 700 16px var(--body); text-anchor: middle; dominant-baseline: central; }
+.agent rect { fill: var(--agent); } .agent text { fill: var(--agent-ink); }
+.human rect { fill: var(--human); } .human text { fill: var(--human-ink); }
+.tool rect { fill: var(--tool); } .tool text { fill: var(--tool-ink); }
+.out rect { fill: var(--out); } .out text { fill: var(--out-ink); }
+.node.on rect { stroke: var(--token); }
+.token rect { fill: var(--token); }
+.token text { fill: var(--token-ink); font: 700 13px var(--body); text-anchor: middle; dominant-baseline: central; }
+.caption { padding: 14px 18px; min-height: 5.2em; border-top: 1.5px solid var(--line); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 18px 18px; }
+.btn { border: 1.5px solid var(--line); background: transparent; border-radius: 6px; padding: 8px 14px; }
+.btn.main { background: var(--agent); border-color: var(--agent); color: var(--agent-ink); font-weight: 700; }
+.btn[aria-pressed="true"] { background: var(--tool); color: var(--tool-ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .84rem; color: var(--muted); padding: 10px 18px 0; }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+.card { display: grid; gap: 16px; min-width: 0; }
+.where { font-size: .85rem; color: var(--muted); }
+.analogy { font-size: 1.1rem; }
+.card h3 { margin-bottom: 3px; }
+.prompt { background: var(--panel); border: 1.5px dashed var(--line); border-radius: 6px; padding: 12px 14px; font-style: italic; }
+.copy { margin-top: 8px; font-size: .86rem; padding: 4px 10px; }
+
+.quiz, .notes { border-top: 2px solid var(--ink); padding-top: 22px; display: grid; gap: 14px; }
+.situation { font-size: 1.2rem; font-weight: 700; max-width: 60ch; min-height: 3em; }
+.answers { display: flex; flex-wrap: wrap; gap: 7px; }
+.answers button.right { background: var(--good); border-color: var(--good); color: var(--bg); }
+.answers button.wrong { border-color: var(--bad); color: var(--bad); }
+.notes ul { margin: 0; padding-left: 20px; display: grid; gap: 7px; max-width: 72ch; }
+.src { font-size: .88rem; color: var(--muted); }
+.src a { color: inherit; }
+@media (max-width: 800px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<main>
+  <header>
+    <h1>Les 7 types d'agents Claude</h1>
+    <p class="lead">Un agent est un Claude qui ne se contente plus de répondre : il agit, suit une méthode ou travaille avec d'autres agents. Faites circuler le travail dans chaque schéma pour voir ce qui les distingue.</p>
+  </header>
+
+  <nav class="families" id="nav" aria-label="Les sept types"></nav>
+
+  <section class="lesson">
+    <div class="stage">
+      <div class="legend">
+        <span><i style="background:var(--human)"></i>Vous</span>
+        <span><i style="background:var(--agent)"></i>Agent</span>
+        <span><i style="background:var(--tool)"></i>Outil ou fiche</span>
+        <span><i style="background:var(--out)"></i>Résultat</span>
+      </div>
+      <svg id="svg" viewBox="0 0 520 340" role="img" aria-label="Schéma du type d'agent sélectionné"></svg>
+      <p class="caption" id="caption" aria-live="polite"></p>
+      <div class="controls" id="controls">
+        <button class="btn main" id="next"></button>
+        <button class="btn" id="auto" aria-pressed="false">Lecture automatique</button>
+        <button class="btn" id="reset">Recommencer</button>
+      </div>
+    </div>
+    <article class="card" id="card"></article>
+  </section>
+
+  <section class="quiz" id="quiz">
+    <h2>À vous : quel type choisir ?</h2>
+    <p id="qcount" class="where"></p>
+    <p class="situation" id="situation"></p>
+    <div class="answers" id="answers"></div>
+    <p id="feedback" aria-live="polite"></p>
+    <div><button class="btn" id="qnext" hidden>Situation suivante</button></div>
+  </section>
+
+  <section class="notes">
+    <h2>À garder en tête</h2>
+    <ul>
+      <li>Plusieurs agents consomment plus de votre limite d'usage qu'un seul. Commencez petit, avec deux ou trois agents.</li>
+      <li>Gardez la validation humaine pour tout ce qui part chez un client, touche à l'argent ou ne peut pas être annulé.</li>
+      <li>Les types 3 à 7 se montent surtout dans Claude Code, avec la commande <code>/agents</code>, pas dans une simple conversation sur claude.ai.</li>
+      <li>Les noms des menus changent parfois. L'aide officielle de Claude fait foi.</li>
+    </ul>
+    <p class="src">D'après le guide <a href="https://thefasttrackai.com/fr/guides/equipe">« Les 7 types d'agents Claude »</a> de The Fast Track AI, lu le 9 novembre 2026. Les situations du quiz sont des exemples ajoutés pour cet exercice.</p>
+  </section>
+</main>
+
+<script>
+const CLAUDE = "Se monte dans Claude (claude.ai ou l'application)";
+const CODE = "Se monte surtout dans Claude Code, avec des sous-agents";
+const gate = {
+  t: "L'agent s'arrête ici. La réponse est prête, mais rien ne part sans vous. Que décidez-vous ?",
+  on: ["moi"],
+  choices: []
+};
+gate.choices = [
+  { label: "Valider l'envoi", steps: [{ t: "Vous donnez le feu vert : la réponse part chez le client.", m: [["moi", "client", "envoi"]] }] },
+  { label: "Demander une correction", steps: [
+    { t: "Vous renvoyez le brouillon avec votre remarque. Le client n'a rien reçu.", m: [["moi", "agent", "à corriger"]] },
+    { t: "L'agent corrige et vous représente sa réponse.", m: [["agent", "moi", "version 2"]] },
+    gate
+  ] }
+];
+const route = { t: "Un nouveau message arrive. Lequel envoyez-vous à l'aiguilleur ?", on: ["msg"], choices: [] };
+const routeTo = (label, id, txt) => ({ label, steps: [
+  { t: "L'aiguilleur lit le message et identifie sa catégorie.", m: [["msg", "aig", "message"]] },
+  { t: txt, m: [["aig", id, "transmis"]] }, route
+] });
+route.choices = [
+  routeTo("« Je voudrais être remboursé »", "remb", "Catégorie remboursement : le message part vers l'agent qui traite ces demandes."),
+  routeTo("« Quels sont vos tarifs ? »", "pros", "Catégorie prospect : le message part vers l'agent commercial."),
+  routeTo("« Vous recrutez ? »", "autre", "Ni remboursement ni prospect : le message rejoint la catégorie autre.")
+];
+
+const TYPES = [
+  { short: "Outil", name: "L'agent outil", where: CLAUDE, analogy: "Un assistant à qui vous avez confié les clés de vos logiciels.",
+    what: "Grâce à un connecteur (un MCP), Claude lit et écrit dans vos outils comme Gmail, Notion ou HubSpot.",
+    setup: "Dans claude.ai, ajoutez le connecteur depuis les réglages, section Connecteurs. Les connecteurs disponibles dépendent de votre offre.",
+    prompt: "Lis mes mails non lus de ce matin et prépare un résumé dans ma page Notion « Suivi clients ».",
+    nodes: { moi: [70, 170, "Vous", "human"], claude: [245, 170, "Claude", "agent"], gmail: [445, 70, "Gmail", "tool"], notion: [445, 270, "Notion", "out"] },
+    edges: [["moi", "claude"], ["claude", "gmail"], ["claude", "notion"]],
+    steps: [
+      { t: "Vous donnez une consigne en langage courant.", m: [["moi", "claude", "consigne"]] },
+      { t: "Claude passe par le connecteur et ouvre vos mails non lus.", m: [["claude", "gmail", "lecture"]] },
+      { t: "Les mails reviennent à Claude, qui les résume.", m: [["gmail", "claude", "mails"]] },
+      { t: "Claude agit : il écrit le résumé dans Notion. Vous n'avez ouvert aucun logiciel.", m: [["claude", "notion", "résumé"]] }
+    ] },
+  { short: "Skills", name: "L'agent skills", where: CLAUDE, analogy: "Une fiche de procédure qu'un collègue ressort à chaque fois que le sujet revient.",
+    what: "Un skill est une fiche d'instructions que Claude recharge quand il en a besoin. Vous lui apprenez une méthode une fois, il la reproduit ensuite.",
+    setup: "Le plus simple : demandez à Claude de créer le skill lui-même, en lui disant de vous poser les questions nécessaires.",
+    prompt: "Crée un skill pour écrire ma newsletter. Pose-moi d'abord tes questions sur le ton, la structure, la longueur et l'appel à l'action.",
+    nodes: { moi: [70, 90, "Vous", "human"], claude: [260, 90, "Claude", "agent"], skill: [260, 265, "Fiche newsletter", "tool"], res: [450, 90, "Newsletter", "out"] },
+    edges: [["moi", "claude"], ["claude", "skill"], ["claude", "res"]],
+    steps: [
+      { t: "Vous demandez simplement la newsletter de la semaine, sans réexpliquer votre méthode.", m: [["moi", "claude", "demande"]] },
+      { t: "Claude reconnaît le sujet et va chercher la fiche correspondante.", m: [["claude", "skill", "recherche"]] },
+      { t: "La fiche lui rappelle le ton, la structure, la longueur et l'appel à l'action.", m: [["skill", "claude", "méthode"]] },
+      { t: "La newsletter sort selon votre méthode, cette fois comme les suivantes.", m: [["claude", "res", "texte"]] }
+    ] },
+  { short: "Chaîne", name: "Les agents en chaîne", where: CODE, analogy: "Une course de relais : chacun part de ce que le précédent lui transmet.",
+    what: "Le résultat d'un agent devient le point de départ du suivant. L'ordre est fixé à l'avance.",
+    setup: "Créez un sous-agent par rôle avec la commande /agents dans Claude Code, puis enchaînez les demandes.",
+    prompt: "Utilise l'agent design pour concevoir l'appli, passe sa maquette à l'agent développeur, puis son résultat à l'agent marketing.",
+    nodes: { a: [85, 50, "Design", "agent"], b: [215, 130, "Développeur", "agent"], c: [345, 210, "Marketing", "agent"], res: [440, 295, "Appli lancée", "out"] },
+    edges: [["a", "b"], ["b", "c"], ["c", "res"]],
+    steps: [
+      { t: "L'agent design conçoit l'appli et transmet sa maquette.", on: ["a"], m: [["a", "b", "maquette"]] },
+      { t: "L'agent développeur construit à partir de cette maquette.", m: [["b", "c", "appli"]] },
+      { t: "L'agent marketing part de l'appli terminée et la fait connaître.", m: [["c", "res", "campagne"]] },
+      { t: "Point d'attention : une erreur au début se transmet à toute la suite.", on: ["a", "b", "c", "res"], m: [] }
+    ] },
+  { short: "Parallèle", name: "Les agents en parallèle", where: CODE, analogy: "Plusieurs enquêteurs partent en même temps, chacun sur sa piste.",
+    what: "Plusieurs agents traitent des tâches au même moment, puis Claude rassemble les résultats. Utile pour une recherche sur plusieurs sujets ou l'analyse de plusieurs documents.",
+    setup: "Demandez à Claude Code de lancer un sous-agent par sujet, puis de produire une synthèse commune.",
+    prompt: "Lance un sous-agent par concurrent de cette liste, puis rassemble leurs résultats dans un tableau de synthèse.",
+    nodes: { claude: [70, 170, "Claude", "agent"], a: [260, 55, "Concurrent A", "agent"], b: [260, 170, "Concurrent B", "agent"], c: [260, 285, "Concurrent C", "agent"], res: [448, 170, "Tableau", "out"] },
+    edges: [["claude", "a"], ["claude", "b"], ["claude", "c"], ["a", "res"], ["b", "res"], ["c", "res"]],
+    steps: [
+      { t: "Claude découpe le travail : un sous-agent par concurrent.", on: ["claude"], m: [] },
+      { t: "Les trois sous-agents partent en même temps.", m: [["claude", "a", "piste"], ["claude", "b", "piste"], ["claude", "c", "piste"]] },
+      { t: "Chacun termine de son côté, puis les résultats sont rassemblés dans un seul tableau.", m: [["a", "res", "notes"], ["b", "res", "notes"], ["c", "res", "notes"]] }
+    ] },
+  { short: "Aiguilleur", name: "L'agent aiguilleur", where: CODE, analogy: "Le standardiste de l'entreprise : il ne traite pas la demande, il la dirige.",
+    what: "Il lit chaque demande et l'envoie au bon endroit.",
+    setup: "Créez un sous-agent de tri et un sous-agent par catégorie, puis confiez-lui les messages qui arrivent.",
+    prompt: "Classe chaque message en « remboursement », « prospect » ou « autre », puis transmets-le à l'agent correspondant.",
+    nodes: { msg: [70, 170, "Message", "tool"], aig: [235, 170, "Aiguilleur", "agent"], remb: [440, 55, "Remboursement", "agent"], pros: [440, 170, "Prospect", "agent"], autre: [440, 285, "Autre", "agent"] },
+    edges: [["msg", "aig"], ["aig", "remb"], ["aig", "pros"], ["aig", "autre"]],
+    steps: [route] },
+  { short: "Validation", name: "L'agent avec validation humaine", where: CODE, analogy: "Un collaborateur qui prépare le courrier et vous le présente à la signature.",
+    what: "L'agent fait tout le travail, puis attend votre feu vert avant d'envoyer. À utiliser pour tout ce qui touche à l'argent ou aux clients.",
+    setup: "Dans Claude Code, laissez les autorisations demander votre accord avant toute action sensible, et précisez-le dans la consigne.",
+    prompt: "Prépare la réponse à ce client, montre-la-moi, et n'envoie rien sans mon accord.",
+    nodes: { dem: [85, 55, "Demande client", "tool"], agent: [85, 200, "Agent", "agent"], moi: [265, 200, "Vous", "human"], client: [445, 200, "Client", "out"] },
+    edges: [["dem", "agent"], ["agent", "moi"], ["moi", "client"]],
+    steps: [
+      { t: "La demande d'un client arrive à l'agent.", m: [["dem", "agent", "demande"]] },
+      { t: "L'agent rédige la réponse et vous la présente.", m: [["agent", "moi", "brouillon"]] },
+      gate
+    ] },
+  { short: "Chef d'orchestre", name: "L'agent chef d'orchestre", where: CODE, analogy: "Un directeur marketing : il répartit le travail entre ses spécialistes, puis livre le plan.",
+    what: "Un agent principal confie les tâches à des sous-agents spécialisés et assemble leur travail. C'est le type le plus puissant.",
+    setup: "Créez les sous-agents spécialisés, puis donnez la mission à l'agent principal en lui demandant un plan d'ensemble.",
+    prompt: "Tu es directeur marketing. Confie la publicité, les réseaux sociaux et l'image de marque à tes trois sous-agents, puis livre-moi un plan d'ensemble.",
+    nodes: { moi: [70, 55, "Vous", "human"], chef: [260, 55, "Directeur", "agent"], plan: [450, 55, "Plan global", "out"], pub: [90, 250, "Publicité", "agent"], res: [260, 250, "Réseaux", "agent"], marque: [430, 250, "Marque", "agent"] },
+    edges: [["moi", "chef"], ["chef", "plan"], ["chef", "pub"], ["chef", "res"], ["chef", "marque"]],
+    steps: [
+      { t: "Vous confiez une seule mission à l'agent principal.", m: [["moi", "chef", "mission"]] },
+      { t: "Il répartit le travail : chaque spécialiste reçoit une tâche différente.", m: [["chef", "pub", "tâche"], ["chef", "res", "tâche"], ["chef", "marque", "tâche"]] },
+      { t: "Les spécialistes lui rendent leur travail.", m: [["pub", "chef", "rendu"], ["res", "chef", "rendu"], ["marque", "chef", "rendu"]] },
+      { t: "Le chef assemble le tout et vous livre un plan cohérent.", m: [["chef", "plan", "plan"]] }
+    ] }
+];
+
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const svgEl = (name, attrs, parent) => { const e = document.createElementNS(NS, name); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+let current = 0, queue = [], busy = false, gen = 0, autoTimer, finished = false;
+const seen = new Set();
+
+function renderNav() {
+  const groups = [["Dans Claude", 0, 2], ["Dans Claude Code", 2, 7]];
+  $("nav").innerHTML = groups.map(([label, a, b]) => `<div class="family"><span>${label}</span><div class="tabs">${
+    TYPES.slice(a, b).map((t, i) => `<button class="tab ${seen.has(a + i) ? "seen" : ""}" data-i="${a + i}" aria-current="${a + i === current}"><b>${a + i + 1}</b>${t.short}</button>`).join("")
+  }</div></div>`).join("");
+}
+$("nav").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if (b) select(+b.dataset.i); });
+
+function drawNode(id, [x, y, label, kind], parent) {
+  const w = Math.max(116, label.length * 8.6 + 22);
+  const g = svgEl("g", { class: `node ${kind}`, "data-id": id }, parent);
+  svgEl("rect", { x: x - w / 2, y: y - 23, width: w, height: 46, rx: 7 }, g);
+  svgEl("text", { x, y }, g).textContent = label;
+}
+
+function select(i) {
+  current = i; gen++; busy = false; finished = false; clearTimeout(autoTimer);
+  const t = TYPES[i];
+  queue = [...t.steps];
+  const svg = $("svg"); svg.innerHTML = "";
+  t.edges.forEach(([a, b]) => { const [x1, y1] = t.nodes[a], [x2, y2] = t.nodes[b]; svgEl("line", { class: "edge", x1, y1, x2, y2 }, svg); });
+  for (const id in t.nodes) drawNode(id, t.nodes[id], svg);
+  $("caption").textContent = t.analogy;
+  $("card").innerHTML = `<div><p class="where">Type ${i + 1} sur 7 · ${t.where}</p><h2>${t.name}</h2></div>
+    <p class="analogy">${t.analogy}</p>
+    <div><h3>Ce qu'il fait</h3><p>${t.what}</p></div>
+    <div><h3>Comment le mettre en place</h3><p>${t.setup}</p></div>
+    <div><h3>Exemple de consigne</h3><p class="prompt" id="prompt">${t.prompt}</p><button class="btn copy" id="copy">Copier la consigne</button></div>`;
+  $("copy").onclick = () => {
+    const done = () => { $("copy").textContent = "Consigne copiée"; };
+    const select = () => { const r = document.createRange(); r.selectNodeContents($("prompt")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("copy").textContent = "Texte sélectionné, faites Cmd ou Ctrl + C"; };
+    navigator.clipboard ? navigator.clipboard.writeText(t.prompt).then(done, select) : select();
+  };
+  showControls("Commencer");
+  renderNav();
+}
+
+function showControls(label) {
+  document.querySelectorAll("#controls .choice").forEach(b => b.remove());
+  $("next").hidden = false; $("next").textContent = label;
+}
+function light(ids) { document.querySelectorAll("#svg .node").forEach(n => n.classList.toggle("on", ids.includes(n.dataset.id))); }
+function markSeen() { if (!seen.has(current)) { seen.add(current); renderNav(); } }
+
+function moveToken(from, to, label, id) {
+  const t = TYPES[current], [x1, y1] = t.nodes[from], [x2, y2] = t.nodes[to];
+  if (calm) return Promise.resolve();
+  const g = svgEl("g", { class: "token" }, $("svg"));
+  const w = label.length * 7.2 + 16;
+  svgEl("rect", { x: -w / 2, y: -12, width: w, height: 24, rx: 12 }, g);
+  svgEl("text", {}, g).textContent = label;
+  return new Promise(res => {
+    const start = performance.now(), dur = 950;
+    (function tick(now) {
+      if (id !== gen) return res();
+      const p = Math.min(1, (now - start) / dur), e = p * p * (3 - 2 * p);
+      g.setAttribute("transform", `translate(${x1 + (x2 - x1) * e} ${y1 + (y2 - y1) * e})`);
+      if (p < 1) requestAnimationFrame(tick); else { g.remove(); res(); }
+    })(start);
+  });
+}
+
+async function advance() {
+  if (busy) return;
+  clearTimeout(autoTimer);
+  if (finished) return current < 6 ? select(current + 1) : $("quiz").scrollIntoView({ behavior: calm ? "auto" : "smooth" });
+  const s = queue.shift();
+  if (s.choices) return ask(s);
+  busy = true; $("caption").textContent = s.t;
+  const id = gen, dests = s.m.map(m => m[1]);
+  light(s.on || s.m.map(m => m[0]));
+  await Promise.all(s.m.map(([a, b, l]) => moveToken(a, b, l, id)));
+  if (id !== gen) return;
+  light(s.on || dests); busy = false;
+  if (!queue.length) { finished = true; markSeen(); showControls(current < 6 ? "Type suivant" : "Passer au quiz"); return; }
+  showControls("Étape suivante");
+  if ($("auto").getAttribute("aria-pressed") === "true") autoTimer = setTimeout(advance, 2300);
+}
+
+function ask(s) {
+  clearTimeout(autoTimer);
+  $("caption").textContent = s.t; light(s.on);
+  $("next").hidden = true;
+  document.querySelectorAll("#controls .choice").forEach(b => b.remove());
+  s.choices.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.className = "btn main choice"; b.textContent = c.label;
+    b.onclick = () => {
+      document.querySelectorAll("#controls .choice").forEach(x => x.remove());
+      queue.unshift(...c.steps);
+      if (current === 4) markSeen();
+      $("next").hidden = false; advance();
+    };
+    $("controls").insertBefore(b, $("auto"));
+  });
+}
+
+$("next").onclick = advance;
+$("reset").onclick = () => select(current);
+$("auto").onclick = e => {
+  const on = e.currentTarget.getAttribute("aria-pressed") !== "true";
+  e.currentTarget.setAttribute("aria-pressed", on);
+  clearTimeout(autoTimer);
+  if (on && !busy && !finished && !$("next").hidden) advance();
+};
+
+const QUIZ = [
+  ["Chaque matin, vous voulez que les nouveaux contacts reçus par mail soient ajoutés dans HubSpot.", 0, "Claude doit agir dans vos logiciels : c'est un connecteur qu'il vous faut."],
+  ["Vos comptes rendus de réunion doivent toujours suivre la même structure et le même ton.", 1, "Une méthode apprise une fois puis réutilisée : c'est le rôle d'un skill."],
+  ["Un brief devient une maquette, la maquette devient des pages, les pages deviennent une annonce.", 2, "Chaque étape part du résultat de la précédente, dans un ordre fixe."],
+  ["Vous devez comparer cinq prestataires sur les mêmes critères.", 3, "Le même travail sur des sujets indépendants peut se faire en même temps."],
+  ["Votre boîte de contact mélange devis, réclamations et candidatures.", 4, "Il faut d'abord trier, puis diriger chaque message vers le bon traitement."],
+  ["Vous voulez envoyer des relances pour des factures impayées.", 5, "Cela touche à l'argent et part chez un client : gardez le dernier mot."],
+  ["Vous lancez une offre : publicité, réseaux sociaux et image de marque doivent former un tout.", 6, "Des spécialités différentes, à coordonner et à assembler par un agent principal."]
+];
+let q = 0, score = 0;
+function renderQ() {
+  if (q === QUIZ.length) {
+    $("qcount").textContent = "Quiz terminé";
+    $("situation").textContent = `${score} bonne${score > 1 ? "s" : ""} réponse${score > 1 ? "s" : ""} du premier coup sur ${QUIZ.length}.`;
+    $("answers").innerHTML = ""; $("feedback").textContent = "Dans la pratique, ces types se combinent : un chef d'orchestre peut par exemple passer par une validation humaine avant l'envoi.";
+    $("qnext").textContent = "Refaire le quiz"; $("qnext").hidden = false; return;
+  }
+  const [txt] = QUIZ[q];
+  $("qcount").textContent = `Situation ${q + 1} sur ${QUIZ.length}`;
+  $("situation").textContent = txt; $("feedback").textContent = ""; $("qnext").hidden = true; $("qnext").textContent = "Situation suivante";
+  $("answers").innerHTML = TYPES.map((t, i) => `<button class="btn" data-a="${i}">${t.short}</button>`).join("");
+  $("answers").dataset.tries = 0;
+}
+$("answers").addEventListener("click", e => {
+  const b = e.target.closest("[data-a]"); if (!b || !$("qnext").hidden) return;
+  const [, good, why] = QUIZ[q], tries = +$("answers").dataset.tries;
+  if (+b.dataset.a === good) {
+    b.classList.add("right"); if (!tries) score++;
+    $("feedback").textContent = why; $("qnext").hidden = false;
+  } else {
+    b.classList.add("wrong"); b.disabled = true; $("answers").dataset.tries = tries + 1;
+    $("feedback").textContent = "Pas celui-ci. Regardez qui fait quoi, et dans quel ordre.";
+  }
+});
+$("qnext").onclick = () => { if (q === QUIZ.length) { q = 0; score = 0; } else q++; renderQ(); };
+
+select(0); renderQ();
+</script>
+<a href="index.html" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 14px system-ui,sans-serif;background:#0f2a7a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)">← Menu</a>
