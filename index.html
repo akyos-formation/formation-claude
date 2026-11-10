@@ -30,6 +30,7 @@ section{display:grid;gap:14px;scroll-margin-top:16px}
 .card b{font-family:var(--display);font-weight:600;font-size:18px;line-height:1.2}
 .card span{font-size:14px;color:var(--muted)}
 .type{justify-self:start;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--lime);color:#151a33;padding:2px 8px;border-radius:999px;margin-bottom:4px}
+.note{color:var(--muted);max-width:70ch;margin:0;font-size:15px}
 @media (prefers-reduced-motion:reduce){.card{transition:none}}
 </style>
 </head>
@@ -48,6 +49,7 @@ section{display:grid;gap:14px;scroll-margin-top:16px}
     <a href="#contexte">4. Le contexte</a>
     <a href="#methodes">5. Méthodes de travail avec Claude</a>
     <a href="#agents">6. Construire un agent</a>
+    <a href="#local">7. L'IA en local</a>
   </nav>
 
   <section id="carte">
@@ -114,6 +116,15 @@ section{display:grid;gap:14px;scroll-margin-top:16px}
       <a class="card" href="animation-agent-tri-cv.html"><span class="type">Animation</span><b>Construire un système agentique</b><span>Du modèle seul à l'agent fiable, pièce par pièce.</span></a>
       <a class="card" href="animation-7-types-agents.html"><span class="type">Animation</span><b>Les 7 types d'agents</b><span>De l'agent outil au chef d'orchestre, schémas à faire jouer et quiz.</span></a>
       <a class="card" href="schema-orchestrateur-interactif.html"><span class="type">Schéma</span><b>Qui fait quoi dans l'orchestrateur ?</b><span>Ce qui reste à vous, ce que l'IA fait seule.</span></a>
+    </div>
+  </section>
+
+  <section id="local">
+    <h2>7. L'IA en local <span>2 liens externes</span></h2>
+    <p class="note">Faire tourner un modèle d'IA directement sur son ordinateur : les données ne partent pas sur Internet et il n'y a pas de coût par requête. En contrepartie, il faut une machine puissante (beaucoup de mémoire) et les modèles locaux restent moins performants que Claude. Attention : un outil n'est vraiment « local » que si le modèle, les documents et les outils branchés sont tous configurés en local.</p>
+    <div class="grid">
+      <a class="card" href="https://localclaw.io/software" target="_blank" rel="noopener"><span class="type">Annuaire</span><b>LocalClaw : panorama des logiciels d'IA locale ↗</b><span>13 outils comparés (LM Studio, Ollama, Jan, AnythingLLM, Open WebUI, llama.cpp…) avec leurs plateformes Mac, Windows ou Linux. Pour choisir par où commencer. L'app LocalClaw elle-même est payante et réservée aux Mac Apple Silicon.</span></a>
+      <a class="card" href="https://getlocalcode.app/" target="_blank" rel="noopener"><span class="type">Application</span><b>Local Code : un agent privé sur Mac ↗</b><span>Agent qui travaille sur vos dossiers (documents, tableurs, code) avec des modèles comme Qwen ou DeepSeek, hors ligne une fois le modèle téléchargé. Gratuit en local, open source. Mac Apple Silicon, 16 Go de mémoire minimum (32 Go conseillés).</span></a>
     </div>
   </section>
 </div>
