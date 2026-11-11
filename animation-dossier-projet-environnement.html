@@ -497,62 +497,6 @@ button:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
     </div>
   </section>
 
-  <section class="syn" aria-labelledby="syn-t">
-    <h2 id="syn-t">Schéma synoptique : qui fait quoi pendant une séance</h2>
-    <p class="lead">Le même exemple, vu d'un seul coup d'œil : vous choisissez un environnement, il ouvre des dossiers sans les déplacer, et Claude travaille avec deux choses distinctes : les consignes du projet et les dossiers ouverts.</p>
-
-    <div class="layer">
-      <div class="rail"><span class="n">1</span><b>Vous</b><span>début de séance</span></div>
-      <div class="box you"><span class="who">👤 Vous</span><span>choisissez l'environnement <strong>« Préparer une formation »</strong>. Ce choix vaut pour toute la séance.</span></div>
-    </div>
-    <div class="link-down"><span></span><div>active</div></div>
-
-    <div class="layer">
-      <div class="rail"><span class="n">2</span><b>Environnement</b><span>dans l'application</span></div>
-      <div class="box envbox">
-        <div class="ttl"><b>🔑 Préparer une formation</b><small>une configuration enregistrée · aucun fichier dedans</small></div>
-        <div class="addr">
-          <code>Documents/Formations</code><code>Bureau/Charte graphique</code><code class="var">variables d'environnement : vide</code>
-        </div>
-      </div>
-    </div>
-    <div class="link-down"><span></span><div>ouvre ces adresses, sans rien copier</div></div>
-
-    <div class="layer">
-      <div class="rail"><span class="n">3</span><b>Dossiers</b><span>sur l'ordinateur</span></div>
-      <div class="disk">
-        <div class="place"><div class="path">Documents / Formations</div>
-          <div class="projbox">
-            <div class="ptag">Projet</div>
-            <div class="file-chip">CLAUDE.md<small>la notice</small></div>
-            <div class="file-chip">MEMORY.md<small>le carnet</small></div>
-            <div class="fold lit">Programmes</div>
-            <div class="fold lit">Exercices</div>
-          </div>
-        </div>
-        <div class="place"><div class="path">Bureau</div><div class="fold lit">Charte graphique<small>ouvert</small></div></div>
-        <div class="place"><div class="path">Documents / Commercial</div><div class="fold dim closed">Tarifs<small>fermé</small></div><div class="fold dim closed">Références clients<small>fermé</small></div></div>
-      </div>
-    </div>
-    <div class="link-down"><span></span><div>Claude lit et travaille</div></div>
-
-    <div class="layer">
-      <div class="rail"><span class="n">4</span><b>Séance Claude</b><span>pendant le travail</span></div>
-      <div class="session">
-        <div class="box how"><span class="k">Comment travailler · le projet</span><p>Claude relit <code>CLAUDE.md</code> (les consignes) et <code>MEMORY.md</code> (les décisions) avant de répondre.</p></div>
-        <div class="box what"><span class="k">Avec quoi · l'environnement</span><p>Il lit et utilise les dossiers ouverts : Programmes, Exercices, Charte graphique.</p></div>
-        <div class="box no"><span class="k">Hors de portée</span><p>Tarifs et Références clients restent fermés, même si vous en parlez. Pour y accéder : nouvelle séance avec « Rédiger une offre commerciale », ou ajout du dossier.</p></div>
-      </div>
-    </div>
-
-    <div class="legend">
-      <span><i style="background:var(--orange)"></i>Projet : consignes + mémoire d'une activité</span>
-      <span><i style="background:var(--lime)"></i>Ouvert par l'environnement</span>
-      <span><i style="background:rgba(255,255,255,.2)"></i>Fermé dans cette séance</span>
-    </div>
-    <p class="syn-motto">Le projet dit <em>comment</em>. L'environnement dit <em>avec quoi</em>.</p>
-  </section>
-
   <!-- Schéma A : fonctionnement d'un projet -->
   <section class="syn" aria-labelledby="sa-t">
     <h2 id="sa-t">Schéma A · Comment fonctionne un projet</h2>
@@ -659,6 +603,62 @@ button:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
       <span><i style="background:var(--orange)"></i>Modèle d'IA</span>
       <span><i style="background:var(--green)"></i>Validation humaine</span>
     </div>
+  </section>
+
+  <section class="syn" aria-labelledby="syn-t">
+    <h2 id="syn-t">Schéma synoptique : qui fait quoi pendant une séance</h2>
+    <p class="lead">Le même exemple, vu d'un seul coup d'œil : vous choisissez un environnement, il ouvre des dossiers sans les déplacer, et Claude travaille avec deux choses distinctes : les consignes du projet et les dossiers ouverts.</p>
+
+    <div class="layer">
+      <div class="rail"><span class="n">1</span><b>Vous</b><span>début de séance</span></div>
+      <div class="box you"><span class="who">👤 Vous</span><span>choisissez l'environnement <strong>« Préparer une formation »</strong>. Ce choix vaut pour toute la séance.</span></div>
+    </div>
+    <div class="link-down"><span></span><div>active</div></div>
+
+    <div class="layer">
+      <div class="rail"><span class="n">2</span><b>Environnement</b><span>dans l'application</span></div>
+      <div class="box envbox">
+        <div class="ttl"><b>🔑 Préparer une formation</b><small>une configuration enregistrée · aucun fichier dedans</small></div>
+        <div class="addr">
+          <code>Documents/Formations</code><code>Bureau/Charte graphique</code><code class="var">variables d'environnement : vide</code>
+        </div>
+      </div>
+    </div>
+    <div class="link-down"><span></span><div>ouvre ces adresses, sans rien copier</div></div>
+
+    <div class="layer">
+      <div class="rail"><span class="n">3</span><b>Dossiers</b><span>sur l'ordinateur</span></div>
+      <div class="disk">
+        <div class="place"><div class="path">Documents / Formations</div>
+          <div class="projbox">
+            <div class="ptag">Projet</div>
+            <div class="file-chip">CLAUDE.md<small>la notice</small></div>
+            <div class="file-chip">MEMORY.md<small>le carnet</small></div>
+            <div class="fold lit">Programmes</div>
+            <div class="fold lit">Exercices</div>
+          </div>
+        </div>
+        <div class="place"><div class="path">Bureau</div><div class="fold lit">Charte graphique<small>ouvert</small></div></div>
+        <div class="place"><div class="path">Documents / Commercial</div><div class="fold dim closed">Tarifs<small>fermé</small></div><div class="fold dim closed">Références clients<small>fermé</small></div></div>
+      </div>
+    </div>
+    <div class="link-down"><span></span><div>Claude lit et travaille</div></div>
+
+    <div class="layer">
+      <div class="rail"><span class="n">4</span><b>Séance Claude</b><span>pendant le travail</span></div>
+      <div class="session">
+        <div class="box how"><span class="k">Comment travailler · le projet</span><p>Claude relit <code>CLAUDE.md</code> (les consignes) et <code>MEMORY.md</code> (les décisions) avant de répondre.</p></div>
+        <div class="box what"><span class="k">Avec quoi · l'environnement</span><p>Il lit et utilise les dossiers ouverts : Programmes, Exercices, Charte graphique.</p></div>
+        <div class="box no"><span class="k">Hors de portée</span><p>Tarifs et Références clients restent fermés, même si vous en parlez. Pour y accéder : nouvelle séance avec « Rédiger une offre commerciale », ou ajout du dossier.</p></div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--orange)"></i>Projet : consignes + mémoire d'une activité</span>
+      <span><i style="background:var(--lime)"></i>Ouvert par l'environnement</span>
+      <span><i style="background:rgba(255,255,255,.2)"></i>Fermé dans cette séance</span>
+    </div>
+    <p class="syn-motto">Le projet dit <em>comment</em>. L'environnement dit <em>avec quoi</em>.</p>
   </section>
 
   <section class="quiz" id="quiz">
