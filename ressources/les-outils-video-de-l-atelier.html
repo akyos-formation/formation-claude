@@ -16,8 +16,10 @@ const seeds=[
 ['MakeMyClip Editor','MakeMyClip/editor','Nettoyer les prises, monter par la transcription et reprendre les raccords dans une timeline.','Skill + MCP'],
 ['Agentic Video Editing Collab','roysahar11/agentic-video-editing-collab','Organiser les rushes et préparer une séquence XML à reprendre dans Premiere Pro.','Skills'],
 ['FFmpeg Skill','kajisho5/ffmpeg-skill','Recadrer, ajuster le son et décliner un montage pour plusieurs formats de diffusion.','Skill + MCP'],
-['Remotion Agent Skills','remotion-dev/skills','Animer textes, formes et schémas pour créer des habillages pédagogiques réutilisables.','Skills officiels']
-].map(([title,repo,description,kind],i)=>({title,url:'https://github.com/'+repo,description,kind,category:groups[Number(i===3)],art:i}));
+['Remotion Agent Skills','remotion-dev/skills','Animer textes, formes et schémas pour créer des habillages pédagogiques réutilisables.','Skills officiels'],
+['Brag','latent-spaces/brag','Transformer le projet que l’on vient de créer en courte vidéo de lancement, en une seule commande.','Skill',1],
+['Motion Skills','hideewsj-maker/motion-skills','Créer de courtes vidéos animées et musicales (teasers, explications, données), rendues en MP4 en local, sans installer Remotion.','Skill',1]
+].map(([title,repo,description,kind,img],i)=>({title,url:'https://github.com/'+repo,description,kind,category:groups[Number(i>=3)],art:Math.min(i,3),image:img?'https://opengraph.githubassets.com/1/'+repo:''}));
 function illustration(i){
  const c=document.createElement('canvas');c.width=760;c.height=240;const g=c.getContext('2d');
  g.fillStyle=['#164b3c','#323b59','#633c2d','#593771'][i];g.fillRect(0,0,760,240);
@@ -31,7 +33,7 @@ function illustration(i){
 }
 const artwork=[0,1,2,3].map(illustration);
 function safeUrl(value){try{const u=new URL(value);if(['http:','https:'].includes(u.protocol)&&!u.username&&!u.password)return u.href}catch{}return ''}
-function read(){const value=JSON.parse(localStorage.getItem('atelier-tools-v1')||'[]');return Array.isArray(value)?value.filter(v=>v&&safeUrl(v.url)&&groups.includes(v.category)):[]}
+function read(){const value=JSON.parse(localStorage.getItem('atelier-tools-v1')||'[]');return Array.isArray(value)?value.filter(v=>v&&safeUrl(v.url)&&groups.includes(v.category)&&!seeds.some(s=>key(s.url)===key(v.url))):[]}
 let custom=[];try{custom=read()}catch{$('status').textContent='La sauvegarde locale est indisponible.'}
 function node(tag,txt,cls){const el=document.createElement(tag);el.textContent=txt;if(cls)el.className=cls;return el}
 function setImage(el,url,i){el.onerror=()=>{el.onerror=null;el.src=artwork[i]};el.src=safeUrl(url)||artwork[i]}
