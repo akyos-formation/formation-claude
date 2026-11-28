@@ -13,13 +13,22 @@
 const $=id=>document.getElementById(id);
 const groups=['Montage vidéo','Motion design'];
 const seeds=[
-['MakeMyClip Editor','MakeMyClip/editor','Nettoyer les prises, monter par la transcription et reprendre les raccords dans une timeline.','Skill + MCP'],
-['Agentic Video Editing Collab','roysahar11/agentic-video-editing-collab','Organiser les rushes et préparer une séquence XML à reprendre dans Premiere Pro.','Skills'],
-['FFmpeg Skill','kajisho5/ffmpeg-skill','Recadrer, ajuster le son et décliner un montage pour plusieurs formats de diffusion.','Skill + MCP'],
-['Remotion Agent Skills','remotion-dev/skills','Animer textes, formes et schémas pour créer des habillages pédagogiques réutilisables.','Skills officiels'],
-['Brag','latent-spaces/brag','Transformer le projet que l’on vient de créer en courte vidéo de lancement, en une seule commande.','Skill',1],
-['Motion Skills','hideewsj-maker/motion-skills','Créer de courtes vidéos animées et musicales (teasers, explications, données), rendues en MP4 en local, sans installer Remotion.','Skill',1]
-].map(([title,repo,description,kind,img],i)=>({title,url:'https://github.com/'+repo,description,kind,category:groups[Number(i>=3)],art:Math.min(i,3),image:img?'https://opengraph.githubassets.com/1/'+repo:''}));
+['MakeMyClip Editor','MakeMyClip/editor','Nettoyer les prises, monter par la transcription et reprendre les raccords dans une timeline.','Skill + MCP',0,0],
+['Agentic Video Editing Collab','roysahar11/agentic-video-editing-collab','Organiser les rushes et préparer une séquence XML à reprendre dans Premiere Pro.','Skills',0,1],
+['FFmpeg Skill','kajisho5/ffmpeg-skill','Recadrer, ajuster le son et décliner un montage pour plusieurs formats de diffusion.','Skill + MCP',0,2],
+['HyperFrames','heygen/hyperframes','Transforme une page web en vidéo.','Outil',0,0],
+['Remotion','remotion-dev/remotion','Fabrique des vidéos avec du code React.','Outil',0,1],
+['OpenScreen','getopenscreen/openscreen','Enregistre votre écran pour une démo propre.','Outil',0,2],
+['FFmpeg','FFmpeg/FFmpeg','Convertit et exporte vos fichiers vidéo.','Outil',0,0],
+['Remotion Agent Skills','remotion-dev/skills','Animer textes, formes et schémas pour créer des habillages pédagogiques réutilisables. Apprend aussi à votre agent à utiliser Remotion.','Skills officiels',1,3],
+['Brag','latent-spaces/brag','Transformer le projet que l’on vient de créer en courte vidéo de lancement, en une seule commande.','Skill',1,3,1],
+['Motion Skills','hideewsj-maker/motion-skills','Créer de courtes vidéos animées et musicales (teasers, explications, données), rendues en MP4 en local, sans installer Remotion.','Skill',1,3,1],
+['onetake','feitangyuan/onetake','Crée une animation en un seul plan continu.','Outil',1,3],
+['GSAP','greensock/GSAP','Anime des pages web de façon fluide.','Librairie',1,3],
+['huashu-motion','alchaincyf/huashu-motion','Génère une animation avec sa propre musique.','Outil',1,3],
+['EffectCraft','storytold/effectcraft','Un studio d’effets visuels gratuit.','Outil',1,3],
+['anything2explainer','vincentwei1021/anything2explainer','Vous donnez un sujet, il produit une vidéo explicative commentée.','Outil',1,3]
+].map(([title,repo,description,kind,category,art,img])=>({title,url:'https://github.com/'+repo,description,kind,category:groups[category],art,image:img?'https://opengraph.githubassets.com/1/'+repo:''}));
 function illustration(i){
  const c=document.createElement('canvas');c.width=760;c.height=240;const g=c.getContext('2d');
  g.fillStyle=['#164b3c','#323b59','#633c2d','#593771'][i];g.fillRect(0,0,760,240);
