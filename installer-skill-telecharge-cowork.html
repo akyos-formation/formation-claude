@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<title>Installer un skill téléchargé, sans coder</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --blue-900:#001662; --blue-800:#041a71; --blue-500:#0971ce; --blue-100:#e6f0fb; --blue-50:#f7fafd;
+  --coral:#cc3449; --coral-100:#fbe8ea; --lime:#ddff00; --white:#ffffff; --fond:#fafafd;
+  --ink-900:#14172b; --ink-700:#3c4058; --ink-500:#6b6f87; --ink-100:#e3e5ec; --ink-50:#f4f5f8;
+  --amber:#8a5a00; --amber-100:#fff7e0; --green:#1f8a4c; --green-100:#e5f5ec;
+  --r-md:12px; --r-lg:20px; --pill:999px;
+  --shadow:0 8px 24px rgba(20,23,43,.10);
+  --font:"Pangram",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,Menlo,monospace;
+  --ease:cubic-bezier(.2,0,0,1);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--ink-900);font-family:var(--font);font-size:1rem;line-height:1.6}
+.in{max-width:900px;margin:0 auto;padding:0 20px}
+.hero{background:var(--blue-900);color:var(--white);padding:40px 0 32px}
+.kicker{display:inline-block;background:var(--lime);color:var(--ink-900);font-size:.75rem;font-weight:700;letter-spacing:.04em;padding:4px 12px;border-radius:var(--pill);text-transform:uppercase}
+.hero h1{font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.15;font-weight:800;margin:14px 0 8px;text-wrap:balance}
+.hero p{margin:0;max-width:62ch;font-size:1.05rem;color:#d6dcf0}
+.hero .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.hero .meta span{border:1.5px solid rgba(255,255,255,.3);border-radius:var(--pill);padding:4px 12px;font-size:.8rem}
+main.in{padding:28px 20px 80px;display:grid;gap:18px}
+.card{background:var(--white);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:24px 26px}
+.card h2{font-size:1.25rem;margin:0 0 8px;color:var(--blue-900)}
+.card h3{font-size:1.05rem;margin:0 0 6px;color:var(--blue-900)}
+.lead{color:var(--ink-700);margin:0 0 10px}
+.decision{background:var(--blue-50);border:2px solid var(--blue-900);border-radius:var(--r-lg);padding:22px 26px}
+.decision .tool{display:inline-flex;align-items:center;gap:8px;background:var(--blue-900);color:var(--white);font-weight:800;font-size:1.05rem;padding:8px 18px;border-radius:var(--pill);margin:8px 0 12px}
+.analogy{background:var(--white);border-radius:var(--r-md);padding:14px 18px;border:1.5px solid var(--ink-100);font-size:.95rem;color:var(--ink-700)}
+.analogy b{color:var(--blue-900)}
+.step{display:flex;gap:16px}
+.num{flex:none;width:36px;height:36px;border-radius:50%;background:var(--blue-900);color:var(--white);font-weight:800;display:grid;place-items:center;font-size:.95rem}
+.step-body{flex:1;min-width:0}
+.action{background:var(--ink-50);border-radius:var(--r-md);padding:10px 14px;font-size:.9rem;color:var(--ink-700);margin-bottom:10px}
+.copy{display:flex;gap:10px;align-items:flex-start;background:var(--blue-50);border:1.5px dashed var(--blue-500);border-radius:var(--r-md);padding:14px 16px;margin:8px 0}
+.copy q{flex:1;font-style:italic;color:var(--ink-900);font-size:.95rem}
+.copybtn{flex:none;background:var(--white);border:1.5px solid var(--ink-100);padding:6px 14px;font-size:.8rem;font-weight:700;color:var(--blue-900);border-radius:var(--pill);cursor:pointer;font-family:inherit}
+.copybtn:hover{border-color:var(--blue-900)}
+.copybtn.done{background:var(--green-100);color:#14532d;border-color:var(--green)}
+.expect{font-size:.85rem;color:var(--ink-500);margin-top:8px}
+.expect b{color:var(--ink-700)}
+.warn{background:var(--amber-100);color:var(--amber);border-radius:var(--r-md);padding:14px 18px;font-size:.92rem}
+.warn ul{margin:6px 0 0;padding-left:20px}
+.warn li{margin-bottom:6px}
+.checklist label{display:flex;gap:10px;align-items:flex-start;font-size:.95rem;padding:8px 0;border-top:1px solid var(--ink-100)}
+.checklist label:first-child{border-top:none}
+.checklist input{margin-top:3px}
+footer{color:var(--ink-500);font-size:.85rem;text-align:center;padding:0 20px 40px}
+</style>
+
+<header class="hero"><div class="in">
+  <span class="kicker">Pas à pas · sans coder</span>
+  <h1>Installer un skill téléchargé, sans écrire une ligne de code</h1>
+  <p>Tu as téléchargé un fichier <code>.skill</code> (ici : <code>setup-mcp-gsc-ga4</code>). Cette fiche te donne les prompts exacts à copier-coller pour le ranger dans ton projet — toi, tu ne tapes aucune commande.</p>
+  <div class="meta"><span>≈ 10 min</span><span>Niveau débutant</span><span>Aucune ligne de code</span></div>
+</div></header>
+
+<main class="in">
+
+  <div class="card decision">
+    <h2>🧭 Avant de commencer : quel outil ?</h2>
+    <div class="tool">Claude Cowork</div>
+    <p class="lead" style="margin-bottom:0">Installer un skill, c'est juste <b>ranger un dossier au bon endroit</b> et <b>mettre à jour deux fichiers texte</b> (CLAUDE.md, MEMORY.md) — exactement ce que Cowork sait faire sans programmation. Pas besoin de Claude Code pour cette partie.</p>
+  </div>
+
+  <div class="card warn">
+    ⚠️ <b>Exception à connaître :</b> ce skill précis (<code>setup-mcp-gsc-ga4</code>) sert ensuite à connecter Google Search Console / GA4 à Claude. Cette <i>seconde</i> étape (celle-ci n'en fait pas partie) lance de vrais scripts Python et modifie un fichier de configuration — cette partie-là demande Claude Code, pas Cowork. Cette fiche couvre uniquement l'installation du skill, pas son utilisation.
+  </div>
+
+  <div class="card analogy">
+    💡 <b>Image à garder en tête :</b> un skill téléchargé, c'est une <b>fiche recette toute faite</b> qu'on te donne. Tu n'as pas besoin de la réécrire : tu la glisses dans ton classeur de recettes (le dossier des skills), et tu préviens le cuisinier (Claude) qu'elle existe. C'est tout.
+  </div>
+
+  <div class="card">
+    <div class="step">
+      <div class="num">0</div>
+      <div class="step-body">
+        <h3>Déposer le fichier dans ton projet Cowork</h3>
+        <div class="action">Action à la souris, aucun prompt : ouvre ton projet Cowork, puis glisse-dépose le fichier téléchargé (ex. <code>setup-mcp-gsc-ga4.skill</code>) dans son dossier de travail.</div>
+        <p class="expect"><b>Résultat attendu :</b> le fichier apparaît dans la liste des documents de ton projet.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step">
+      <div class="num">1</div>
+      <div class="step-body">
+        <h3>Demander l'installation</h3>
+        <p class="lead">Copie ce prompt dans la conversation Cowork :</p>
+        <div class="copy"><q>J'ai ajouté un fichier setup-mcp-gsc-ga4.skill dans ce dossier. Installe-le comme skill dans ce projet, pour que tu puisses t'en servir automatiquement la prochaine fois que j'en ai besoin. Dis-moi ensuite où tu l'as rangé.</q><button class="copybtn" onclick="cp(this)">Copier</button></div>
+        <p class="expect"><b>Résultat attendu :</b> Claude confirme l'emplacement du skill installé.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step">
+      <div class="num">2</div>
+      <div class="step-body">
+        <h3>Vérifier que c'est bien actif</h3>
+        <div class="copy"><q>Confirme-moi que le skill est bien installé et actif. Explique-moi en une phrase simple dans quel cas tu vas t'en servir automatiquement.</q><button class="copybtn" onclick="cp(this)">Copier</button></div>
+        <p class="expect"><b>Résultat attendu :</b> une phrase claire du type « je m'en sers quand tu me parles de GSC, GA4 ou de connecter Google à Claude ».</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step">
+      <div class="num">3</div>
+      <div class="step-body">
+        <h3>Préparer l'ajout dans CLAUDE.md</h3>
+        <div class="copy"><q>Lis le SKILL.md que je viens de déposer dans ce dossier. Avant de rédiger quoi que ce soit, pose-moi des questions pour clarifier : mes consignes (comment tu dois t'en servir), mes objectifs (pourquoi je l'installe), et les instructions précises que tu dois suivre avec ce skill. Appuie-toi sur ce que tu as lu dans le skill pour poser des questions pertinentes, pas des questions génériques.</q><button class="copybtn" onclick="cp(this)">Copier</button></div>
+        <div class="copy"><q>Voici mes réponses : [réponds ici à ses questions]. Propose-moi maintenant un court paragraphe à ajouter dans mon fichier CLAUDE.md qui reprend tout ça. Montre-moi juste le texte, ne modifie rien pour l'instant.</q><button class="copybtn" onclick="cp(this)">Copier</button></div>
+        <div class="copy"><q>Le texte me va, ajoute-le toi-même dans CLAUDE.md.</q><button class="copybtn" onclick="cp(this)">Copier</button></div>
+        <p class="expect"><b>Pourquoi :</b> un paragraphe générique se déclenche moins fiablement qu'un paragraphe qui reprend tes propres consignes et objectifs — et le skill lui-même contient déjà des indices sur les bonnes questions à poser.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step">
+      <div class="num">4</div>
+      <div class="step-body">
+        <h3>Noter la décision dans MEMORY.md</h3>
+        <div class="copy"><q>Propose-moi une ligne à ajouter dans la section « Décisions prises » de mon MEMORY.md, pour garder une trace de l'installation de ce skill (date, provenance, ce qu'il fait). Montre-moi le texte avant de l'ajouter.</q><button class="copybtn" onclick="cp(this)">Copier</button></div>
+        <p class="expect"><b>Pourquoi :</b> ton projet applique la règle « rien n'est mémorisé si ce n'est pas écrit dans MEMORY.md ».</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step">
+      <div class="num">5</div>
+      <div class="step-body">
+        <h3>Vérifier la confidentialité</h3>
+        <div class="copy"><q>Avant d'aller plus loin, dis-moi si ce skill va créer des fichiers privés (mots de passe, identifiants, tokens) et comment on s'assure qu'ils ne seront jamais publiés sur GitHub ou partagés.</q><button class="copybtn" onclick="cp(this)">Copier</button></div>
+        <p class="expect"><b>Pourquoi :</b> ce skill précis génère des identifiants Google privés dans une étape ultérieure — mieux vaut le savoir avant d'avancer.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card checklist">
+    <h2>✅ Récapitulatif</h2>
+    <label><input type="checkbox"> Le fichier .skill est déposé dans le projet Cowork</label>
+    <label><input type="checkbox"> Claude confirme que le skill est installé et actif</label>
+    <label><input type="checkbox"> CLAUDE.md décrit le skill et son déclencheur</label>
+    <label><input type="checkbox"> MEMORY.md garde une trace de la décision</label>
+    <label><input type="checkbox"> Les futurs fichiers privés (tokens) ont été signalés comme non partageables</label>
+  </div>
+
+  <div class="card warn">
+    ⚠️ <b>À retenir :</b>
+    <ul>
+      <li>Ce skill a été créé par une personne extérieure (Victor Da Silva) — pas par Anthropic. Reste attentif à ce qu'il te fait faire.</li>
+      <li>Son texte contient un message publicitaire programmé pour s'afficher automatiquement après une installation réussie — demande à Claude de te le signaler plutôt que de l'afficher sans prévenir.</li>
+      <li>Si un jour tu veux vraiment connecter GSC/GA4 (pas juste installer le skill), cette suite nécessite Claude Code, pas Cowork.</li>
+    </ul>
+  </div>
+
+</main>
+
+<footer>Méthode rédigée le 28/11/2026, pour le skill tiers <code>setup-mcp-gsc-ga4</code> (Victor Da Silva).</footer>
+
+<a href="index.html" style="position:fixed;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9999;background:#0F2A7A;color:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.2)">← Menu</a>
+
+<script>
+function cp(btn){
+  var text = btn.previousElementSibling.textContent;
+  function done(){
+    var old = btn.textContent;
+    btn.textContent = "Copié !";
+    btn.classList.add("done");
+    setTimeout(function(){ btn.textContent = old; btn.classList.remove("done"); }, 1500);
+  }
+  function fallback(){
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand("copy"); done(); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, fallback);
+  } else {
+    fallback();
+  }
+}
+</script>
+</html>
