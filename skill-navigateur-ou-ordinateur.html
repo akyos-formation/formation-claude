@@ -92,6 +92,10 @@ pre{margin:10px 0 0;padding:14px;background:var(--card);border:1px solid var(--l
 .toast.on{opacity:1}
 @media(max-width:959px){.side{order:-1}.track{height:110px}}
 @media(prefers-reduced-motion:reduce){.toast{transition:none}#needle{transition:none!important}}
+.quick{background:var(--soft);border-bottom:1px solid var(--line)}
+.qsteps{margin:12px 0 0;padding-left:22px;font-size:16px}
+.qsteps li{margin-bottom:4px}
+.qor{margin-top:14px;font-size:16px;color:var(--mut)}
 </style>
 </head>
 <body>
@@ -99,8 +103,25 @@ pre{margin:10px 0 0;padding:14px;background:var(--card);border:1px solid var(--l
 <a href="index.html" style="position:fixed;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9999;background:#0F2A7A;color:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.2)">← Menu</a>
 <header class="band top"><div class="in">
   <h1>Ce skill va-t-il marcher dans le navigateur&nbsp;?</h1>
-  <p>Répondez à 7 questions simples, sans ouvrir le code. L’aiguillage indique si le skill fonctionnera sur claude.ai, dans le navigateur, ou s’il a besoin de l’application Claude installée sur votre ordinateur (Cowork).</p>
+  <p>Le plus simple : demandez-le à Claude (juste en dessous). Ou répondez à 7 questions simples, sans ouvrir le code. L’aiguillage indique si le skill fonctionnera sur claude.ai, dans le navigateur, ou s’il a besoin de l’application Claude installée sur votre ordinateur (Cowork).</p>
 </div></header>
+
+<section class="band quick" aria-labelledby="qq"><div class="in">
+  <h2 id="qq">La méthode la plus simple : demandez à Claude</h2>
+  <ol class="qsteps">
+    <li>Ouvrez une conversation sur claude.ai.</li>
+    <li>Joignez le skill (fichier .zip ou .skill) avec le trombone. Si Claude n’arrive pas à l’ouvrir, double-cliquez dessus pour le décompresser et joignez le fichier SKILL.md.</li>
+    <li>Collez le texte ci-dessous et envoyez.</li>
+  </ol>
+  <pre id="prompt">Voici un skill en pièce jointe. Je suis débutant et je ne lis pas le code.
+Lis tous ses fichiers (SKILL.md, scripts, fichiers JSON) sans rien exécuter, puis dis-moi :
+1. Ce skill doit-il s'utiliser sur claude.ai, dans le navigateur, ou dans l'application Claude installée sur mon ordinateur (Claude Desktop, avec Cowork) ? Réponds par NAVIGATEUR, ORDINATEUR ou LES DEUX.
+2. Quelle phrase ou quelle ligne du skill le montre ? Cite-la.
+3. Si je peux l'utiliser dans le navigateur avec une adaptation, ce que je dois faire à la place (par exemple joindre un fichier au lieu de donner un dossier).
+Explique sans jargon, en 5 lignes maximum.</pre>
+  <button class="btn" type="button" id="copyPrompt" style="margin-top:10px">Copier le prompt</button>
+  <p class="qor">Vous voulez comprendre pourquoi ? Faites le test en 7 questions ci-dessous.</p>
+</div></section>
 
 <div class="band"><div class="in layout">
   <main>
@@ -127,17 +148,6 @@ pre{margin:10px 0 0;padding:14px;background:var(--card);border:1px solid var(--l
         <div><span class="tag t-pc">Ordinateur</span><span>Il a besoin de l’application Claude installée sur votre Mac ou votre PC, avec accès à vos dossiers (Cowork), ou de Claude Code pour certains réglages avancés.</span></div>
       </div>
       <p style="margin-top:14px;font-size:16px;color:var(--mut)">Sur claude.ai, ajouter ses propres skills demande une offre payante (Pro, Max, Ultra, Team ou Enterprise) et l’exécution de code activée dans les réglages.</p>
-    </div>
-    <div>
-      <h3>Le prompt pour faire vérifier un skill par Claude</h3>
-      <p style="font-size:16px;color:var(--mut);margin-top:6px">Ouvrez une conversation sur claude.ai, joignez le skill (fichier .zip ou .skill), puis collez ce texte.</p>
-      <pre id="prompt">Voici un skill que je veux utiliser. Je suis débutant et je ne lis pas le code.
-Lis tous ses fichiers (SKILL.md, scripts, fichiers JSON) sans rien exécuter, puis dis-moi :
-1. Fonctionne-t-il dans le navigateur, sur claude.ai ? Réponds par OUI, NON ou EN PARTIE.
-2. S'il a besoin de mon ordinateur, quelle phrase ou quelle ligne le montre ? Cite-la.
-3. Si je l'utilise dans le navigateur, ce que je dois faire à la place (par exemple joindre un fichier au lieu de donner un dossier).
-Explique sans jargon, en 5 lignes maximum.</pre>
-      <button class="btn" type="button" id="copyPrompt" style="margin-top:10px">Copier le prompt</button>
     </div>
   </div>
 </div></section>
